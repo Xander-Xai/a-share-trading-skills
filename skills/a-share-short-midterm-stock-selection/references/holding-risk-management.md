@@ -1,175 +1,248 @@
-# Holding and Risk Management v2
+# Holding & Risk Management v3
 
-## 0. Governing policy
+> 本文件展开短中期持仓与风险规则。
+>
+> 最高资本/风险规则：`../../../shared/capital-allocation-and-entry-policy.md`。
+> 涉及模型参数变更：`../../../shared/research-model-governance.md`。
+> 涉及 Paper/Live/Broker：`../../../shared/automation-execution-governance.md`。
 
-This reference is subordinate to:
+## 1. 三层风险必须同时通过
 
-```text
-../../../shared/policy-precedence.md
-../../../shared/capital-allocation-and-entry-policy.md
-../SKILL.md
-```
-
-If any number here conflicts with shared policy, shared policy wins.
-
-## 1. Goal
-
-Convert a stock-selection result into a repeatable short/mid-term execution plan.
-
-Default mode is 5–15 trading days. A position may extend to roughly 15–60 trading days only after explicit re-underwriting; it must never drift longer simply because the trader refuses to realize a loss.
-
-Priority:
-
-1. survive,
-2. preserve optionality,
-3. exploit asymmetric setups,
-4. add only when thesis is working,
-5. learn from process quality.
-
-## 2. Define the trade before entry
-
-Every trade must specify:
-
-- thesis,
-- setup type,
-- entry trigger,
-- invalidation condition,
-- stop/invalidation price,
-- realistic gap-risk scenario,
-- expected first target/management zone,
-- maximum account loss,
-- strategy tranche structure,
-- event dates,
-- sector/factor exposure.
-
-Do not enter first and invent the plan later.
-
-## 3. Risk-based sizing
-
-Let:
+每笔交易不能只看“这只短线仓位多大”。必须同时满足：
 
 ```text
-E = planned entry
-S = invalidation / stop
-R_account = allowed currency loss
+A. Strategy Risk
+   per-trade risk / portfolio heat / factor heat
+
+B. Strategy Capital Exposure
+   单股、行业/因子、Final Short Cap
+
+C. Account-level Aggregate Exposure
+   长期 + 短中期同股/同因子合计
 ```
 
-Then:
+任一层失败，缩仓或跳过。
+
+## 2. Final Short Cap
 
 ```text
-shares ≈ R_account / abs(E - S)
+Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
 ```
 
-Round down to an executable board lot and apply capital-concentration limits.
+它是账户级短中期**新风险上限**，不是必须填满的目标。
+
+新订单必须满足：
+
+```text
+Planned Post-Trade Short Exposure <= Final Short Cap
+```
+
+没有有效 setup：保持现金。
+
+### 被动超限
+
+价格上涨可能在无新订单时造成：
+
+```text
+Actual Short Exposure > Final Short Cap
+```
+
+此时：
+
+```text
+state = CAP_BREACH
+→ 禁止增加短中期风险
+→ 进入现实可执行的再平衡/利润回流
+```
+
+不是“规则失效”，也不能用漂移带继续加仓。
+
+## 3. Operating Target 与 Hard Ceiling
 
 ### Operating Target
 
+以当前短中期策略 NAV 为风险分母：
+
 ```text
-per trade planned risk: 0.5% of strategy NAV
-aggregate open initial risk: <= 2%
-aggregate initial risk per industry/factor cluster: <= 1%
+单笔计划亏损：0.5%
+全部未平仓初始风险：≤2%
+单一行业/因子初始风险：≤1%
 ```
 
 ### Hard Ceiling
 
 ```text
-per trade planned risk: <= 1%
-aggregate open initial risk: <= 3%
+单笔计划亏损：≤1%
+全部未平仓初始风险：≤3%
 ```
 
-A wider stop requires a smaller position. Never widen the stop just to keep a preferred position size.
+0.5%/2% 是正常运行目标；1%/3% 是新计划风险硬上限。
 
-Moving above the 0.5% operating target requires validated Edge, favorable regime and a high-quality setup. The 1%/3% hard ceilings are never exceeded.
+真实跳空、跌停可能让实际亏损超过计划风险，因此 stop 不是保证成交价。尾部超损必须记录 risk event，不能反向把 Hard Ceiling 解释成最大实际亏损保证。
 
-## 4. Gap-adjusted risk
+## 4. 仓位计算
 
-For event-sensitive or high-volatility names, estimate plausible loss if price gaps through the planned stop.
-
-If realistic execution loss would materially exceed the allowed risk budget:
-
-- reduce size,
-- avoid holding through the event,
-- or skip the trade.
-
-A stop price is an invalidation level, not a guaranteed fill price.
-
-## 5. A-share execution constraints
-
-### Entry-day reversibility
-
-Ordinary newly bought A-shares generally cannot be freely reversed intraday. Therefore the first tranche must be survivable if the market moves against the position the same day.
-
-### Price-limit and gap risk
-
-If price gaps beyond invalidation or becomes non-executable:
-
-- do not pretend the stop filled at the modeled price;
-- mark `stop breached / awaiting executable exit`;
-- exit at the first executable opportunity unless a fresh independent thesis justifies otherwise;
-- record realized slippage.
-
-### Corporate actions
-
-Before interpreting moving averages/support, check ex-rights/ex-dividend adjustments, suspension/resumption, bonus issues, restructurings and abnormal-volatility measures.
-
-## 6. Strategy tranches — old 3/4/4 rule retired
-
-The historical rule that tranche count should rise mechanically with account size is retired.
-
-### Default
+先定义：
 
 ```text
-Tranche 1: 50% Setup Entry
-Tranche 2: 50% Confirmation Entry
+E = planned entry
+S = invalidation / stop
+R = allowed currency loss
 ```
 
-### Three-stage exception
+理论股数：
+
+```text
+shares = R / abs(E-S)
+```
+
+向下取可执行整手，再叠加：
+
+```text
+short single-symbol capital cap
+short factor/industry capital cap
+Final Short Cap
+account-level symbol cap
+account-level cluster cap
+liquidity / board-lot constraints
+```
+
+若止损太宽导致仓位太小，跳过，不放宽 stop 迁就仓位。
+
+## 5. 跨策略同股 / 同因子聚合
+
+如果长期仓已有同一股票：
+
+```text
+Account Symbol Exposure
+= Long Sleeve Exposure + Short/Mid-term Sleeve Exposure
+```
+
+如果多个持仓共享同一经济因子：
+
+```text
+Account Cluster Exposure
+= Long Cluster Exposure + Short/Mid-term Cluster Exposure
+```
+
+下单前必须检查 post-trade 合计值。
+
+### Broker 执行
+
+实际券商账户通常只看到净持仓，因此 Live 模式还要维护策略虚拟子账：
+
+```text
+strategy_id
+sleeve
+virtual_shares
+broker_total_shares
+```
+
+短中期卖出不得误卖长期逻辑仍需持有的份额。
+
+## 6. 策略批次
+
+当前默认：
+
+```text
+50% Setup
+50% Confirmation
+```
+
+三级确认例外：
 
 ```text
 50% / 30% / 20%
 ```
 
-only when the strategy has three distinct confirmation levels.
+后续批次只能因正向确认，不因亏损摊低成本。
 
-### Positive-confirmation rule
+### 允许的确认
 
-Later tranches require evidence such as:
+- breakout holds；
+- retest succeeds；
+- relative strength improves；
+- sector participation improves；
+- catalyst / official fact strengthens；
+- price progress confirms volume。
 
-- breakout holds,
-- retest succeeds,
-- relative strength improves,
-- sector participation remains healthy,
-- volume-price behavior improves,
-- new catalyst/fundamental information strengthens the thesis.
+### 不允许
 
-### Prohibition
+```text
+第一笔亏损
+→ 只因为成本更低就买第二批
+```
 
-Price decline by itself is never an add signal. Do not add merely to lower cost.
+执行拆单不是策略批次。
 
-### Strategy tranche vs execution split
+## 7. Holding State Machine
 
-A large strategy tranche may be split into several child orders for liquidity and slippage control. That does not create additional strategy tranches.
+```text
+strengthening
+intact
+weakening
+invalidated
+```
 
-## 7. No mechanical averaging down
+### strengthening
 
-Historical `-5% traditional / -10% technology` levels are reassessment zones only, not automatic add levels.
+- thesis 更强；
+- price/sector confirmation 改善；
+- 风险预算、Final Short Cap、账户级同股/因子均允许。
 
-An add after drawdown requires:
+可：HOLD 或按既定 confirmation tranche ADD。
 
-- original thesis intact,
-- no adverse official disclosure,
-- price structure stabilizing/reclaiming,
-- improving volume-price behavior,
-- intact/improving sector relative strength,
-- score still at trade-candidate level,
-- Reward/Risk still acceptable,
-- portfolio risk still within limits.
+### intact
 
-If these conditions are absent, do not add.
+原 thesis 成立但没有新确认。
 
-## 8. Profit-management hierarchy
+通常 HOLD，不为了“仓位没满”补足。
 
-Primary rule:
+### weakening
+
+- relative strength 恶化；
+- volume/price 失配；
+- sector leadership 下降；
+- event thesis 弱化；
+- 时间窗口不工作。
+
+考虑 TRIM / time stop。
+
+### invalidated
+
+失效条件成立。
+
+按预先计划退出；不能把短线仓改名成长线仓。
+
+## 8. 三维止损
+
+```text
+Price / Invalidation Stop
++ Thesis Stop
++ Time Stop
+```
+
+### 价格/失效
+
+价格触发结构失效，按现实执行约束退出。
+
+### Thesis
+
+事件、基本面、行业或预期差被事实证伪时，即使价格尚未触发也可退出。
+
+### Time Stop
+
+默认计划5–15个交易日：
+
+- 3–5日明显不工作且相对强度/成交量恶化：考虑减仓/退出；
+- 到计划期仍无预期走势：重新承保；
+- 超15日必须重新写 thesis/score/stop/risk。
+
+这些天数是治理初值，不是最优定理。
+
+## 9. Profit Management
+
+一级优先级：
 
 ```text
 R multiple
@@ -177,140 +250,138 @@ R multiple
 + original setup target
 ```
 
-Prefer realistic Reward/Risk >= 2 when possible.
+约 +1.5R～+2R 可考虑部分兑现1/3–1/2，剩余使用结构/trailing。
 
-Around +1.5R to +2R:
-
-- consider realizing roughly 1/3 to 1/2;
-- manage remaining size with trend structure or a trailing method.
-
-### Secondary percentage observation zones
-
-These are not hard ceilings:
-
-- traditional/cyclical/lower-beta: roughly +3% to +5% when momentum stalls;
-- growth/technology/higher-beta: roughly +6% to +10% when momentum stalls.
-
-If percentage zones conflict with R-based or structural logic, **R/structure takes priority**.
-
-## 9. Trailing management
-
-Possible methods:
-
-- close below MA5 after an extended move,
-- close below MA10 for a slower trend,
-- break of prior 2–3 day swing low,
-- failure of breakout level,
-- relative-strength breakdown vs sector.
-
-Choose a method that matches volatility. Never loosen a stop merely to avoid realizing a loss.
-
-## 10. Time stop
-
-If after roughly 3–5 trading days:
-
-- price has not progressed,
-- relative strength deteriorates,
-- volume participation fades,
-- catalyst timing slips,
-- or opportunity cost rises materially,
-
-consider reducing or closing even if the hard stop has not triggered.
-
-## 11. Thesis states
-
-### Strengthening
-
-Hold; consider adding only if risk budget permits and positive confirmation exists.
-
-### Intact
-
-Hold planned size; avoid unnecessary trading.
-
-### Weakening
-
-Reduce/tighten; do not add.
-
-### Invalidated
-
-Exit according to execution constraints; do not wait for breakeven.
-
-## 12. Event isolation
-
-Potential binary events include:
-
-- earnings/interim report,
-- performance forecast,
-- major contract,
-- shareholder reduction/lock-up expiry,
-- restructuring,
-- litigation/regulatory decision,
-- suspension/resumption,
-- material commodity/policy decision.
-
-Before holding through one, explicitly evaluate upside, downside, gap risk and whether the position can absorb a non-executable stop.
-
-## 13. Short-to-medium transition
-
-Beyond 15 trading days requires fresh:
-
-- thesis,
-- official event/fundamental check,
-- 100-point score,
-- market/sector regime,
-- invalidation,
-- position-risk calculation.
-
-If re-underwriting fails, reduce or exit.
-
-## 14. Portfolio construction
-
-Default operational caps unless shared policy is stricter:
-
-- max simultaneous holdings: 5;
-- max 2 same industry;
-- max 2 same dominant economic factor.
-
-Track portfolio heat as the sum of planned loss at invalidation.
+旧百分比区间只作观察：
 
 ```text
-Operating Target heat: <= 2%
-Hard Ceiling heat: <= 3%
+传统/周期 +3%～+5%
+成长/科技 +6%～+10%
 ```
 
-## 15. Circuit breakers
+与 R/结构冲突时，R/结构优先。
 
-Measured from strategy-equity high-water mark:
++1.5R/+2R、3–5日等属于治理参数；调整必须通过 MFE/MAE、Forward 与 Challenger 流程。
+
+## 10. MFE / MAE
+
+每笔闭环至少记录：
 
 ```text
--4%: reduce exposure and use lower-end risk sizing
--6%: no new positions; review regime/process
--8%: pause strategy; formal review before resuming
+MFE_R
+MAE_R
+realized_R
+holding_days
+exit_reason
 ```
 
-Do not reset the high-water mark to hide drawdown.
+详细见：
 
-## 16. Post-trade review
+`trade-ledger-mfe-mae-extension.md`
 
-Record:
+不能只根据最终 PnL 调整 stop/target。
 
-- stock / setup,
-- entry reason and score,
-- market/sector regime,
-- planned and actual fills,
-- exit reason,
-- MFE / MAE,
-- realized R,
-- fees/slippage,
-- stop compliance,
-- rule violations,
-- thesis correctness vs execution quality.
+## 11. 组合 Heat
 
-Classify outcomes:
+Heat 是如果所有未平仓同时在各自初始失效点退出的计划风险近似，不等于投入金额。
 
-- good process / good result,
-- good process / bad result,
-- bad process / good result,
-- bad process / bad result.
+日常：
 
-Track win rate, average winner/loser, expectancy in R, maximum drawdown, time-to-work and rule-violation rate by setup and regime.
+```text
+aggregate initial risk <=2%
+industry/factor initial risk <=1%
+```
+
+Hard Ceiling：
+
+```text
+aggregate initial risk <=3%
+```
+
+如果 gap/event stress 明显高于名义 stop 风险，应缩小仓位或跳过。
+
+## 12. 资本暴露
+
+正常运营还检查：
+
+- 单只短中期股票通常≤短中期策略 NAV约20%；
+- 同一高度相关板块/因子通常≤短中期策略 NAV约40%；
+- 同时持仓3–5只；
+- 同行业/主导因子通常不超过2只。
+
+这些都不能覆盖 shared 的更严格账户级 Cap。
+
+## 13. 回撤熔断
+
+从短中期策略权益高水位：
+
+```text
+-4% → 降低暴露，新单回到保守风险
+-6% → 停止新开仓，只管理已有仓位并复盘
+-8% → 暂停策略，正式复核后恢复
+```
+
+不通过重置高水位消除熔断。
+
+## 14. 事件风险
+
+二元事件前必须问：
+
+- gap 5%–10% 反向时实际亏损多少？
+- 跌停无法成交时风险多少？
+- 明天是否财报、监管决定、重大股东减持、重组、诉讼？
+
+名义 stop 无法控制事件 gap 时：减仓、隔离事件或不交易。
+
+## 15. 大资金执行
+
+策略批次不随资金机械增加。
+
+大资金同一策略批次可以执行拆单，检查：
+
+- ADV；
+- bid/ask spread；
+- order / ADV；
+- impact；
+- 限价；
+- 部分成交；
+- 涨跌停。
+
+## 16. 持仓复核卡
+
+```yaml
+as_of:
+capital_policy_version:
+research_model_governance_version:
+skill_version:
+strategy_id:
+code:
+state: strengthening|intact|weakening|invalidated
+current_R:
+MFE_R:
+MAE_R:
+planned_invalidation:
+time_stop_date:
+current_short_exposure:
+final_short_cap:
+current_long_same_symbol_exposure:
+account_symbol_exposure:
+account_symbol_cap:
+account_cluster_exposure:
+account_cluster_cap:
+portfolio_heat:
+factor_heat:
+cap_state: PASS|CAP_BREACH|BLOCKED
+action: ADD|HOLD|TRIM|EXIT|NO_TRADE
+reason:
+```
+
+## 17. 最终原则
+
+```text
+研究决定资格
+风险决定仓位
+执行决定能否成交
+账户级合计风险高于策略标签
+赢家/输家的近期结果不能自动改规则
+```
