@@ -1,8 +1,8 @@
-# Research & Model Governance v3
+# Research & Model Governance v3.1
 
 > 本文件定义跨长期与短中期策略的研究模型治理、Champion/Challenger 晋级、回测防偏差、Benchmark 与参数证据等级。
 >
-> 本文件不替代资本/风险规则，也不替代自动化执行规则。资金与仓位仍受 `capital-allocation-and-entry-policy.md` 约束；Paper/Live/自动报单仍受 `automation-execution-governance.md` 约束。
+> 本文件不替代资本/风险规则，也不替代自动化执行规则。资金与仓位受 `capital-allocation-and-entry-policy.md` 约束；Paper/Live/自动报单受 `automation-execution-governance.md` 约束。
 
 ## 1. 核心原则
 
@@ -28,8 +28,6 @@ Research Edge
 
 ## 2. 事实、研究推论与治理参数必须分层
 
-任何规则必须标记为以下三类之一：
-
 ### A. Fact / Regulation
 
 可被官方公告、财报、交易规则、行情或可复现数据直接验证。
@@ -42,7 +40,7 @@ Research Edge
 
 - 过度交易可能拖累个人投资者表现；
 - 分批投入会降低部分择时与行为压力，但现金等待有机会成本；
-- 技术规则的有效性依赖市场、时期、参数与交易成本；
+- 技术规则有效性依赖市场、时期、参数与交易成本；
 - 长期个股回报高度偏态，生存并不等于创造股东价值。
 
 ### C. Governance Parameter
@@ -63,9 +61,9 @@ Governance Parameter 必须通过 Forward/Live 数据持续校准，不得写成
 
 ### 3.1 Champion
 
-当前已冻结、正在使用或正在 Forward-Test 的生产研究模型。
+当前已冻结、正在使用或 Forward-Test 的生产研究模型。
 
-短中期现阶段 Champion 仍为：
+短中期现阶段 Champion：
 
 ```text
 Technical 30
@@ -101,8 +99,6 @@ Catalyst 15
 
 ## 4. Challenger 晋级门槛
 
-晋级必须同时比较收益、风险、成本和稳定性。
-
 至少记录：
 
 ```text
@@ -123,24 +119,24 @@ Regime Breakdown
 Sector / Factor Breakdown
 ```
 
-### 4.1 Promotion Gate
+### Promotion Gate
 
-Challenger 只有在以下条件均满足时才可进入人工评审：
+Challenger 进入人工评审至少同时满足：
 
 1. 样本外 / Forward 结果为正，不只样本内好看；
 2. 扣除税费、佣金、滑点和合理冲击成本后仍保留优势；
 3. 最大回撤不因追求收益而显著恶化；
 4. 收益不由极少数偶然交易贡献；
-5. 至少覆盖趋势、震荡、风险偏好下降等不同 Regime；
+5. 尽可能覆盖趋势、震荡、风险偏好下降等不同 Regime；
 6. 无明显数据泄漏、幸存者偏差或 look-ahead；
-7. 规则可执行，且符合 A 股 T+1、涨跌停、停牌、流动性等约束；
+7. 规则可执行且符合 A 股交易约束；
 8. 人工复核确认新增复杂度值得引入。
 
 没有固定交易笔数可以保证晋级安全。样本量属于评审输入，不是自动晋级开关。
 
 ## 5. Causal Research Layer
 
-研究阶段采用以下因果顺序，而不是简单把所有指标混成一个分数：
+研究阶段采用因果顺序，而不是简单把所有指标混成一个分数：
 
 ```text
 1. Survival / Governance
@@ -153,9 +149,7 @@ Challenger 只有在以下条件均满足时才可进入人工评审：
 8. Portfolio Risk
 ```
 
-### 5.1 长期
-
-长期买入理由必须主要来自：
+### 长期
 
 ```text
 Survival
@@ -169,9 +163,7 @@ Survival
 
 “不会退市”“股价离高点很远”“股息率高”都不能单独构成长期买入理由。
 
-### 5.2 短中期
-
-短中期重点是：
+### 短中期
 
 ```text
 Expectation Change
@@ -181,7 +173,7 @@ Expectation Change
 → Reward/Risk
 ```
 
-技术面主要承担状态识别、确认和执行职责；它可以包含统计预测信息，但任何 Alpha 必须由样本外净收益验证。
+技术面主要承担状态识别、确认和执行职责；任何可交易 Alpha 必须由样本外净收益验证。
 
 ## 6. Point-in-time 与幸存者偏差治理
 
@@ -211,17 +203,17 @@ T+1
 用最终修订财务值替代当时市场可见数据而不留版本
 ```
 
-任何无法重建 point-in-time 输入的历史结果必须标记：
+无法重建 point-in-time 输入的历史结果标记：
 
 ```text
 Biased / Non-promotable
 ```
 
-可以用于研究灵感，不得用于模型晋级证据。
+可用于研究灵感，不得用于模型晋级证据。
 
 ## 7. Benchmark Governance
 
-### 7.1 长期
+### 长期
 
 长期组合优先使用 Total Return Benchmark，而不是只使用价格指数。
 
@@ -232,15 +224,15 @@ Price Index: 000300
 Total Return Index: H00300
 ```
 
-长期比较至少同时保留：
+至少保留：
 
 - 对应宽基全收益指数；
 - 必要时对应行业全收益指数；
 - 组合自身含分红再投资的 Total Return。
 
-### 7.2 短中期
+### 短中期
 
-短中期根据策略持有期使用价格/全收益差异影响较小但口径必须一致的 Benchmark，并增加：
+根据策略持有期保持收益口径一致，并增加：
 
 - 相同持有期宽基；
 - 行业/因子基准；
@@ -258,34 +250,60 @@ Required Return
 
 风险溢价是模型参数，不是所有 A 股统一常数。
 
-默认必须进行敏感性分析，例如同时测试：
+默认必须做敏感性分析，例如：
 
 ```text
 Risk Premium = 4% / 6% / 8%
 ```
 
-具体网格可更新，但必须标记为参数，不得宣称某个固定值为真理。
+具体网格可更新，但必须标记为参数。
 
-## 9. 长期 Expected IRR
+## 9. 长期 Expected IRR：必须按现金流时点计算
 
-优先用现金流/终值框架表达“现在价格是否值得买”：
+### 9.1 正式定义
+
+若买入价格为 `P0`，第 `t` 年预计收到股东现金分配 `CF_t`，第 `T` 年还有终值 `TV_T`，Expected IRR `r` 应满足：
 
 ```text
-Expected IRR
-= ((Estimated Terminal Value + Cumulative Cash Distributions) / Current Price)^(1/T) - 1
+0
+= -P0
++ CF_1/(1+r)^1
++ CF_2/(1+r)^2
++ ...
++ (CF_T + TV_T)/(1+r)^T
 ```
 
-实际执行必须使用 Bear / Base / Bull 情景，并说明终值、分红、盈利和估值假设。
+`r` 是使该 NPV 为 0 的内部收益率。
 
-由 Required Return 反推 Max Buy Price：
+### 9.2 Max Buy Price
+
+给定 Required Return `k`，最高可接受买价应按各现金流真实时点折现：
 
 ```text
 Max Buy Price
-≈ (Estimated Terminal Value + Cumulative Cash Distributions)
-  / (1 + Required Return)^T
+= Σ[CF_t / (1+k)^t]
++ TV_T / (1+k)^T
 ```
 
-这只是估值框架，不允许重复计算已经包含在 Terminal Value 中的现金流。
+### 9.3 终值合并近似只能作 sanity check
+
+下面这种写法：
+
+```text
+((TV_T + Cumulative Cash Distributions) / P0)^(1/T) - 1
+```
+
+等价于假设所有中间分红都在终点才收到，只能在粗略 sanity check 中使用，**不得标记为精确 IRR**。
+
+若分红金额显著或持有期较长，应使用逐期现金流 IRR/XIRR。
+
+### 9.4 避免双重计算
+
+- 若终值模型已经把 retained cash / ex-dividend 处理在每股价值中，不重复把同一现金加一次；
+- 回购反映为股本/每股价值变化，不简单当成额外现金分红；
+- 银行、保险、周期股使用行业适配终值方法。
+
+实际执行使用 Bear / Base / Bull 情景，并保存终值、分红、盈利和估值假设。
 
 ## 10. 技术与资金因子的治理
 
@@ -293,26 +311,22 @@ Max Buy Price
 
 不使用“技术数据都是过去式，因此没有预测力”的绝对表述。
 
-正确表述：
-
 ```text
-技术信号的有效性具有市场、时期、参数与成本依赖；
+技术信号有效性具有市场、时期、参数与成本依赖；
 其是否具备可交易 Alpha 必须样本外验证。
 ```
 
 ### 资金
 
-不把 vendor 的“主力净流入”当作真实机构净买入的事实。
+不把 vendor “主力净流入”当作真实机构净买入事实。
 
-资金确认至少区分：
+至少区分：
 
 ```text
 Participation — 成交额/换手/流动性
 Positioning — 融资、机构披露、席位等可验证证据
 Price Confirmation — 相对强度、突破承接、价格进展
 ```
-
-若“资金流入标签”与价格/相对强度长期冲突，降低资金证据权重。
 
 ## 11. MFE / MAE 必须进入学习闭环
 
@@ -334,7 +348,7 @@ exit_reason
 
 - 判断止盈是否系统性过早；
 - 判断止损是否过宽/过窄；
-- 区分“选股错误”和“退出错误”；
+- 区分选股错误和退出错误；
 - 校准 trailing、partial exit 和 time stop。
 
 不得只看最终 PnL 调参。
@@ -355,7 +369,19 @@ approver
 
 禁止自动化系统根据近期盈亏自行改写策略文件或提升风险。
 
-## 13. 研究到自动化的完整路径
+## 13. 版本记录
+
+研究/执行记录不得只写一个含义不明的 `policy_version`。至少保存：
+
+```text
+capital_policy_version
+automation_governance_version
+research_model_governance_version
+skill_version
+strategy_version / model_version
+```
+
+## 14. 研究到自动化完整路径
 
 ```text
 Hypothesis
@@ -369,11 +395,9 @@ Hypothesis
 → Full Auto only if execution governance also passes
 ```
 
-研究模型晋级与自动化执行晋级是两个独立 Gate：
-
 ```text
 Good Model ≠ Safe Auto Execution
 Safe Executor ≠ Positive Edge
 ```
 
-两者都通过才允许提高自动化程度。
+两者都通过且账户风险符合 Level 1A，才允许提高自动化程度。
