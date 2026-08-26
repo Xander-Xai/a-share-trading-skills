@@ -1,380 +1,316 @@
-# Holding and Risk Management
+# Holding and Risk Management v2
 
-## Goal
+## 0. Governing policy
 
-Convert a stock-selection result into a repeatable execution plan.
+This reference is subordinate to:
 
-Default mode is short-term A-share holding, normally 5–15 trading days. A position may become medium-term only after an explicit re-underwriting decision; it must never drift from “short-term trade” into “longer hold” merely because the trader does not want to realize a loss.
+```text
+../../../shared/policy-precedence.md
+../../../shared/capital-allocation-and-entry-policy.md
+../SKILL.md
+```
 
-Priority order:
+If any number here conflicts with shared policy, shared policy wins.
 
-1. survive
-2. preserve optionality
-3. exploit asymmetric setups
-4. compound only when the thesis is working
-5. learn from process quality, not lucky outcomes
+## 1. Goal
 
-## 1. Define the trade before entry
+Convert a stock-selection result into a repeatable short/mid-term execution plan.
 
-Every planned trade must specify:
+Default mode is 5–15 trading days. A position may extend to roughly 15–60 trading days only after explicit re-underwriting; it must never drift longer simply because the trader refuses to realize a loss.
 
-- thesis
-- setup type
-- entry trigger
-- invalidation condition
-- initial stop/invalidation price
-- realistic gap-risk scenario
-- expected first target/management zone
-- maximum account loss
-- planned tranche structure
-- known event dates
-- sector/factor exposure
+Priority:
+
+1. survive,
+2. preserve optionality,
+3. exploit asymmetric setups,
+4. add only when thesis is working,
+5. learn from process quality.
+
+## 2. Define the trade before entry
+
+Every trade must specify:
+
+- thesis,
+- setup type,
+- entry trigger,
+- invalidation condition,
+- stop/invalidation price,
+- realistic gap-risk scenario,
+- expected first target/management zone,
+- maximum account loss,
+- strategy tranche structure,
+- event dates,
+- sector/factor exposure.
 
 Do not enter first and invent the plan later.
 
-## 2. Risk-based sizing
+## 3. Risk-based sizing
 
 Let:
 
-- `E` = planned entry price
-- `S` = invalidation/stop price
-- `R_account` = maximum allowed loss in currency
+```text
+E = planned entry
+S = invalidation / stop
+R_account = allowed currency loss
+```
 
 Then:
 
-`shares ≈ R_account / abs(E - S)`
+```text
+shares ≈ R_account / abs(E - S)
+```
 
-Round down to an executable board lot.
+Round down to an executable board lot and apply capital-concentration limits.
 
-Default risk limits:
+### Operating Target
 
-- each trade: planned loss <= 0.5% of strategy capital
-- all open trades combined: <= 2%
-- one industry or economic-factor cluster: <= 1%
+```text
+per trade planned risk: 0.5% of strategy NAV
+aggregate open initial risk: <= 2%
+aggregate initial risk per industry/factor cluster: <= 1%
+```
 
-A wider stop requires a smaller position. Never widen the stop simply to keep a preferred share count.
+### Hard Ceiling
 
-### Gap-adjusted risk
+```text
+per trade planned risk: <= 1%
+aggregate open initial risk: <= 3%
+```
 
-For event-sensitive or high-volatility names, also estimate a plausible gap-through-stop loss.
+A wider stop requires a smaller position. Never widen the stop just to keep a preferred position size.
 
-If a realistic gap/price-limit scenario would cause account loss far above the allowed risk budget, either:
+Moving above the 0.5% operating target requires validated Edge, favorable regime and a high-quality setup. The 1%/3% hard ceilings are never exceeded.
 
-- reduce size materially,
+## 4. Gap-adjusted risk
+
+For event-sensitive or high-volatility names, estimate plausible loss if price gaps through the planned stop.
+
+If realistic execution loss would materially exceed the allowed risk budget:
+
+- reduce size,
 - avoid holding through the event,
 - or skip the trade.
 
-The stop price is an invalidation level, not a guaranteed execution price.
+A stop price is an invalidation level, not a guaranteed fill price.
 
-## 3. A-share execution constraints
-
-Ordinary A-share execution has market-specific constraints.
+## 5. A-share execution constraints
 
 ### Entry-day reversibility
 
-Shares bought are generally not freely sellable before settlement unless the security is specifically eligible for same-day round-trip trading. Therefore:
+Ordinary newly bought A-shares generally cannot be freely reversed intraday. Therefore the first tranche must be survivable if the market moves against the position the same day.
 
-- do not take an oversized “test entry” assuming it can always be reversed intraday,
-- give extra weight to opening-gap and first-entry quality,
-- size the first tranche so an adverse same-day move is survivable.
+### Price-limit and gap risk
 
-### Price-limit / gap risk
+If price gaps beyond invalidation or becomes non-executable:
 
-If price gaps beyond the invalidation level or is not executable because of a price limit:
+- do not pretend the stop filled at the modeled price;
+- mark `stop breached / awaiting executable exit`;
+- exit at the first executable opportunity unless a fresh independent thesis justifies otherwise;
+- record realized slippage.
 
-- do not pretend the stop filled at the planned number,
-- mark the trade as `stop breached / awaiting executable exit`,
-- exit at the first executable opportunity unless a fresh independent thesis explicitly justifies otherwise,
-- record realized slippage separately in post-trade review.
+### Corporate actions
 
-### Corporate-action distortion
+Before interpreting moving averages/support, check ex-rights/ex-dividend adjustments, suspension/resumption, bonus issues, restructurings and abnormal-volatility measures.
 
-Before using moving averages or support levels, check for:
+## 6. Strategy tranches — old 3/4/4 rule retired
 
-- ex-dividend/ex-rights adjustment
-- suspension/resumption
-- split/bonus issue
-- material restructuring or abnormal-volatility measures
+The historical rule that tranche count should rise mechanically with account size is retired.
 
-Do not treat a mechanically adjusted chart as an ordinary technical breakdown without adjustment.
+### Default
 
-## 4. Entry tranches
+```text
+Tranche 1: 50% Setup Entry
+Tranche 2: 50% Confirmation Entry
+```
 
-Tranches reduce timing error; they are not a license to average down.
+### Three-stage exception
 
-### Breakout setup
+```text
+50% / 30% / 20%
+```
 
-- tranche 1: small position on confirmed breakout
-- tranche 2: add only if breakout holds or retest succeeds
-- tranche 3+: add only if trend and sector participation remain strong
+only when the strategy has three distinct confirmation levels.
 
-### Pullback setup
+### Positive-confirmation rule
 
-- tranche 1: near validated support/reclaim
-- tranche 2: after price confirms support and relative strength improves
-- later tranches: only after the position becomes technically safer, not merely cheaper
+Later tranches require evidence such as:
 
-Capital-size defaults:
+- breakout holds,
+- retest succeeds,
+- relative strength improves,
+- sector participation remains healthy,
+- volume-price behavior improves,
+- new catalyst/fundamental information strengthens the thesis.
 
-- below RMB 10,000: up to 2 names, roughly 3 tranches
-- RMB 10,000–100,000: up to 3 names, roughly 4 tranches
-- above RMB 100,000: up to 5 names, roughly 4 tranches
+### Prohibition
 
-Do not force all tranches to be used.
+Price decline by itself is never an add signal. Do not add merely to lower cost.
 
-## 5. No mechanical averaging down
+### Strategy tranche vs execution split
 
-Price decline alone is never an add signal.
+A large strategy tranche may be split into several child orders for liquidity and slippage control. That does not create additional strategy tranches.
 
-Historical “-5% traditional / -10% technology” levels are **reassessment zones**, not automatic add levels.
+## 7. No mechanical averaging down
 
-An add after drawdown requires all of the following:
+Historical `-5% traditional / -10% technology` levels are reassessment zones only, not automatic add levels.
 
-- original business thesis remains intact
-- no new adverse official disclosure
-- price has stopped making lower lows or reclaimed a key structure such as MA5/MA10/pivot
-- volume-price behavior improves
-- sector relative strength improves or remains intact
-- updated total score remains at trade-candidate level
-- expected reward/risk remains acceptable
-- portfolio risk remains within limits
+An add after drawdown requires:
+
+- original thesis intact,
+- no adverse official disclosure,
+- price structure stabilizing/reclaiming,
+- improving volume-price behavior,
+- intact/improving sector relative strength,
+- score still at trade-candidate level,
+- Reward/Risk still acceptable,
+- portfolio risk still within limits.
 
 If these conditions are absent, do not add.
 
-## 6. Profit management
+## 8. Profit-management hierarchy
 
-Fixed percentages are management zones, not hard upside ceilings.
+Primary rule:
 
-### Traditional / cyclical / lower-beta names
+```text
+R multiple
++ technical structure
++ original setup target
+```
 
-At roughly +3% to +5%, check:
+Prefer realistic Reward/Risk >= 2 when possible.
 
-- is momentum weakening?
-- has price reached resistance?
-- has sector strength rolled over?
-- is volume becoming distributive?
-- has the original catalyst already been priced in?
+Around +1.5R to +2R:
 
-If yes, consider partial profit-taking.
+- consider realizing roughly 1/3 to 1/2;
+- manage remaining size with trend structure or a trailing method.
 
-### Growth / technology / higher-beta names
+### Secondary percentage observation zones
 
-At roughly +6% to +10%, apply the same checks.
+These are not hard ceilings:
 
-If trend remains strong, do not exit solely because the percentage target was reached. Use a trailing structure.
+- traditional/cyclical/lower-beta: roughly +3% to +5% when momentum stalls;
+- growth/technology/higher-beta: roughly +6% to +10% when momentum stalls.
 
-## 7. Trailing management
+If percentage zones conflict with R-based or structural logic, **R/structure takes priority**.
 
-Possible trailing methods:
+## 9. Trailing management
 
-- close below MA5 after an extended move
-- close below MA10 for a slower trend
-- break of prior 2–3 day swing low
-- failure of breakout level after a strong run
-- relative-strength breakdown versus the sector
+Possible methods:
 
-Choose the method that matches volatility. Do not change from a tight method to a loose method simply to avoid taking a loss.
+- close below MA5 after an extended move,
+- close below MA10 for a slower trend,
+- break of prior 2–3 day swing low,
+- failure of breakout level,
+- relative-strength breakdown vs sector.
 
-## 8. Time stop
+Choose a method that matches volatility. Never loosen a stop merely to avoid realizing a loss.
 
-A short-term trade should work within a reasonable time.
+## 10. Time stop
 
-If 3–5 trading days after entry:
+If after roughly 3–5 trading days:
 
-- price has not progressed as expected,
-- relative strength is deteriorating,
-- volume participation is fading,
-- catalyst timing has slipped,
-- or a materially better opportunity appears while the thesis has not strengthened,
+- price has not progressed,
+- relative strength deteriorates,
+- volume participation fades,
+- catalyst timing slips,
+- or opportunity cost rises materially,
 
 consider reducing or closing even if the hard stop has not triggered.
 
-Time stop prevents capital from being trapped in “not wrong yet” positions.
+## 11. Thesis states
 
-## 9. Thesis-state management
+### Strengthening
 
-Maintain one of four states.
+Hold; consider adding only if risk budget permits and positive confirmation exists.
 
-### Thesis strengthening
+### Intact
 
-Examples:
+Hold planned size; avoid unnecessary trading.
 
-- earnings/catalyst better than expected
-- sector leadership improves
-- breakout confirmed with volume
-- operating data or product price supports the original thesis
+### Weakening
 
-Action:
+Reduce/tighten; do not add.
 
-- hold
-- consider add only if risk budget permits
-- trail stop rationally
+### Invalidated
 
-### Thesis intact
+Exit according to execution constraints; do not wait for breakeven.
 
-Action:
+## 12. Event isolation
 
-- hold planned size
-- no unnecessary trading
+Potential binary events include:
 
-### Thesis weakening
+- earnings/interim report,
+- performance forecast,
+- major contract,
+- shareholder reduction/lock-up expiry,
+- restructuring,
+- litigation/regulatory decision,
+- suspension/resumption,
+- material commodity/policy decision.
 
-Examples:
+Before holding through one, explicitly evaluate upside, downside, gap risk and whether the position can absorb a non-executable stop.
 
-- sector loses leadership
-- failed breakout
-- cash-flow/earnings quality concern emerges
-- catalyst is delayed or priced in
-- relative strength deteriorates materially
+## 13. Short-to-medium transition
 
-Action:
+Beyond 15 trading days requires fresh:
 
-- reduce
-- tighten invalidation
-- do not add
+- thesis,
+- official event/fundamental check,
+- 100-point score,
+- market/sector regime,
+- invalidation,
+- position-risk calculation.
 
-### Thesis invalidated
+If re-underwriting fails, reduce or exit.
 
-Examples:
+## 14. Portfolio construction
 
-- hard technical breakdown
-- adverse official disclosure changes the business thesis
-- fraud/regulatory/governance event
-- risk budget breached
-- event outcome directly contradicts the thesis
+Default operational caps unless shared policy is stricter:
 
-Action:
+- max simultaneous holdings: 5;
+- max 2 same industry;
+- max 2 same dominant economic factor.
 
-- exit according to execution constraints
-- do not rationalize or “wait for breakeven”
+Track portfolio heat as the sum of planned loss at invalidation.
 
-## 10. Event isolation
+```text
+Operating Target heat: <= 2%
+Hard Ceiling heat: <= 3%
+```
 
-Treat the following as potential binary events:
+## 15. Circuit breakers
 
-- earnings/interim report
-- performance forecast
-- major contract outcome
-- ex-rights/ex-dividend event that distorts chart levels
-- shareholder reduction/lock-up expiry
-- restructuring decision
-- litigation/regulatory decision
-- suspension/resumption
-- major commodity/policy decision directly tied to the thesis
+Measured from strategy-equity high-water mark:
 
-Before holding through a binary event, explicitly decide:
+```text
+-4%: reduce exposure and use lower-end risk sizing
+-6%: no new positions; review regime/process
+-8%: pause strategy; formal review before resuming
+```
 
-- event upside
-- event downside
-- gap risk
-- whether position size can absorb a non-executable stop
-- whether the event is already priced in
+Do not reset the high-water mark to hide drawdown.
 
-If the event risk cannot be quantified or accepted, reduce or avoid exposure before the event.
+## 16. Post-trade review
 
-## 11. Short-term to medium-term transition
+Record:
 
-A trade can remain beyond 15 trading days only after a **fresh decision**.
+- stock / setup,
+- entry reason and score,
+- market/sector regime,
+- planned and actual fills,
+- exit reason,
+- MFE / MAE,
+- realized R,
+- fees/slippage,
+- stop compliance,
+- rule violations,
+- thesis correctness vs execution quality.
 
-Required re-underwriting:
+Classify outcomes:
 
-- current thesis written again in one sentence
-- fresh official fundamental/event check
-- refreshed 100-point score
-- new market/sector regime assessment
-- new invalidation level
-- new position-risk calculation
-- confirmation that holding is not motivated by avoiding a loss
+- good process / good result,
+- good process / bad result,
+- bad process / good result,
+- bad process / bad result.
 
-If re-underwriting passes, the trade may transition to medium-term management, typically up to roughly 15–60 trading days depending on catalyst and trend.
-
-If it fails, exit or reduce according to the original plan.
-
-## 12. Portfolio construction
-
-Maximum simultaneous holdings: 5.
-
-### Industry limit
-
-No more than 2 holdings from the same industry.
-
-### Factor limit
-
-No more than 2 holdings driven primarily by the same macro factor.
-
-Examples:
-
-- copper miners + copper smelters may belong to the same copper factor
-- multiple AI-server/electronics names may share AI-capex risk
-- brokerages may share market-turnover risk
-
-Industry labels do not override factor correlation.
-
-### Portfolio heat
-
-Track planned open risk, not only capital invested.
-
-`portfolio heat = sum of planned loss at each position's invalidation level`
-
-Default maximum portfolio heat: 2% of strategy capital.
-
-## 13. Portfolio circuit breakers
-
-Measure drawdown from the strategy account's recent equity high-water mark.
-
-### -4%
-
-- reduce gross exposure
-- stop marginal setups
-- require stronger confirmation
-
-### -6%
-
-- no new positions
-- review whether losses share a common factor, regime mismatch, or process error
-
-### -8%
-
-- pause strategy
-- close or reduce positions whose thesis is not clearly intact
-- perform a full review before resuming
-
-Do not reset the high-water mark merely to remove the drawdown signal.
-
-## 14. Post-trade review
-
-For every closed trade record:
-
-- stock / setup type
-- entry reason
-- score at entry
-- market and sector regime
-- planned entry/stop and actual fills
-- actual exit reason
-- maximum favorable excursion (MFE)
-- maximum adverse excursion (MAE)
-- realized R multiple
-- slippage caused by gap/price-limit/execution constraints
-- whether the stop was respected
-- whether the trade violated universe/industry/factor rules
-- whether the thesis was correct even if execution was poor
-
-Classify the outcome into:
-
-- good process / good result
-- good process / bad result
-- bad process / good result
-- bad process / bad result
-
-Track statistics by setup and regime:
-
-- win rate
-- average winner / average loser
-- expectancy in R
-- maximum drawdown
-- time-to-work
-- rule-violation rate
-
-Do not change a rule after a handful of trades. Prefer a meaningful sample to avoid fitting the strategy to recent noise.
-
-The strategy should optimize process quality, not celebrate lucky rule violations.
+Track win rate, average winner/loser, expectancy in R, maximum drawdown, time-to-work and rule-violation rate by setup and regime.
