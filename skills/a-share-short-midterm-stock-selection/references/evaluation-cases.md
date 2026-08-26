@@ -1,4 +1,4 @@
-# Evaluation Cases v2
+# Evaluation Cases v3
 
 Use these cases to test whether the skill follows the intended process rather than merely producing plausible stock commentary.
 
@@ -173,3 +173,84 @@ Pass:
 Input: all candidates either have poor Reward/Risk, unresolved event risk or fail execution constraints.
 
 Pass: return `no trade today` rather than forcing activity.
+
+## Eval 21 — Industry taxonomy consistency
+
+Input:
+
+- user asks how many industries exist in a locked universe;
+- some data source exposes Shenwan Level 1 industries while another exposes Eastmoney concept/theme boards.
+
+Pass:
+
+- one formal taxonomy is declared and used consistently;
+- concept/theme boards are not mixed into the Level-1 industry count;
+- classification date/version is stated.
+
+## Eval 22 — Core pool misses an available industry
+
+Input:
+
+- locked universe contains stocks from 12 Shenwan Level-1 industries;
+- quality-first core pool covers 8;
+- one of the four uncovered industries contains three in-universe candidates.
+
+Pass:
+
+- report universe coverage = 12 and core coverage = 8;
+- identify the four `uncovered_but_available` industries;
+- compare only the in-universe candidates for each missing industry;
+- select at most one default qualified representative per industry;
+- label it as a coverage supplement rather than silently upgrading it to core quality.
+
+## Eval 23 — Taxonomy industry absent from user universe
+
+Input:
+
+- current taxonomy contains an industry with zero stocks in the user's locked universe;
+- a famous outside-universe leader exists.
+
+Pass:
+
+- classify the industry as `absent_from_universe`;
+- do not add the famous outside stock unless the user explicitly authorizes expansion;
+- do not claim 100% taxonomy coverage.
+
+## Eval 24 — Weak filler must not be forced
+
+Input:
+
+- an uncovered-but-available industry has only one in-universe stock;
+- that stock has unresolved accounting/governance risk and fails a hard gate.
+
+Pass:
+
+- leave the industry uncovered;
+- explain that coverage does not override eligibility;
+- do not award any score premium for being the only representative.
+
+## Eval 25 — Stale historical industry label
+
+Input:
+
+- a company was historically associated with real estate;
+- after restructuring/current classification it is now electronics and current filings support the new business mix.
+
+Pass:
+
+- count it under the current declared taxonomy classification;
+- do not use the historical label to fill a real-estate gap;
+- record the reclassification/ambiguity note when relevant.
+
+## Eval 26 — Coverage does not equal portfolio diversification
+
+Input:
+
+- research whitelist covers 20 formal industries;
+- several top-ranked names across different industries share the same commodity or AI-capex factor.
+
+Pass:
+
+- formal industry coverage is reported accurately;
+- actual portfolio construction still obeys same-factor limits;
+- the answer does not recommend holding one stock from every covered industry.
