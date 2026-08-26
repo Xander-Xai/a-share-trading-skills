@@ -1,8 +1,20 @@
-# 执行模板
+# 执行模板 v2.0
 
-本模板用于每次真实运行 Skill，确保不会因为聊天上下文、行情波动或主观偏好跳过关键步骤。
+本模板用于每次真实运行长期养老 Skill，确保不会因为聊天上下文、行情波动或旧参数跳过关键步骤。
 
-## A. 输入
+## A. 上位规则加载
+
+执行前必须读取：
+
+```text
+../../../shared/policy-precedence.md
+../../../shared/capital-allocation-and-entry-policy.md
+../SKILL.md
+```
+
+若模板与上位规则冲突，以上位规则为准。
+
+## B. 输入
 
 ```yaml
 as_of: 自动获取
@@ -10,10 +22,27 @@ market: 沪深A股
 universe: 用户给定股票池 | 全市场
 objective: 长期养老权益仓
 holding_horizon: 10年以上（若用户另有说明则覆盖）
-core_dividend_target: 75%-85%
-growth_target: 15%-25%
-max_single_stock: 25%
-max_risk_cluster: 30%-35%
+
+stock_capital_amount: 用户输入
+
+long_vs_short_allocation:
+  source: shared/capital-allocation-and-entry-policy.md
+  derived: true
+
+core_dividend_target_within_long_book: 75%-85%
+growth_target_within_long_book: 15%-25%
+
+max_single_stock:
+  derived_from_shared_policy: true
+
+max_risk_cluster:
+  derived_from_shared_policy: true
+
+entry_tranches:
+  default: [40%, 30%, 30%]
+  small_or_high_certainty: [60%, 40%]
+  larger_or_higher_uncertainty: [30%, 25%, 25%, 20%]
+
 extra_filters:
   price_max: null
   market_cap_min: null
@@ -21,7 +50,9 @@ extra_filters:
   excluded_industries: null
 ```
 
-## B. 数据获取检查
+禁止在这里写死 `25%` 单股上限或 `30%-35%` 风险簇上限；执行时必须根据当前股票专用资金规模从 shared policy 动态读取。
+
+## C. 数据获取检查
 
 对每只候选逐项标记 `PASS/MISSING/CONFLICT`：
 
@@ -42,7 +73,7 @@ extra_filters:
 
 关键项 MISSING 时，不得输出 ADD。
 
-## C. 单股研究卡
+## D. 单股研究卡
 
 ```markdown
 ### 股票名（代码）
@@ -55,7 +86,6 @@ extra_filters:
 ...
 
 #### 2. 已披露事实
-- ...
 - ...
 
 #### 3. 关键数字
@@ -105,24 +135,66 @@ extra_filters:
 #### 10. 决策
 ADD / HOLD / WATCH / TRIM / EXIT
 
-#### 11. 最大建议仓位
-...
+#### 11. 动态仓位
+- Current shared-policy tier:
+- Target weight:
+- Maximum single-stock weight:
+- Risk-cluster weight after trade:
 
-#### 12. 证据
+#### 12. 建仓批次
+- Chosen mode: 2 / 3 / 4 tranches
+- Why this mode:
+- Tranche 1 trigger:
+- Tranche 2 trigger:
+- Tranche 3/4 trigger:
+
+#### 13. 证据
 - 官方年报：...
 - 官方公告：...
 - 行情：...
 ```
 
-## D. 组合研究卡
+## E. 长期补仓 Gate
+
+每次后续加仓前必须全部通过：
+
+```text
+Thesis Gate
+Balance Gate
+Valuation Gate
+Portfolio Gate
+```
+
+检查：
+
+- [ ] 原投资逻辑仍成立
+- [ ] 现金流/资本/债务未恶化
+- [ ] 当前估值仍有安全边际
+- [ ] 单股上限未超
+- [ ] 风险簇上限未超
+- [ ] 不是因为“已经跌很多”而机械补仓
+
+若下跌约15%–20%，触发重新研究；约25%–30%，触发深度 thesis review。两者都不是自动买卖线。
+
+## F. 组合研究卡
 
 ```markdown
 # Portfolio Review — YYYY-MM-DD
 
-## 结构
+## 顶层配置
+- Stock capital amount:
+- Long-book target from shared policy:
+- Short-book target from shared policy:
+- Current drift:
+
+## 长期仓内部结构
 - Core: xx%
 - Growth: xx%
 - Cash pending deployment: xx%
+
+## 动态集中度限制
+- Current single-stock cap:
+- Current risk-cluster cap:
 
 ## 风险簇
 - Energy commodity: xx%
@@ -147,7 +219,7 @@ ADD / HOLD / WATCH / TRIM / EXIT
 3. ...
 ```
 
-## E. 对抗审查 Gate
+## G. 对抗审查 Gate
 
 只有以下全部回答完成后，才允许给出最终组合：
 
@@ -163,16 +235,18 @@ ADD / HOLD / WATCH / TRIM / EXIT
 - [ ] 是否明确区分事实、市场预测、模型估算？
 - [ ] 是否给出了最强 Bear Case？
 - [ ] 是否给出了可观察的退出/失效条件？
+- [ ] 当前仓位上限是否来自 shared policy，而不是旧固定参数？
+- [ ] 建仓是否使用当前 2/3/4 批规则，而不是旧的“3–5批随意选择”？
 
-任一项未完成，结论应降级为 WATCH 或继续研究。
+任一关键项未完成，结论降级为 WATCH 或继续研究。
 
-## F. 推荐输出顺序
+## H. 推荐输出顺序
 
-1. 先给结论和候选/持仓状态。
-2. 再给为什么。
-3. 再给估值与买入区间。
-4. 再给组合权重与风险簇。
-5. 再给 Bear Case / 失效条件。
-6. 最后列官方证据和 `as_of`。
-
-不要从长篇宏观叙事开始，也不要只给“值得长期持有”这种不可执行判断。
+1. 当前上位资金规则与动态仓位上限。
+2. 候选/持仓状态。
+3. 核心逻辑。
+4. 估值与买入区间。
+5. 建仓/补仓条件。
+6. 组合权重与风险簇。
+7. Bear Case / 失效条件。
+8. 官方证据和 `as_of`。
