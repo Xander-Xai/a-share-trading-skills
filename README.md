@@ -57,11 +57,11 @@ Level 4   examples / case studies / dated snapshots / watchlists
 
 ## 顶层资金策略
 
-当前资本/风险政策版本：`v2.1`。
+当前资本/风险政策版本：`v2.2`。
 
 股票专用资金的 Size Cap 基线：
 
-| 股票资金规模 | 长期养老仓 | 短中期仓 |
+| 股票资金规模 | 长期战略基线 | 短中期 Size Cap |
 |---:|---:|---:|
 | ≤5 万 | 70% | 30% |
 | 5–30 万 | 75% | 25% |
@@ -69,11 +69,23 @@ Level 4   examples / case studies / dated snapshots / watchlists
 | 200–1000 万 | 85% | 15% |
 | ≥1000 万 | 85%–90% | 10%–15% |
 
-最终短中期比例不是机械满配：
+最终短中期上限：
 
 ```text
-Short Allocation = min(Size Cap, Risk Cap, Edge Cap)
+Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
+Actual Short Exposure <= Final Short Cap
 ```
+
+股票专用资金不要求永远 100% 满仓：
+
+```text
+股票专用资金
+= 已部署长期仓
++ 已部署短中期仓
++ 待配置现金
+```
+
+短中期被 Risk/Edge Cap 压低后的差额，不自动强制买入长期股；长期机会也必须通过自己的质量、估值与组合 Gate。
 
 具体数值唯一以 `shared/capital-allocation-and-entry-policy.md` 为准。
 
@@ -103,6 +115,8 @@ Hard Ceiling
 ```
 
 回撤治理基线：4% 降风险、6% 停止新开仓、8% 暂停策略并复核。
+
+任何“漂移区间”都不能突破 Final Short Cap、单股/风险簇上限或 Hard Ceiling。
 
 ## 自动化执行原则
 
@@ -135,11 +149,11 @@ Research
 
 长期仓依赖企业价值、现金流、分红、估值与资本保全，默认使用投资逻辑止损；短中期仓使用价格/失效、逻辑与时间止损，禁止把亏损交易临时改名为长期持有。
 
-短中期已实现利润超过战略上限时，优先逐步回流长期仓或待配置现金池；短中期因亏损缩水时，不自动从长期仓补足。
+短中期已实现利润超过 Final Short Cap 时，优先逐步回流长期待配置池；只有长期 Gate 通过才继续买入，否则保持现金。短中期因亏损缩水时，不自动从长期仓补足。
 
 ## 当前验证案例
 
-长期 Skill 已保存十股养老模型组合作为 forward-test 示例；短中期 Skill 保存 2026-08-26 的 43 股最终研究 whitelist 与 machine-readable baseline。
+长期 Skill 已保存十股养老模型组合作为 Forward-Test 示例；短中期 Skill 保存 2026-08-26 的 43 股最终研究 whitelist 与 machine-readable baseline。
 
 这些示例只用于回溯和前测。真实买入前必须重新运行对应 Skill，并重新获取当时价格、财报、估值、事件与风险上限。
 
@@ -148,4 +162,4 @@ Research
 - 研究与参数边界：`shared/research-validation-2026-08-26.md`
 - 全仓库一致性扫描：`shared/consistency-audit-2026-08-26.md`
 
-具体比例、阈值和批次属于当前风险治理参数，不宣称为唯一最优解；后续应通过真实 forward/live 数据持续校准。
+具体比例、阈值和批次属于当前风险治理参数，不宣称为唯一最优解；后续应通过真实 Forward/Live 数据持续校准。
