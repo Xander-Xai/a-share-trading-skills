@@ -2,11 +2,11 @@
 
 A股一级资产配置、长期养老投资、短中期交易与自动化监控 Skill / Runtime 集合。
 
-当前仓库已经形成三层策略链路，并共享三类仓库级治理：
+当前仓库形成三层策略链路，并共享三类仓库级治理：
 
 ```text
 Multi-Asset Allocation Skill
-→ 决定多少资本进入股票账户
+→ 决定多少资本成为 Stock Account Equity
 
 Long Retirement Investing Skill
 + Short/Mid Stock Selection Skill
@@ -28,7 +28,7 @@ Automation / Execution: v1.2
 Research / Model:        v3
 ```
 
-版本号分别属于不同 artifact，优先级统一由 `shared/policy-precedence.md` 决定。
+版本号分别属于不同 artifact，优先级由 `shared/policy-precedence.md` 决定。
 
 ## 当前结构
 
@@ -81,26 +81,28 @@ a-share-trading-skills/
 
 ## 从全部金融资产到股票账户
 
-新增 Multi-Asset Allocation Skill，先解决：
+Multi-Asset Allocation Skill 先解决：
 
 ```text
 Total Financial Assets
 → Emergency / Liquidity Reserve
 → Near-term Liability Reserve
 → Fixed Income
-→ Equity Account Equity
+→ Stock Account Equity
 ```
 
-然后股票账户内部才进入：
+股票账户内部再进入：
 
 ```text
 Stock Account Equity
 → Long Strategic Baseline
 + Short/Mid Final Cap
-+ Equity Cash
++ Stock-account Pending Cash
 ```
 
-Multi-Asset Skill 不得绕过股票账户 Level 1A 风险规则。Scope 说明见 `shared/policy-precedence.md`。
+统一术语为 `Stock Account Equity`，不再混用 `Equity Account Equity`。
+
+Multi-Asset Skill 只决定有多少资本进入股票账户，不得绕过股票账户 Level 1A 风险规则。
 
 ## 规则优先级
 
@@ -116,16 +118,16 @@ Level 3   skills/*/references/*.md + research/*.md
 Level 4   examples / case studies / dated snapshots / watchlists
 ```
 
-- Level 1A：股票账户资本、仓位、风险、建仓/补仓/止盈止损、账户级集中度；
-- Level 1B：Paper/Live、Broker、虚拟子账、幂等、Kill Switch、自动化与合规；
-- Level 1C：研究证据、point-in-time、Benchmark、Champion/Challenger 与模型晋级；
-- `research/*.md`：跨策略研究协议和实证计划，不是生产 Policy/Skill。
+另外：
 
-下层规则可以更保守，不能绕过上位规则。
+```text
+runtime/* + .github/workflows/*
+= Implementation Layer
+```
+
+实现层必须服从当前 Policy / Skill / Champion，不能反过来定义生产规则；`reports/` 与 `runtime/state/` 属于 Generated Evidence / Runtime State。
 
 ## 统一股票账户分母
-
-资本与账户级集中度统一使用：
 
 ```text
 Stock Account Equity
@@ -134,14 +136,14 @@ Stock Account Equity
 + 股票账户待配置现金
 ```
 
-以下都以该分母计算：
+以下统一以该分母计算：
 
 - 长期 / 短中期 Size Cap；
 - `Final Short Cap`；
-- 账户级单只股票合计暴露；
+- 账户级单股合计暴露；
 - 账户级风险簇合计暴露。
 
-长期仓内部的 Core/Growth、十股示例 `model_long_book_weight` 使用的是 long-book 内部分母，执行前必须先换算到账户级权重。
+长期仓内部 Core/Growth、十股示例 `model_long_book_weight` 使用 long-book 内部分母，执行前先换算到账户级权重。
 
 ## 顶层股票资金策略
 
@@ -178,27 +180,21 @@ CAP_BREACH
 → 在现实可执行窗口恢复
 ```
 
-不得把 ±5pp 漂移带当作主动突破 Cap 的理由，也不要求在异常价格下机械市价砍仓。
+不得用 ±5pp 漂移带主动突破 Cap，也不要求在异常价格下机械市价砍仓。
 
 ## 跨策略同股 / 同因子
-
-同一股票若同时被长期和短中期持有：
 
 ```text
 Account Symbol Exposure
 = Long Sleeve Exposure + Short/Mid-term Sleeve Exposure
-```
 
-风险簇同理：
-
-```text
 Account Cluster Exposure
 = Long Cluster Exposure + Short/Mid-term Cluster Exposure
 ```
 
 策略标签不能创造第二套风险额度。
 
-Broker 执行时同时维护：
+Broker 执行时维护：
 
 ```text
 Broker Net Position
@@ -206,7 +202,7 @@ Strategy Virtual Position: long
 Strategy Virtual Position: short_mid
 ```
 
-防止短中期卖单误卖长期逻辑份额。
+防止一套策略的卖单误操作另一套策略的逻辑份额。
 
 ## 建仓基线
 
@@ -218,7 +214,7 @@ Strategy Virtual Position: short_mid
 三级确认例外：50/30/20
 ```
 
-这些是治理参数，不宣称数学最优。策略批次和大额订单执行拆单不是同一概念。
+这些是治理参数，不宣称数学最优。策略批次和大额执行拆单不是同一概念。
 
 ## 短中期风险层级
 
@@ -233,13 +229,13 @@ Hard Ceiling
 - 全部未平仓初始风险：≤3%
 ```
 
-Hard Ceiling 是计划风险上限，不是跳空/跌停下的实际亏损保证。
+Hard Ceiling 是计划风险上限，不是跳空/跌停下实际亏损保证。
 
 回撤治理：4%降风险、6%停止新开仓、8%暂停策略并复核。
 
 ## A-Share Sentiment Regime Index
 
-市场情绪已经从主观判断升级为可计算研究变量：
+当前 Monitor 使用的研究状态变量：
 
 ```text
 Breadth                       25
@@ -250,7 +246,7 @@ Median Return                 10
 Turnover Expansion            15
 ```
 
-输出：
+Regime：
 
 ```text
 0–20   PANIC
@@ -260,13 +256,17 @@ Turnover Expansion            15
 80–100 EUPHORIA
 ```
 
-`EUPHORIA` 不等于加仓，额外检查拥挤和炸板。
+统一语义：
+
+- `PANIC` / `DATA_INSUFFICIENT`：当前趋势型新仓 fail closed；
+- `RISK_OFF`：提高入场门槛、风险取保守端、严格拒绝追高，**不是单凭情绪分数永久禁止所有交易**；
+- `EUPHORIA`：不等于加仓，额外检查拥挤与 extension。
 
 完整方法：
 
 `skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md`
 
-权重和阈值仍属于 Governance Parameter，后续按 Forward 数据校准。
+权重和阈值属于 Governance Parameter，需 Forward 校准。
 
 ## Research / Model Governance
 
@@ -279,13 +279,13 @@ Fundamentals 25
 Catalyst 15
 ```
 
-新的因果模型仍为：
+因果模型仍为：
 
 ```text
 CHALLENGER / SHADOW ONLY
 ```
 
-统一晋级路径：
+晋级路径：
 
 ```text
 Champion
@@ -296,17 +296,15 @@ Champion
 → New Champion only if promoted
 ```
 
-无法重建 point-in-time 输入的历史结果标记 `Biased / Non-promotable`，不能用于正式模型晋级。
+无法重建 point-in-time 输入的历史结果标记 `Biased / Non-promotable`。
 
 ## 长期研究升级
-
-长期不把“距离历史高点很远”直接等同于便宜：
 
 ```text
 Price Low != Valuation Low
 ```
 
-长期估值使用 Bear/Base/Bull 逐期现金流 IRR：
+长期 Bear/Base/Bull IRR 使用逐期现金流：
 
 ```text
 0 = -P0 + Σ[CF_t/(1+r)^t] + TV_T/(1+r)^T
@@ -319,17 +317,13 @@ Point-in-time Risk-free Rate
 + Configured Required Risk Premium
 ```
 
-风险溢价做敏感性分析，不写死为统一真理。
+长期 Benchmark 优先使用 Total Return 口径，例如沪深300全收益指数 `H00300`。
 
-长期 Benchmark 优先使用 Total Return 口径，例如沪深300全收益指数 `H00300`，避免组合含分红而基准只看价格。
-
-## Active Forward Study：短期 vs 长期到底差多少
-
-跨策略实证计划：
+## Active Forward Study
 
 `research/a-share-long-vs-tactical-empirical-study.md`
 
-当前研究对照：
+对照：
 
 ```text
 Long Retirement Book
@@ -339,39 +333,33 @@ vs Total Return Benchmark
 vs Cash / Government-Bond Opportunity Cost
 ```
 
-外部研究数字只作为背景；本仓库自己的收益差必须从 2026-08-26 point-in-time baseline 开始积累 Forward 证据，禁止制造带后见之明的历史业绩。
+仓库自己的收益差必须从冻结的 point-in-time baseline 开始积累 Forward 证据，禁止制造后见之明历史业绩。
 
 ## Daily Monitor Runtime
 
-新增可运行 MVP：
+可运行 MVP：
 
-```text
-runtime/daily_monitor.py
-```
+`runtime/daily_monitor.py`
 
-工作日北京时间 15:40 左右由 GitHub Actions 调度：
+GitHub Actions 工作日北京时间15:40左右调度：
 
 ```text
 交易日识别
 → 全A行情
 → 涨停/跌停/炸板
 → Sentiment Score / Regime
-→ 43股 whitelist 当日行情合并
+→ 43股历史 whitelist 当日行情合并
 → pre_action 研究状态
 → JSON + Markdown 日报
 → 成交额历史留档
 ```
 
-工作流：
-
-`.github/workflows/a-share-daily-monitor.yml`
-
-运行前自动：
+运行前：
 
 ```text
 compileall
 → unit tests
-→ monitor
+→ fail-closed monitor
 ```
 
 默认：
@@ -379,13 +367,12 @@ compileall
 ```text
 AUTO_MONITOR = true
 AUTO_ORDER   = false
+runtime_mode = MONITOR_ONLY
 ```
 
-日报中的 `REFRESH_FULL_GATES / WAIT / EVENT_REVIEW` 等只表示研究状态，不是交易指令。
+日报 `REFRESH_FULL_GATES / RISK_REVIEW / EVENT_REVIEW` 等都是研究状态，不是交易指令。
 
 ## 自动化执行原则
-
-成熟路径：
 
 ```text
 Research
@@ -397,7 +384,7 @@ Research
 → Full Auto only after Edge + Compliance + Reliability gates
 ```
 
-每个运行 cohort / 决策 / 订单必须保存 Governance Bundle：
+进入 Paper/Live 后每个 cohort / 决策 / 订单保存：
 
 ```text
 capital_policy_version
@@ -410,19 +397,19 @@ model_version
 
 模型晋级不等于自动化晋级。
 
-## 三套系统边界
+## 三套 Skill 边界
 
 ### Multi-Asset
 
-管理总金融资产到股票账户的上游分配，强调流动性、负债匹配、固收久期和组合 Stress Budget。
+管理 Total Financial Assets → Stock Account Equity，强调流动性、负债匹配、固收久期和组合 Stress Budget。
 
 ### Long
 
-依赖企业价值、现金流、分红、估值与资本保全，默认使用投资逻辑止损。
+依赖企业价值、现金流、分红、Expected IRR、估值与资本保全，默认使用投资逻辑止损。
 
 ### Short/Mid
 
-使用价格/失效、逻辑与时间止损。短中期亏损交易不得临时改名为长期持有；趋势/催化策略禁止机械摊低成本。
+使用价格/失效、逻辑与时间止损。亏损交易不得临时改名为长期持有；趋势/催化策略禁止机械摊低成本。
 
 长期价值仓只有在 Thesis / Balance / Valuation / Portfolio 四个 Gate 全部重新通过后才允许继续 ADD。
 
@@ -432,7 +419,7 @@ model_version
 
 长期：十股养老模型组合 Forward-Test 示例。
 
-短中期：2026-08-26 的 43 股最终研究 whitelist + machine-readable baseline；同日36股文件是较早中间快照。
+短中期：2026-08-26 的43股最终研究 whitelist + machine-readable baseline；同日36股文件是较早中间快照。
 
 所有 dated examples 都是 Level 4 历史证据，不是当前买入名单。真实交易前必须重新运行对应 Skill。
 
@@ -442,7 +429,7 @@ model_version
 - 资本/风险：`shared/capital-allocation-and-entry-policy.md`
 - 自动化/执行：`shared/automation-execution-governance.md`
 - 研究/模型：`shared/research-model-governance.md`
-- 研究证据与参数边界：`shared/research-validation-2026-08-26.md`
+- 研究证据：`shared/research-validation-2026-08-26.md`
 - 对抗审查：`shared/adversarial-research-review-2026-08-26.md`
 - 跨策略实证研究：`research/a-share-long-vs-tactical-empirical-study.md`
 - 一级资产配置：`skills/a-share-multi-asset-allocation/SKILL.md`
