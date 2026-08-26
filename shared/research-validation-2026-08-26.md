@@ -1,6 +1,6 @@
 # 资金分配与交易风控调研验证 — 2026-08-26
 
-> 本文件记录 `capital-allocation-and-entry-policy.md` **v2.1** 的公开资料验证、参数边界与本仓库一致性迁移结果。
+> 本文件记录 `capital-allocation-and-entry-policy.md` **v2.2** 的公开资料验证、参数边界与本仓库一致性迁移结果。
 >
 > 自动化执行安全与程序化交易门禁的跨策略治理见 `automation-execution-governance.md`。
 
@@ -22,16 +22,16 @@
 - 70/30、80/20、85/15 是唯一最优资金比例；
 - 40/30/30 或 50/50 是数学最优建仓比例；
 - 0.5%、1%、2%、3%、4/6/8 是唯一正确风险阈值；
-- Paper 交易达到某个固定样本数就必然能安全转实盘；
+- Paper 达到某个固定样本数就必然可以安全转实盘；
 - 技术上能自动报单就等于已满足程序化交易和券商要求。
 
-这些具体数字和晋级门槛属于仓库治理参数，需要用真实 forward/live 数据继续校准。
+具体数字和晋级门槛属于仓库治理参数，需要用真实 Forward/Live 数据持续校准。
 
 ## 2. 当前动态资金框架
 
 股票专用资金 Size Cap：
 
-| 股票专用资金规模 | 长期养老仓 | 短中期仓 |
+| 股票专用资金规模 | 长期战略基线 | 短中期 Size Cap |
 |---:|---:|---:|
 | ≤5 万元 | 70% | 30% |
 | 5–30 万元 | 75% | 25% |
@@ -39,13 +39,29 @@
 | 200–1000 万元 | 85% | 15% |
 | ≥1000 万元 | 85%–90% | 10%–15% |
 
-最终短中期比例：
+最终短中期上限：
 
 ```text
-Short Allocation = min(Size Cap, Risk Cap, Edge Cap)
+Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
+Actual Short Exposure <= Final Short Cap
 ```
 
-因此旧的“短中期永远占30%”或“短中期永远不超过总储蓄30%”都不是当前仓库级规则。
+因此旧的“短中期永远30%”或“短中期永远不超过总储蓄30%”都不是当前仓库级规则。
+
+### v2.2 语义修正
+
+股票专用资金不要求 100% 始终满仓：
+
+```text
+股票专用资金
+= 已部署长期仓
++ 已部署短中期仓
++ 待配置现金
+```
+
+如果 Risk Cap / Edge Cap 把短中期压低，差额不自动强制转成长仓。长期资产仍必须通过自己的质量、估值和组合 Gate；没有合格机会时现金是合法状态。
+
+同样，任何 ±5 个百分点的再平衡“漂移参考带”都不能突破 `Final Short Cap`、单股/风险簇上限或 Hard Ceiling。
 
 ## 3. 资产配置与分散证据
 
@@ -53,13 +69,13 @@ Short Allocation = min(Size Cap, Risk Cap, Edge Cap)
 
 https://www.investor.gov/introduction-investing/getting-started/asset-allocation
 
-支持：配置应与期限、风险承受能力和目标相匹配，并在不同资产和同一资产类别内部进行分散。
+支持：配置应与期限、风险承受能力和目标匹配，并在不同资产和同一资产类别内部进行分散。
 
 ### Investor.gov — Beginners’ Guide to Asset Allocation, Diversification, and Rebalancing
 
 https://www.investor.gov/additional-resources/general-resources/publications-research/info-sheets/beginners-guide-asset
 
-支持：只持有少数几只个股通常不足以形成充分分散；需要跨公司、行业和经济驱动分散。
+支持：只持有少数几只个股通常不足以形成充分分散，需要跨公司、行业和经济驱动分散。
 
 设计结果：随着资本增长，长期仓提高持股数量并降低单股与风险簇上限。
 
@@ -79,7 +95,7 @@ https://corporate.vanguard.com/content/dam/corp/research/pdf/cost_averaging_inve
 例外：30 / 25 / 25 / 20
 ```
 
-旧的模糊“3–5批”规则已经退役。策略批次与大额订单的执行拆单必须分开。
+旧的模糊“3–5批”规则已经退役。策略批次与大额订单执行拆单必须分开。
 
 ## 5. 主动交易与过度交易
 
@@ -89,7 +105,7 @@ https://faculty.haas.berkeley.edu/odean/papers/returns/individual_investor_perfo
 
 研究支持“高换手和过度自信可能侵蚀个人投资者表现”，但不能推出所有短中期策略必然失败。
 
-因此本仓库采用：
+因此：
 
 ```text
 主动交易仓必须用真实 Edge 挣仓位；
@@ -112,7 +128,7 @@ https://www.fidelity.com/learning-center/trading-investing/trading/exit-strategi
 
 支持风险仓位、Profit/Loss Ratio、时间退出等框架。
 
-当前仓库区分：
+当前仓库：
 
 ```text
 Operating Target
@@ -129,8 +145,6 @@ Hard Ceiling
 
 ## 7. 短中期建仓
 
-当前统一：
-
 ```text
 默认：50% Setup + 50% Confirmation
 三级确认例外：50% / 30% / 20%
@@ -142,7 +156,7 @@ Hard Ceiling
 
 ### 长期仓
 
-只有以下四个 Gate 同时通过才允许补仓：
+只有以下四个 Gate 同时通过才允许 ADD：
 
 ```text
 Thesis Gate
@@ -167,8 +181,6 @@ TRIM 主要由估值、集中度和机会成本驱动。
 
 ### 短中期
 
-使用：
-
 ```text
 价格/失效止损
 + 逻辑止损
@@ -185,19 +197,17 @@ R倍数 + 技术结构 + 原始目标
 
 ## 10. 回撤熔断
 
-当前内部治理线：
-
 ```text
 -4% → 降低风险
 -6% → 停止新开仓并复盘
 -8% → 暂停策略，正式复核后再恢复
 ```
 
-这些不是学术唯一最优阈值。
+这是仓库治理参数，不是学术唯一最优阈值。
 
 ## 11. 大资金流动性
 
-百万、千万级账户需要额外检查：
+百万、千万级账户额外检查：
 
 - 单股日均成交额；
 - 买卖价差；
@@ -209,8 +219,6 @@ R倍数 + 技术结构 + 原始目标
 
 ## 12. Paper / Live / Automation 证据边界
 
-模拟仓与实盘验证不能混为一谈：
-
 ```text
 Paper 证明流程可重复
 Manual Live 证明真实成交与纪律可执行
@@ -218,14 +226,14 @@ Assisted / Semi-auto 证明执行系统可靠
 Full Auto 还必须通过合规、故障恢复、对账与 Kill Switch
 ```
 
-模拟仓使用 A 股执行约束时，必须同时保存：
+模拟仓使用 A 股执行约束时必须同时保存：
 
 ```text
 paper_capital_rmb
 reporting_nav = 100.00 起始指数
 ```
 
-前者用于真实股数、100股单位、费用和滑点；后者只用于标准化绩效比较。
+前者用于股数、100股单位、费用和滑点；后者用于标准化绩效比较。
 
 ## 13. 程序化交易与自动执行基线
 
@@ -247,13 +255,16 @@ reporting_nav = 100.00 起始指数
 - 根 README 已更新为两套 Skill 均存在；
 - 增加 `policy-precedence.md`；
 - 增加 `automation-execution-governance.md`；
+- v2.2 明确 `Final Short Cap` 是上限，不是必须满配目标；
+- v2.2 明确未部署差额可以留在待配置现金池；
+- v2.2 明确任何漂移参考区间不能突破 Cap；
 - 长期 Skill 移除固定25%单股上限和模糊3–5批旧规则；
-- 长期 execution template 改为动态读取 shared policy；
+- 长期 execution template 动态读取 shared policy；
 - 短中期 Skill 移除永久30%总储蓄规则；
 - 短中期旧3/4/4建仓规则退役；
-- 风险预算明确 Operating Target 与 Hard Ceiling；
-- 止盈明确 R/结构优先于固定百分比观察区；
-- examples / case studies / snapshots 被明确降为非规范性证据记录；
+- 风险预算区分 Operating Target 与 Hard Ceiling；
+- 止盈明确 R/结构优先；
+- examples / case studies / snapshots 被明确为非规范性证据记录；
 - 自动化执行统一采用 fail closed、broker reconciliation、idempotency 和 Kill Switch 原则。
 
 ## 15. 后续校准
