@@ -201,13 +201,7 @@ def render_markdown(report: dict) -> str:
             )
         )
 
-    lines.extend(
-        [
-            "",
-            "## Provider errors",
-            "",
-        ]
-    )
+    lines.extend(["", "## Provider errors", ""])
     errors = report.get("provider_errors", [])
     if errors:
         lines.extend([f"- {e}" for e in errors])
@@ -250,6 +244,8 @@ def main() -> int:
     down_pool = None
     broken_pool = None
 
+    # If the calendar is unknown we may still collect observability data, but
+    # the final regime is forced to DATA_INSUFFICIENT below and cannot unlock entry.
     if trade_day is not False:
         spot = safe_call(errors, "stock_zh_a_spot_em", ak.stock_zh_a_spot_em)
         up_pool = safe_call(errors, "stock_zt_pool_em", ak.stock_zt_pool_em, date=date_key)
@@ -284,6 +280,28 @@ def main() -> int:
     }
 
     sentiment = calculate_sentiment(metrics)
+
+    if trade_day is None:
+        sentiment = {
+            **sentiment,
+            "sentiment_score": None,
+            "regime": "DATA_INSUFFICIENT",
+            "crowding_flag": False,
+            "data_confidence": "LOW",
+            "calendar_gate": "BLOCKED",
+        }
+    elif trade_day is False:
+        sentiment = {
+            **sentiment,
+            "sentiment_score": None,
+            "regime": "DATA_INSUFFICIENT",
+            "crowding_flag": False,
+            "data_confidence": "LOW",
+            "calendar_gate": "MARKET_CLOSED",
+        }
+    else:
+        sentiment = {**sentiment, "calendar_gate": "PASS"}
+
     watchlist = load_watchlist(args.watchlist)
     candidates = build_candidate_rows(
         watchlist,
@@ -293,7 +311,7 @@ def main() -> int:
     )
 
     report = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "date": today_str,
         "as_of": now.isoformat(),
         "trading_day_status": trading_day_status,
@@ -323,7 +341,12 @@ def main() -> int:
             },
         )
 
-    print(json.dumps({"report": str(md_path), "regime": sentiment.get("regime"), "errors": errors}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {"report": str(md_path), "regime": sentiment.get("regime"), "errors": errors},
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
