@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
@@ -20,6 +21,20 @@ SENTIMENT_WEIGHTS = {
 
 def clip(value: float, lower: float = 0.0, upper: float = 100.0) -> float:
     return max(lower, min(upper, value))
+
+
+def normalize_stock_code(value: object) -> str:
+    """Normalize Eastmoney/Sina A-share codes to six numeric digits.
+
+    Examples: 600000 -> 600000, sh600000 -> 600000, sz000001 -> 000001,
+    bj430017 -> 430017. Unknown/empty values return an empty string.
+    """
+    if value is None:
+        return ""
+    digits = re.sub(r"\D", "", str(value))
+    if not digits:
+        return ""
+    return digits[-6:].zfill(6)
 
 
 def regime_from_score(score: float) -> str:
