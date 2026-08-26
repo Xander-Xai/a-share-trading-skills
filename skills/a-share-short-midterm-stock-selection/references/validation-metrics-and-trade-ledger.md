@@ -1,62 +1,75 @@
-# Forward Validation Metrics and Trade Ledger
+# Forward Validation Metrics and Trade Ledger v2
 
-## Purpose
+> 本文件定义短中期 Forward Paper / Live 的可审计记录结构。
+>
+> 上位规则：
+>
+> - `../../../shared/capital-allocation-and-entry-policy.md`
+> - `../../../shared/automation-execution-governance.md`
+> - `../SKILL.md`
 
-Define how to measure whether the short/mid-term skill works **prospectively** and how to keep paper/live results auditable.
+## 1. Purpose
 
-The ledger is not just a P&L table. It must preserve the decision, the execution, the risk and the rule-adherence context.
+评估策略是否**前瞻有效**，同时保留决策、执行、风险、规则遵循和 Paper/Live 差异。
 
----
+Ledger 不只是 P&L 表。
 
-## 1. Separate three price concepts
+## 2. 必须分开的价格
 
-Never merge these fields:
+```text
+baseline_price  = 历史研究快照价格
+planned_entry   = 交易计划价格
+simulated_fill  = Paper 保守模拟成交
+actual_fill     = Broker 真实成交
+```
 
-1. `baseline_price` — research snapshot reference price.
-2. `planned_entry` — price used when creating the trade plan.
-3. `actual_fill` / `simulated_fill` — price actually achieved or conservatively simulated.
+任何历史截图收盘价都不能自动变成实际 entry。
 
-The 2026-08-26 screenshot close is a **baseline**, not an automatic entry.
+## 3. Paper Capital 与 Reporting NAV
 
----
+Paper 模式必须同时保存：
 
-## 2. Trade lifecycle IDs
+```text
+paper_capital_rmb
+reporting_nav
+```
 
-Every potential trade receives a stable ID:
+- `paper_capital_rmb`：用于100股单位、真实股数、费用、滑点、仓位和风险计算；
+- `reporting_nav`：通常以100.00为起点，用于标准化绩效比较。
+
+禁止拿 `NAV=100` 直接模拟 A 股股数。
+
+Live 模式保存 broker account/strategy NAV，但不得提交敏感账户标识到仓库。
+
+## 4. Trade Lifecycle ID
 
 ```text
 trade_id = YYYYMMDD-code-sequence
 ```
 
-Example:
-
-```text
-20260827-601138-01
-```
-
-One trade ID follows the entire lifecycle:
+同一 thesis 生命周期：
 
 ```text
 signal
 → decision
 → order intent
-→ fill
-→ position updates
+→ setup fill
+→ confirmation fill(s)
+→ holding-state events
 → exit
 → post-trade review
 ```
 
-Do not create a new trade ID merely because the position receives a confirmation tranche. Record tranches under the same trade thesis unless a genuinely new thesis is created.
+同一 thesis 的 confirmation tranche 不创建新 trade_id；新的独立 thesis 才创建新生命周期。
 
----
-
-## 3. Required pre-trade fields
+## 5. Required Pre-trade Fields
 
 ### Identity / provenance
 
 ```yaml
 trade_id:
 strategy_version:
+policy_version:
 universe_snapshot_id:
 mode: paper | live_manual | assisted | semi_auto | auto
 code:
@@ -96,41 +109,60 @@ expected_reward_risk:
 event_risk:
 ```
 
-### Risk / size
+### Capital / Risk / Size
 
 ```yaml
-strategy_nav:
+paper_capital_rmb: null_if_live
+reporting_nav:
+strategy_nav_rmb:
+size_cap_pct:
+risk_cap_pct:
+edge_cap_pct:
+final_short_cap_pct:
+actual_short_exposure_before_pct:
+actual_short_exposure_after_pct:
 allowed_loss_amount:
 planned_stop_distance_pct:
 planned_shares:
 planned_exposure_rmb:
 planned_trade_risk_pct:
-portfolio_heat_before:
-portfolio_heat_after:
-industry_heat_after:
-factor_heat_after:
+portfolio_heat_before_pct:
+portfolio_heat_after_pct:
+industry_heat_after_pct:
+factor_heat_after_pct:
 ```
+
+Hard condition:
+
+```text
+actual_short_exposure_after_pct <= final_short_cap_pct
+```
+
+Being below the cap is allowed. No trade is required merely to “fill” unused capacity.
 
 ### Decision governance
 
 ```yaml
 hard_veto_passed:
 adversarial_review_passed:
+policy_conflict: false
+kill_switch_active: false
+broker_reconciled: true_or_null_in_paper
 manual_override: false
 manual_override_reason:
 decision: enter | wait | reject | event_isolation
 ```
 
----
+## 6. Execution Fields
 
-## 4. Execution fields
-
-For every order/tranche:
+For every strategy tranche / execution order:
 
 ```yaml
 order_id:
+client_order_id:
 trade_id:
-tranche: setup | confirmation | reduction | exit
+strategy_tranche: setup | confirmation_1 | confirmation_2 | reduction | exit
+execution_slice_no:
 order_created_at:
 submitted_at:
 order_type:
@@ -146,13 +178,31 @@ slippage_bps:
 reject_reason:
 ```
 
-Paper mode must populate equivalent `simulated_*` fields using conservative fill logic.
+`strategy_tranche` 与 `execution_slice_no` 必须分开，防止把大额拆单误记为更多策略批次。
 
----
+Paper 模式使用等价 `simulated_*` 字段，并遵守保守成交逻辑。
 
-## 5. Holding-state event log
+## 7. Broker / Idempotency Fields
 
-Do not store only the final exit. Append state transitions:
+Live/Assisted/Semi-auto/Auto 至少保存：
+
+```yaml
+broker_order_id:
+client_order_id:
+idempotency_key:
+acknowledged_at:
+last_reconciled_at:
+local_position_qty:
+broker_position_qty:
+reconciliation_status:
+retry_count:
+```
+
+API 超时后先查询 broker 状态，不盲目重试。
+
+## 8. Holding-state Event Log
+
+只追加，不覆盖：
 
 ```yaml
 event_time:
@@ -168,29 +218,14 @@ action:
 action_reason:
 ```
 
-Allowed thesis states:
+状态：
 
 - `strengthening`
 - `intact`
 - `weakening`
 - `invalidated`
 
-Examples:
-
-```text
-intact → strengthening
-reason: breakout retest held + sector breadth improved
-
-intact → weakening
-reason: relative strength deteriorated for 3 sessions
-
-weakening → invalidated
-reason: key support lost + thesis event failed
-```
-
----
-
-## 6. Exit fields
+## 9. Exit Fields
 
 ```yaml
 exit_decision_at:
@@ -198,87 +233,64 @@ exit_order_at:
 exit_fill_at:
 exit_price:
 exit_shares:
-exit_reason: invalidation | thesis | time_stop | partial_profit | trailing | event | portfolio_risk | other
+exit_reason: invalidation | thesis | time_stop | partial_profit | trailing | event | portfolio_risk | cap_rebalance | other
 holding_days:
 realized_pnl_rmb:
 realized_return_pct:
 realized_R:
 ```
 
-Record the real exit price, not the planned stop price, when a gap or liquidity constraint creates worse execution.
+跳空/流动性导致更差成交时记录真实成交价，不用计划 stop 假装已成交。
 
----
-
-## 7. MFE and MAE
-
-For each trade calculate:
-
-### Maximum Favorable Excursion
+## 10. MFE / MAE
 
 ```text
-MFE = best unrealized move while position was open
+MFE = 持仓期间最大有利偏移
+MAE = 持仓期间最大不利偏移
 ```
 
-### Maximum Adverse Excursion
+同时记录：
 
-```text
-MAE = worst unrealized move while position was open
-```
+- percent；
+- R multiple。
 
-Record both in:
+用于判断止损、退出、time-to-work 和 setup 质量。
 
-- percent;
-- R multiples.
-
-Use them to answer:
-
-- Are stops too tight?
-- Are exits too early?
-- Are profitable trades experiencing excessive adverse excursion?
-- Does the setup generate favorable movement soon enough for a 5–15 day strategy?
-
----
-
-## 8. Core performance metrics
+## 11. Core Performance Metrics
 
 ### Expectancy
 
 ```text
-Expectancy_R = win_rate * average_win_R - loss_rate * average_loss_R
+Expectancy_R
+= win_rate * average_win_R
+- loss_rate * average_loss_R
 ```
 
-Use net results after actual or estimated transaction costs.
+必须扣除实际或合理估计的交易成本。
 
-### Profit factor
+### Profit Factor
 
 ```text
 profit_factor = gross_profit / abs(gross_loss)
 ```
 
-### Other required metrics
+还要统计：
 
-- total closed trades
-- win rate
-- median R
-- average R
-- average winner
-- average loser
-- best / worst trade
-- max drawdown
-- recovery time
-- consecutive losses
-- turnover
-- average holding days
+- closed trades；
+- win rate；
+- median / average R；
+- average winner / loser；
+- best / worst trade；
+- max drawdown / recovery；
+- consecutive losses；
+- turnover；
+- average holding days。
 
-Do not rely on win rate alone.
+不能只看胜率。
 
----
+## 12. Segment the Data
 
-## 9. Segment the data
-
-Aggregate P&L can hide a broken process.
-
-Review results by:
+按以下维度拆分：
 
 ### Setup
 
@@ -291,10 +303,10 @@ Review results by:
 ### Market regime
 
 - Risk-On
-- neutral / rotational
+- Neutral / Rotational
 - Risk-Off
 
-### Sector / factor
+### Factor
 
 - commodity
 - AI/datacenter capex
@@ -309,20 +321,18 @@ Review results by:
 
 - 80+
 - 75–79
-- 65–74 paper observations
+- 65–74 Paper observations
 
-### Decision state
+### Research state
 
 - priority scan
-- technical wait converted to entry
-- event-isolation post-event entry
-- downgrade name later restored
+- technical wait → entry
+- event isolation → post-event entry
+- downgrade → restored
 
----
+## 13. Rule-adherence Metrics
 
-## 10. Rule-adherence metrics
-
-Every trade must be labeled:
+每笔交易标记：
 
 ```text
 good process + good result
@@ -331,26 +341,27 @@ bad process + good result
 bad process + bad result
 ```
 
-A profitable trade with a hard-rule violation is **not** evidence that the rule should be removed.
+盈利但违规不构成删除规则的证据。
 
-Track:
+跟踪：
 
-- trades without predefined invalidation
-- risk-limit breaches
-- same-factor limit breaches
-- chasing despite chase veto
-- entry during blocked event window
-- averaging down without positive confirmation
-- stop widened in losing direction
-- short-term trade converted to medium term without re-underwriting
-- manual override count
-- no-trade rule violations
+- 无预定义 invalidation；
+- per-trade / portfolio heat breach；
+- `Final Short Cap` breach；
+- same-factor breach；
+- chase veto violation；
+- blocked event entry；
+- losing-position averaging down；
+- stop widened in losing direction；
+- 未重新承保就短转中；
+- manual override；
+- forced-trade / no-trade violation；
+- stale data incident；
+- reconciliation / duplicate-order incident。
 
----
+## 14. Paper vs Live
 
-## 11. Paper vs live comparison
-
-For matched paper/live signals compare:
+匹配同一信号比较：
 
 ```text
 paper_fill vs live_fill
@@ -360,133 +371,113 @@ paper_holding_time vs live_holding_time
 paper_exit_reason vs live_exit_reason
 ```
 
-If paper edge disappears live, investigate:
+若 Paper Edge 在 Live 消失，优先检查：
 
-- fill optimism;
-- late human execution;
-- missed trades;
-- emotional overrides;
-- liquidity/fees;
-- different position sizing;
-- data timing.
+- fill optimism；
+- 人工执行延迟；
+- missed trades；
+- emotional override；
+- liquidity/fees；
+- sizing differences；
+- data timing；
+- reconciliation error。
 
-Do not blame “bad luck” before checking execution mismatch.
-
----
-
-## 12. Daily report
-
-Recommended end-of-day report:
+## 15. Daily Report
 
 ```markdown
 # YYYY-MM-DD Short/Mid-term Daily Report
 
 ## Market regime
 
-## 43-stock whitelist changes
-- promoted
-- downgraded
-- event-isolated
-- removed
+## Whitelist changes
 
-## Top 10 watchlist
+## Top watch names
 
 ## Executable candidates
 
 ## Existing positions
 - thesis state
 - current R
-- stop / invalidation
+- invalidation
 - event risk
 
-## Portfolio risk
-- strategy NAV
+## Capital / Risk
+- strategy NAV RMB
+- Final Short Cap
+- actual short exposure
+- unused capacity / cash
 - open initial risk
 - industry heat
 - factor heat
 
-## Orders / fills
+## Orders / fills / reconciliation
 
-## Rule violations / system incidents
+## Rule violations / incidents
 
-## Tomorrow's triggers
+## Next-session triggers
 ```
 
----
+## 16. Weekly Review
 
-## 13. Weekly review
+至少：
 
-At least weekly:
+- recompute expectancy / drawdown；
+- setup/regime/factor split；
+- inspect MFE/MAE；
+- review every loss >1R equivalent；
+- review manual override；
+- check whether one factor dominates results；
+- check whitelist fundamentals/events；
+- check Paper/Live divergence；
+- check cap, reconciliation and system incidents。
 
-- recompute expectancy and drawdown;
-- compare setup groups;
-- inspect MFE/MAE;
-- review every loss >1R equivalent;
-- review every manual override;
-- review missed trades only to improve process, not to create FOMO rules;
-- check whether one factor dominates results;
-- check whether current whitelist still reflects new fundamentals/events.
-
----
-
-## 14. Promotion / rollback principle
+## 17. Promotion / Rollback
 
 ### Promotion
 
-Advance from paper to live or from manual to more automation only when:
+只有在：
 
-- strategy evidence improves;
-- process error rate is low;
-- execution is reproducible;
-- risk controls remain intact.
+- strategy evidence improves；
+- process error rate low；
+- execution reproducible；
+- risk controls intact；
+- shared automation governance gates passed；
+
+时才向更高自动化阶段晋级。
 
 ### Rollback
 
-Immediately move to a safer phase if:
+出现以下任一情况，退回更安全阶段：
 
-- reconciliation failures appear;
-- duplicate orders occur;
-- hard risk controls fail;
-- unexplained live/paper divergence persists;
-- regulatory/broker permission changes;
-- drawdown triggers policy review;
-- new strategy version has not been validated.
+- reconciliation failure；
+- duplicate order；
+- hard risk control failure；
+- persistent unexplained Live/Paper divergence；
+- regulatory/broker permission change；
+- circuit breaker / drawdown review；
+- new strategy version not validated。
 
-Automation maturity is reversible.
+自动化成熟度必须可逆。
 
----
-
-## 15. Suggested storage format
-
-For future runtime implementation, prefer append-only structured records:
+## 18. Suggested Storage
 
 ```text
 runtime/
 ├── snapshots/
-│   └── YYYY-MM-DD.json
 ├── signals/
-│   └── YYYY-MM-DD.jsonl
 ├── trades/
 │   ├── paper.jsonl
 │   └── live.jsonl
 ├── orders/
-│   └── orders.jsonl
 ├── positions/
-│   └── daily-position-snapshots.jsonl
 ├── reports/
-│   ├── daily/
-│   ├── weekly/
-│   └── monthly/
 └── incidents/
-    └── incidents.jsonl
 ```
 
-For high-integrity execution systems, also use a transactional database for the canonical live state. Flat files are useful for audit/export but should not be the sole live-order state store.
+Live canonical state 建议使用事务型数据库；Flat files 适合审计/导出，但不应成为唯一订单状态源。
 
----
+## 19. Final Rule
 
-## 16. Final rule
+最重要的不是裸收益，而是：
 
-The system's most important performance metric is not raw return. It is:
-
-> **Positive expectancy after costs, achieved without violating the risk policy, with decisions that can be reproduced from point-in-time data.**
+> **扣成本后存在正期望，并且没有违反资本/风险/执行治理规则；任何结果都能从 point-in-time 数据、决策和真实/模拟成交记录中重建。**
