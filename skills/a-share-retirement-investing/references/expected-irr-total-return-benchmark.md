@@ -1,48 +1,62 @@
-# Expected IRR & Total Return Benchmark
+# Expected IRR & Total Return Benchmark v1.1
 
 > 用于把“相对低位”“好公司”转化为可比较的长期预期回报，而不是依赖股价距离高点或静态 PE。
 >
-> 本文件是估值方法 reference。资金、仓位和建仓批次仍以 shared policy 为准。
+> 本文件是估值方法 reference。资金、仓位和建仓批次仍以 shared capital policy 为准；研究参数与模型证据等级受 `../../../shared/research-model-governance.md` 约束。
 
 ## 1. 核心区别
 
-必须分开：
-
 ```text
-Good Company
-!=
-Good Investment at Any Price
-```
-
-以及：
-
-```text
-Price Low
-!=
-Valuation Low
+Good Company != Good Investment at Any Price
+Price Low    != Valuation Low
 ```
 
 股价从历史高点下跌很多，不能自动代表便宜。
 
-## 2. Expected IRR
+## 2. Expected IRR：正式定义
 
-建议用多情景 IRR 作为长期买入的共同语言：
+建议用多情景 Expected IRR 作为长期买入共同语言，但 IRR 必须尊重现金流发生时间。
+
+若：
 
 ```text
-Expected IRR
-= ((Estimated Terminal Value + Cumulative Cash Distributions) / Current Price)^(1/T) - 1
+P0   = 当前买入价格
+CF_t = 第 t 年预计可归属于股东的现金分配
+TV_T = 第 T 年终值
+r    = Expected IRR
 ```
+
+则 `r` 满足：
+
+```text
+0
+= -P0
++ CF_1/(1+r)^1
++ CF_2/(1+r)^2
++ ...
++ (CF_T + TV_T)/(1+r)^T
+```
+
+实际日期不规则时优先使用 XIRR/按日期折现，而不是把所有现金流假设发生在年末。
+
+### 粗略终值近似的限制
+
+```text
+((TV_T + Cumulative Cash Distributions) / P0)^(1/T) - 1
+```
+
+只可作为粗略 sanity check，因为它隐含假设所有中间分红在终点收到。**不得把这个近似值标记成精确 IRR。**
 
 注意：
 
-- 若 Terminal Value 已经基于 ex-dividend / retained cash 假设，避免重复计算现金；
-- 回购需要反映到每股价值/股本，而不是简单当成额外现金分红；
-- 银行、保险、周期股应使用行业适配终值方法；
-- 这是估值模型，不是未来收益保证。
+- 若 Terminal Value 已处理 retained cash / ex-dividend 逻辑，避免现金双重计算；
+- 回购通过股本和每股价值反映，不简单当额外现金分红；
+- 银行、保险、周期股使用行业适配终值方法；
+- Expected IRR 是估值模型，不是未来收益保证。
 
 ## 3. Bear / Base / Bull
 
-每只长期候选至少建立三种情景：
+每只长期候选至少建立三种情景。
 
 ### Bear
 
@@ -83,19 +97,21 @@ Required Risk Premium:
 8%
 ```
 
-网格是研究参数，可根据账户目标、行业风险和市场环境调整。
+网格是研究参数，可根据账户目标、行业风险和市场环境调整；任何修改需按 research-model-governance 记录。
 
-## 5. Max Buy Price
+## 5. Max Buy Price：逐期折现
 
-用 Required Return 反推最高可接受买价：
+给定 Required Return `k`：
 
 ```text
 Max Buy Price
-≈ (Estimated Terminal Value + Cumulative Cash Distributions)
-  / (1 + Required Return)^T
+= Σ[CF_t / (1+k)^t]
++ TV_T / (1+k)^T
 ```
 
-实际使用时输出：
+不能把所有累计分红与终值简单加总后统一只折现 T 年，除非明确标注那只是保守/粗略近似。
+
+实际输出：
 
 ```text
 Bear Max Buy Price
@@ -115,23 +131,28 @@ Bull IRR
 ```text
 Current Price = 20
 T = 5 years
-Base Terminal Value = 30
-Cumulative Dividends = 5
+Annual Dividend = 1
+Base Terminal Value at year 5 = 30
 ```
 
-则：
+精确 Expected IRR 应解：
 
 ```text
-Base IRR ≈ (35 / 20)^(1/5) - 1 ≈ 11.8%
+20
+= 1/(1+r)
++ 1/(1+r)^2
++ 1/(1+r)^3
++ 1/(1+r)^4
++ 31/(1+r)^5
 ```
 
-该数字只用于说明计算方法，不代表任何实际股票预测。
+而不是直接把 5 元累计分红全部视为第5年收到。
+
+该示例只说明方法，不代表实际股票预测。
 
 ## 7. 不同行业的终值方法
 
 ### 银行
-
-优先考虑：
 
 ```text
 Sustainable ROE
@@ -142,8 +163,6 @@ PB-ROE relationship
 ```
 
 ### 公用事业 / 电信
-
-重点：
 
 ```text
 FCF
@@ -167,8 +186,6 @@ Capex Discipline
 禁止使用周期高点 EPS × 低 PE 得出“非常便宜”。
 
 ### 消费
-
-重点：
 
 ```text
 Volume
@@ -197,11 +214,11 @@ Terminal Multiple
 
 长期策略不能只和价格指数比较，因为组合自身会收到现金分红。
 
-例如沪深 300：
+例如沪深300：
 
 ```text
-Price Index      = 000300
-Total Return     = H00300
+Price Index  = 000300
+Total Return = H00300
 ```
 
 长期报告优先：
@@ -214,7 +231,7 @@ vs
 Relevant Sector Total Return Benchmark
 ```
 
-若某指数没有可用全收益口径，必须明确标记口径差异，不能静默比较。
+若指数没有可用全收益口径，必须明确标记口径差异，不能静默比较。
 
 ## 9. 分红复投口径
 
@@ -262,10 +279,6 @@ Thesis unchanged or stronger
 
 ## 11. SELL / TRIM
 
-长期不使用统一盈利百分比退出。
-
-重新估值后：
-
 ### HOLD
 
 ```text
@@ -299,10 +312,12 @@ as_of
 data_sources
 terminal_year
 terminal_value_method
+cash_flow_timing
 bear/base/bull assumptions
 required_return_grid
-estimated_dividends
+estimated_cash_distributions
 actual subsequent results (later, separately)
+research_model_governance_version
 ```
 
-后续复盘不得用未来实际结果静默改写原始估值假设；需要保留原版本与 prediction error。
+后续复盘不得用未来实际结果静默改写原始估值假设；保留原版本与 prediction error。
