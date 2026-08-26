@@ -9,14 +9,15 @@
 3. `../../shared/automation-execution-governance.md`（涉及 Paper / Live / 自动化时）
 4. `SKILL.md`
 
-跨策略资金比例、Risk/Edge/Size Cap、Operating Target/Hard Ceiling、默认策略批次、回撤熔断以 shared capital policy 为准。
+跨策略资金比例、Size/Risk/Edge Cap、Operating Target/Hard Ceiling、默认策略批次和回撤熔断以 shared capital policy 为准。
 
 Paper/Live、Broker 对账、幂等、Kill Switch、程序化交易/券商合规和 `AUTO_ORDER` 晋级以 shared automation governance 为跨策略上位规则。
 
 ## 当前短中期核心规则
 
 ```text
-Short Allocation = min(Size Cap, Risk Cap, Edge Cap)
+Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
+Actual Short Exposure <= Final Short Cap
 
 Operating Target
 - 单笔计划风险：0.5%
@@ -30,6 +31,8 @@ Hard Ceiling
 默认建仓：50% Setup + 50% Confirmation
 三级确认例外：50% / 30% / 20%
 ```
+
+`Final Short Cap` 是上限，不是满仓要求。没有合格 setup 时允许保留现金。
 
 后续批次只允许正向确认，禁止为了摊低成本向亏损仓位机械加码。
 
@@ -81,7 +84,7 @@ skills/a-share-short-midterm-stock-selection/
 
 因此 `36 → 43` 是研究流程的版本演进，不是两个同时有效的当前名单。
 
-两个文件都属于 Level 4 历史证据，当前执行必须重新运行 Skill。
+这些文件都属于 Level 4 历史证据，当前执行必须重新运行 Skill。
 
 ## 自动化默认模式
 
