@@ -4,7 +4,7 @@ description: Select, rank, size, and manage A-share stocks for short-to-medium-t
 compatibility: Requires fresh public market data, official A-share disclosures, and web research.
 metadata:
   author: yandexuanxuan
-  version: "1.4.0"
+  version: "1.5.0"
   market: "China A-share"
 ---
 
@@ -12,348 +12,395 @@ metadata:
 
 ## 0. Governing policy
 
-Before execution, read:
+执行前读取：
 
 1. `../../shared/policy-precedence.md`
 2. `../../shared/capital-allocation-and-entry-policy.md`
-3. `../../shared/automation-execution-governance.md` when Paper / Live / broker execution / automation is involved.
+3. `../../shared/research-model-governance.md`
+4. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
 
-The shared capital policy is the only Source of Truth for:
+职责：
 
-- Size Cap / Risk Cap / Edge Cap;
-- `Final Short Cap`;
-- Operating Target / Hard Ceiling;
-- default strategy tranches;
-- portfolio circuit breakers;
-- cross-strategy rebalancing;
-- large-capital liquidity constraints.
+- Level 1A：Stock Account Equity、Final Short Cap、Operating Target/Hard Ceiling、账户级同股/风险簇聚合、策略批次、熔断；
+- Level 1C：当前 Champion、Challenger、point-in-time、Benchmark、模型 Promotion；
+- Level 1B：Paper/Live、Broker 净持仓、策略虚拟子账、对账、幂等、Kill Switch、合规。
 
-The shared automation policy governs Paper/Live mode promotion, reconciliation, idempotency, Kill Switch and compliance gates.
-
-This Skill may be more conservative, never more aggressive.
+本 Skill 可以更保守，不能更激进。
 
 ## 1. Purpose
 
-Build a repeatable, evidence-based A-share workflow for short-to-medium-term trading.
+构建可重复、证据驱动的 A 股短中期流程。
 
-Default mode:
+默认：
 
-- short term: usually 5–15 trading days;
-- medium-term extension: typically 15–60 trading days only after fresh re-underwriting.
+- 短期：通常5–15个交易日；
+- 中期延长：通常15–60个交易日，必须 fresh re-underwriting。
 
-A losing short-term trade must never drift into a longer hold merely to avoid realizing a loss.
+亏损短期交易不得仅因不愿止损而漂移成长持有。
 
-The workflow separates:
+四个独立决策：
 
 1. Eligibility
 2. Timing
 3. Execution
 4. Sizing
 
-A good company can fail timing. A hot chart can fail eligibility. A high score can still fail execution or risk-budget constraints.
+## 2. Universe Lock
 
-## 2. Universe lock
+用户给出截图、watchlist 或固定股票池时：
 
-If the user supplies screenshots, a watchlist or fixed pool:
+- 提取 `stock_code + stock_name`；
+- 按代码去重；
+- 研究前冻结 universe；
+- 未经明确授权不引入池外股票；
+- 保留每只股票 provenance；
+- 少于 N 只通过硬门禁时，返回更少，不强塞弱股。
 
-- extract `stock_code + stock_name`;
-- deduplicate by code;
-- freeze the universe before research;
-- do not introduce outside names unless explicitly requested;
-- keep provenance for every final name;
-- if fewer than N names pass hard gates, return fewer than N rather than filling with weak names.
+## 3. Point-in-time Research
 
-## 3. Point-in-time research
+每次分析声明 `as_of`，只使用该时点已经公开的信息。
 
-Every analysis must state an `as_of` timestamp and use only information public by that time.
+禁止：
 
-- no later earnings to justify an earlier decision;
-- no later price action as look-ahead evidence;
-- unreleased reports are event risk, not facts;
-- unresolved material data gaps are `Insufficient` and cannot become executable trades.
+- 用后来财报证明更早判断；
+- 用后来价格行动证明更早入场；
+- 把未发布报告当事实；
+- 使用未来 ST/退市/指数成分。
 
-## 4. Capital allocation and risk hierarchy
+关键数据不足标记 `Insufficient`，不能成为 executable trade。
 
-The retired rule `short-term capital <= 30% of total savings` must not be used.
+## 4. Capital Allocation、Risk 与统一分母
 
-Current upper bound:
+退休旧规则：
+
+```text
+short-term capital <= 30% of total savings
+```
+
+当前：
 
 ```text
 Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
-Actual Short Exposure <= Final Short Cap
 ```
 
-`Final Short Cap` is a ceiling, not a requirement to stay fully invested.
+`Final Short Cap` 以 shared 定义的 `Stock Account Equity` 为分母，是**上限，不是满仓目标**。
 
-If no setup qualifies:
+新订单必须满足：
 
 ```text
-unused strategy allocation → cash
+Planned Post-Trade Short Exposure <= Final Short Cap
 ```
 
-Do not force trades simply to reach a nominal target percentage.
+没有合格 setup：
+
+```text
+unused capacity → cash
+```
+
+### 被动 CAP_BREACH
+
+市场上涨可能让实际暴露在无新订单情况下超过 Cap：
+
+```text
+state = CAP_BREACH
+→ no new increase
+→ rebalance/profit-transfer review
+```
+
+不能把这种被动越界解释为允许主动下单超限，也不能用 ±5pp 漂移带合理化新增风险。
 
 ### Operating Target
 
+以当前短中期策略 NAV 为风险分母：
+
 ```text
-planned loss per trade: 0.5% of strategy NAV
-aggregate open initial risk: <= 2%
-aggregate initial risk per industry/factor cluster: <= 1%
+planned loss per trade: 0.5%
+aggregate open initial risk: <=2%
+aggregate initial risk per industry/factor: <=1%
 ```
 
 ### Hard Ceiling
 
 ```text
-planned loss per trade: <= 1%
-aggregate open initial risk: <= 3%
+planned loss per trade: <=1%
+aggregate open initial risk: <=3%
 ```
 
-Moving above 0.5% requires sufficiently validated Edge, favorable regime and a high-quality setup. Hard Ceiling is never exceeded.
+Hard Ceiling 是**计划风险上限**，不保证跳空/跌停下实际亏损绝不超过。发生尾部超损必须记录 risk event。
 
 ### Portfolio structure
 
-Default operational limits unless shared policy is stricter:
+默认运营限制，shared 更严格时取 shared：
 
-- maximum simultaneous holdings: 5;
-- same industry: no more than 2 holdings;
-- same dominant economic factor: no more than 2 holdings;
-- no automatic averaging down;
-- no default leverage.
+- 同时持仓最多5只；
+- 同行业不超过2只；
+- 同主导因子不超过2只；
+- 不机械摊低亏损成本；
+- 默认不用融资杠杆。
 
-Capital-exposure limits and risk-heat limits must both pass.
+## 5. 跨策略同股 / 同因子聚合
 
-## 5. Market and sector regime
-
-Classify environment as:
-
-- risk-on / trend-friendly;
-- neutral / rotational;
-- risk-off / high-failure-rate.
-
-Use broad-index structure, breadth, turnover, sector relative strength, leadership persistence and breakout-failure behavior.
-
-In risk-off conditions:
-
-- raise entry-quality requirements;
-- reduce size;
-- reject late breakouts and gap chasing more aggressively.
-
-## 6. Industry, factor and role classification
-
-For every stock tag:
-
-1. formal industry;
-2. dominant economic factor;
-3. role: national/global leader, sub-sector leader, high-quality second tier, cyclical beta, event-driven, turnaround.
-
-Do not treat formal industry labels as proof of economic diversification.
-
-### Industry taxonomy discipline
-
-When industry coverage matters, use one explicit taxonomy consistently. Default to the current Shenwan 2021 Level-1 classification unless the user requests another system.
-
-- map every stock to exactly one primary Level-1 industry for coverage counting;
-- keep factor tags separately;
-- do not mix concept/theme boards into formal industry counts;
-- use the classification valid at `as_of`;
-- check current principal business after restructuring/business transformation.
-
-Use `references/industry-coverage-audit.md`.
-
-## 7. Industry coverage audit
-
-Coverage is a **research-completeness diagnostic**, not a quota.
-
-When requested:
-
-1. compute taxonomy total;
-2. compute unique industries in locked universe;
-3. compute unique industries in quality-first core pool;
-4. calculate coverage ratio;
-5. separate:
-   - `uncovered_but_available`;
-   - `absent_from_universe`;
-6. do not fill absent industries with outside stocks unless expansion is explicitly authorized;
-7. compare only in-universe candidates for uncovered-but-available industries;
-8. leave an industry uncovered if no candidate passes hard gates.
-
-Maintain:
+如果同一股票同时存在长期与短中期：
 
 ```text
-core quality pool
-+
-qualified coverage supplement pool
+Account Symbol Exposure
+= Long Sleeve Exposure + Short/Mid-term Sleeve Exposure
 ```
 
-Coverage supplements are not automatically equal-priority trade candidates.
+风险簇同理：
 
-## 8. Leader and concept-authenticity gate
+```text
+Account Cluster Exposure
+= Long Cluster Exposure + Short/Mid-term Cluster Exposure
+```
 
-Leader status requires at least two evidence categories such as:
+任何短中期新订单必须同时通过：
 
-- market share / production capacity;
-- revenue/profit scale;
-- customer/channel position;
-- technology/IP/manufacturing moat;
-- resource reserves/cost curve;
-- brand/standard-setting role.
+```text
+short internal capital limit
+AND short risk Heat
+AND account symbol cap
+AND account cluster cap
+AND Final Short Cap
+```
 
-Theme authenticity requires material business evidence: revenue, profit, shipment, orders, capacity, customers or commercial product.
+策略标签不能创造第二套风险额度。
 
-Narrative adjacency alone earns no leader/catalyst premium.
+涉及 Broker 执行时，策略虚拟子账与 Broker 净持仓必须 reconcile，不能让短中期卖单误卖长期逻辑份额。
 
-## 9. Fundamental quality gate
+## 6. Champion / Challenger Governance
 
-Use latest official report/filing. Evaluate:
+### Champion — 当前生产研究模型
 
-- revenue;
-- attributable and adjusted profit;
-- OCF or sector-appropriate substitute;
-- margins;
-- receivables/inventory;
-- leverage/financing pressure;
-- impairments/goodwill;
-- customer/supplier concentration;
-- governance/investigation/litigation/pledges/guarantees;
-- valuation sanity.
-
-Do not apply industrial cash-flow ratios mechanically to banks, brokers or insurers.
-
-## 10. Scoring
-
-Base score = 100:
+当前 Champion：
 
 ```text
 Technical: 30
-Capital participation: 30
+Capital Participation: 30
 Fundamentals: 25
 Catalyst: 15
 ```
 
-Use `references/scoring-system.md`.
+详细规则见 `references/scoring-system.md`。
 
-Interpretation:
+### Challenger — Shadow Only
 
-- 80+: high-priority research candidate, only if entry is not extended;
-- 75–79: candidate with trigger;
-- 65–74: watchlist;
-- <65: normally no new position.
+`references/causal-challenger-model.md` 只做 Shadow：
 
-A score never overrides a hard veto. Industry coverage adds no score premium.
+```text
+Business / Survival Quality
+→ Valuation / Expectation Gap
+→ Catalyst / Expectation Change
+→ Market / Sector Regime
+→ Participation / Relative Strength
+→ Price Structure / Execution
+```
 
-## 11. Entry-quality gate
+公平对照见 `references/champion-challenger-forward-test.md`。
 
-Before `buy trigger` status, check:
+在 Level 1C Promotion 完成前，Challenger 不得改变真实订单或静默覆盖 Champion。
 
-- MA5/MA10/key pivot distance;
-- gap-up / limit-up behavior;
-- volume vs price progress;
-- breakout/retest/reclaim structure;
-- nearby resistance;
-- stop distance;
-- realistic Reward/Risk;
-- next 3–5 sessions of event risk;
-- sector-cycle phase.
+## 7. Market / Sector Regime
 
-Preferred:
+分类：
 
-- confirmed breakout;
-- first healthy pullback/retest;
-- reclaim of key support/pivot;
-- sector leader strengthening after consolidation.
+- risk-on / trend-friendly；
+- neutral / rotational；
+- mean-reverting（如模型明确识别）；
+- risk-off / high-failure-rate。
 
-Avoid emotional gap chasing, low-volume breakout, high-volume stagnation and blind entry before binary events.
+使用宽基结构、breadth、成交额、板块相对强度、龙头持续性、突破失败率。
 
-## 12. A-share execution-risk gate
+Risk-off：提高入场质量、降低仓位、更加拒绝晚期突破和 gap chasing。
 
-Account for:
+## 8. Industry、Factor、Role
 
-- ordinary newly bought A-shares not being freely reversible intraday;
-- gap-through-stop risk;
-- daily price limits;
-- suspension/resumption;
-- corporate-action chart distortion;
-- liquidity/slippage.
+每只股票标记：
 
-Never model a stop as a guaranteed fill price.
+1. formal industry；
+2. dominant economic factor；
+3. role：leader / sub-sector leader / quality second tier / cyclical beta / event-driven / turnaround。
 
-If realistic gap/limit scenarios breach risk budget, reduce size or reject the trade.
+行业标签不等于经济风险独立。
 
-## 13. Position sizing
+### Industry taxonomy
 
-Define:
+当用户要求行业覆盖率时，默认使用分析时点有效的申万2021一级行业分类，除非用户指定其他体系。
+
+- 每只股票只计一个 primary Level-1 industry；
+- factor tag 单独保存；
+- 不把概念板块混入一级行业计数；
+- 重组/转型时检查当前主营。
+
+详细见 `references/industry-coverage-audit.md`。
+
+## 9. Industry Coverage Audit
+
+覆盖率是**研究完整性诊断，不是配额**。
+
+必须区分：
+
+```text
+taxonomy_total
+universe_industries
+core_pool_industries
+uncovered_but_available
+absent_from_universe
+```
+
+对于 `uncovered_but_available`，只比较 in-universe 股票；没有通过硬 Gate 的候选就保持未覆盖。
+
+维护：
+
+```text
+core quality pool
++ qualified coverage supplement pool
+```
+
+覆盖补充不自动成为同优先级交易候选。
+
+## 10. Leader / Concept Authenticity Gate
+
+Leader 至少需要两类可验证证据，例如市场份额/产能、利润规模、客户渠道、技术IP、资源成本、品牌标准。
+
+热点主题必须有真实收入、利润、订单、产品、客户或产能证据。
+
+Narrative adjacency 不得获得 leader/catalyst 溢价。
+
+## 11. Fundamental Quality Gate
+
+使用最新正式报告，检查：
+
+- 收入；
+- 归母/扣非；
+- OCF 或行业替代指标；
+- margin；
+- 应收/存货；
+- 杠杆/融资；
+- 减值/商誉；
+- 客户/供应商集中；
+- 治理、调查、诉讼、质押、担保；
+- 估值 sanity。
+
+银行/券商/保险不机械套制造业现金流指标。
+
+## 12. Champion Scoring
+
+Base score = 100：
+
+```text
+Technical 30
+Capital Participation 30
+Fundamentals 25
+Catalyst 15
+```
+
+解释：
+
+- 80+：高优先研究候选，仍需入场不过度延伸；
+- 75–79：带 trigger 的候选；
+- 65–74：watch；
+- <65：通常不开新仓。
+
+总分不能覆盖 Hard Veto。行业覆盖不加分。
+
+权重是 Governance Parameter，不宣称学术最优。
+
+## 13. Entry Quality Gate
+
+检查：
+
+- MA5/MA10/key pivot 距离；
+- gap/涨停行为；
+- volume vs price progress；
+- breakout/retest/reclaim；
+- 附近阻力；
+- stop distance；
+- realistic Reward/Risk；
+- 未来3–5个交易日事件风险；
+- 板块周期位置。
+
+偏好 confirmed breakout、first healthy pullback/retest、reclaim、整理后龙头加强。
+
+避免情绪 gap chase、低量突破、放量滞涨、二元事件前盲买。
+
+## 14. A-share Execution Risk Gate
+
+考虑：
+
+- 普通新买 A 股不能自由日内反向卖出；
+- gap-through-stop；
+- 涨跌停；
+- 停牌/复牌；
+- 除权除息图形扭曲；
+- 流动性/滑点。
+
+Stop 是失效计划，不是保证成交价。真实 gap/limit stress 超预算时缩仓或拒绝。
+
+## 15. Position Sizing
 
 ```text
 E = planned entry
-S = invalidation / stop
-R_account = maximum allowed currency loss
+S = invalidation
+R_account = allowed currency loss
+shares ≈ R_account / abs(E-S)
 ```
 
-Then:
+向下取可执行整手，再叠加：
 
-```text
-shares ≈ R_account / abs(E - S)
-```
+- short internal exposure；
+- Final Short Cap；
+- account symbol cap；
+- account cluster cap；
+- risk Heat。
 
-Round down to executable board lot and apply capital/factor limits.
+止损更宽 → 仓位更小；不能为了让仓位“有意义”而放宽失效点。
 
-A wider stop means smaller size. If resulting size is too small to matter, skip the trade rather than widening the stop.
+## 16. Entry Tranches
 
-## 14. Entry tranches
+退休旧 `3/4/4`。
 
-The old account-size-based `3/4/4` strategy-tranche rule is retired.
-
-### Default
+默认：
 
 ```text
 50% Setup Entry
 50% Confirmation Entry
 ```
 
-Second tranche only when the first thesis is positively confirmed, e.g. breakout holds, retest succeeds, relative strength improves, sector/volume/catalyst confirms.
-
-### Three-stage exception
+三级确认例外：
 
 ```text
 50% / 30% / 20%
 ```
 
-Only when the strategy has three genuine confirmation levels.
+后续批次只在正向确认后加入，例如 breakout holds、retest succeeds、相对强度改善、板块/量价/催化继续验证。
 
-### Prohibition
+禁止：
 
 ```text
 first tranche loses
 → buy more only to lower average cost
 ```
 
-is forbidden.
+大订单 child orders 是执行拆单，不增加策略批次。
 
-### Strategy tranche vs execution slicing
+## 17. Holding States
 
-A large order may be split into child orders for liquidity. That does not create additional strategy tranches.
+```text
+strengthening
+intact
+weakening
+invalidated
+```
 
-## 15. Holding states
+详细见 `references/holding-risk-management.md`。
 
-Every open position is one of:
+- 不机械摊低成本；
+- 仅正向确认后 ADD；
+- 约3–5日明显不工作且相对强度恶化，可考虑 time stop/reduction；
+- 超15日必须重新写 thesis、score、stop、risk。
 
-- `strengthening`;
-- `intact`;
-- `weakening`;
-- `invalidated`.
-
-Use `references/holding-risk-management.md`.
-
-Core rules:
-
-- no mechanical averaging down;
-- add only after positive confirmation;
-- if price fails to behave as expected within ~3–5 sessions and relative strength deteriorates, consider time stop/reduction;
-- extend beyond 15 sessions only after fresh thesis, score, stop and risk calculation.
-
-## 16. Stop rules
-
-Use:
+## 18. Stop Rules
 
 ```text
 price / invalidation stop
@@ -361,7 +408,7 @@ price / invalidation stop
 + time stop
 ```
 
-Execution order:
+顺序：
 
 ```text
 define invalidation
@@ -370,11 +417,11 @@ define invalidation
 → shares
 ```
 
-Never enter first and invent the stop later. Never widen stop in the losing direction merely to avoid a loss.
+不得入场后才发明 stop，不得向更亏方向放宽。
 
-## 17. Profit management
+## 19. Profit Management
 
-Primary hierarchy:
+一级优先：
 
 ```text
 R multiple
@@ -382,161 +429,173 @@ R multiple
 + original setup target
 ```
 
-Prefer realistic `Reward/Risk >= 2`.
+偏好现实 `Reward/Risk >=2`。
 
-Around +1.5R to +2R, partial profit-taking of roughly 1/3–1/2 may be considered; remaining size may use trend/trailing logic.
+约 +1.5R～+2R 可考虑兑现约1/3–1/2，其余趋势/trailing。
 
-Historical percentage zones are secondary observation aids only:
+历史百分比只作辅助：
 
-- traditional/cyclical: roughly +3% to +5% when momentum stalls;
-- growth/technology: roughly +6% to +10% when momentum stalls.
+- 传统/周期约 +3%～+5%；
+- 成长/科技约 +6%～+10%。
 
-If they conflict, **R/structure wins**.
+冲突时 R/结构优先。
 
-## 18. Portfolio construction
+这些阈值是当前治理初值，通过 MFE/MAE Forward 数据校准，不宣称最优。
 
-A large shortlist is a research whitelist, not a simultaneous portfolio.
+## 20. Portfolio Construction
 
 ```text
 whitelist
 → daily rescore
-→ 8–10 watch names
-→ 3–5 executable candidates
+→ 8–10 watch
+→ 3–5 executable
 → 0–3 actual new entries
 ```
 
-Portfolio heat is planned loss at invalidation, not merely capital invested.
+大 shortlist 不是同时持仓。
 
-Industry coverage belongs at whitelist/research layer and never overrides same-industry, same-factor, timing or heat limits.
+Portfolio heat 是计划失效点亏损，不是投入金额。
 
-Actual short exposure must remain within `Final Short Cap`; being below it is allowed.
+## 21. Circuit Breakers
 
-## 19. Circuit breakers
-
-From strategy-account high-water mark:
+从短中期策略账户高水位：
 
 ```text
--4% → reduce exposure and use lower-end risk sizing
--6% → no new positions; review regime/process
--8% → pause strategy; formal review before resuming
+-4% → reduce exposure / lower-end risk
+-6% → no new positions; review
+-8% → pause; formal review before resume
 ```
 
-Do not reset high-water mark to remove the signal.
+不重置高水位来消除信号。
 
-## 20. Short-to-medium transition
+## 22. Short-to-medium Transition
 
-Beyond 15 trading days requires fresh:
+超过15个交易日必须重新：
 
-- thesis;
-- official fundamental/event check;
-- score;
-- market/sector regime;
-- invalidation;
-- position-risk calculation;
-- confirmation that extension is not motivated by loss aversion.
+- thesis；
+- 官方财报/事件；
+- Champion score；
+- regime；
+- invalidation；
+- risk；
+- 确认不是 loss aversion。
 
-If re-underwriting fails, reduce or exit.
+失败则按原计划减仓/退出。
 
-## 21. Adversarial review
+## 23. Adversarial Review
 
-Before finalizing, run:
+至少运行：
 
-- universe auditor;
-- identity auditor;
-- point-in-time auditor;
-- industry-taxonomy auditor;
-- industry-coverage auditor;
-- concept auditor;
-- accounting auditor;
-- event auditor;
-- technical auditor;
-- execution auditor;
-- portfolio/factor auditor;
-- source auditor;
-- alternative auditor;
-- no-trade auditor;
-- policy-precedence auditor.
+- universe；identity；point-in-time；
+- taxonomy / coverage；
+- concept；accounting；event；
+- technical；execution；
+- portfolio/factor；source；alternative；
+- no-trade；policy precedence；
+- cross-sleeve symbol/cluster；
+- Champion/Challenger contamination auditor。
 
-Industry-coverage audit must verify consistent taxonomy, no duplicate Level-1 counting, no stale classifications, no outside-universe filler, and no quality downgrade solely for coverage.
+Hard Gate 失败就移除并重跑。
 
-## 22. Source policy
+## 24. Source Policy
 
-Use `references/data-source-policy.md`.
+读取 `references/data-source-policy.md`。
 
-- official filings for material facts;
-- current market data for current decisions;
-- explicit `as_of`;
-- unknown remains unknown;
-- vendor “main force inflow” is supporting evidence only;
-- industry classification comes from declared formal taxonomy, not concept boards.
+- material facts 优先官方披露；
+- 当前决策使用当前行情；
+- 明确 `as_of`；
+- unknown remains unknown；
+- vendor “主力流入”仅辅助；
+- 正式行业分类来自声明 taxonomy。
 
-## 23. Required output
+## 25. Required Output
 
-When screening a universe, report:
+筛选 universe 时报告：
 
-1. data coverage and `as_of`;
-2. market regime;
-3. ranked research pool with score, factor, role, confidence and status;
-4. executable candidates with trigger, invalidation, gap risk, tranche logic and risk budget;
-5. near misses;
-6. adversarial audit;
-7. current `Final Short Cap`, Operating Target and Hard Ceiling tier;
-8. current deployed exposure and remaining cash/unused capacity.
+1. data coverage + `as_of`；
+2. market regime；
+3. Champion ranked pool；
+4. 若 Challenger 开启，独立 Shadow score/status 和 disagreement；
+5. executable candidates：trigger、invalidation、gap risk、tranche、risk；
+6. near misses；
+7. adversarial audit；
+8. Stock Account Equity + Final Short Cap；
+9. current short exposure / pending cash / CAP_BREACH；
+10. account-level same-symbol / cluster exposure，包括长期仓。
 
-When industry coverage is requested, additionally report taxonomy/version, universe/core coverage, uncovered/absent industries, qualified in-universe supplements and intentionally uncovered categories.
+行业覆盖任务额外报告 taxonomy/version、universe/core coverage、uncovered/absent、qualified supplements。
 
-## 24. Learning loop
+## 26. Learning Loop
 
-Every closed trade records:
+每个闭环交易记录：
 
-- setup;
-- entry score;
-- market/sector regime;
-- entry/exit/invalidation;
-- MFE/MAE;
-- realized R;
-- slippage/fees;
-- rule violations;
-- thesis vs execution quality.
+- model / strategy version；
+- setup；
+- entry score；
+- market/sector regime；
+- entry/exit/invalidation；
+- MFE/MAE；
+- realized R；
+- slippage/fees/tax/impact；
+- rule violations；
+- thesis vs execution quality。
 
-Review by setup and regime. Do not change rules after a handful of trades.
+MFE/MAE 扩展见 `references/trade-ledger-mfe-mae-extension.md`。
 
-## 25. Paper / Live / Automation
+参数不能在少量交易后自动修改；新想法进入 Challenger。
 
-When moving beyond research-only mode, read:
+## 27. Paper / Live / Automation
 
-- `../../shared/automation-execution-governance.md`;
-- `references/validation-metrics-and-trade-ledger.md`;
-- `references/paper-live-automation-roadmap.md`.
+读取：
 
-Default:
+- `../../shared/automation-execution-governance.md`；
+- `references/validation-metrics-and-trade-ledger.md`；
+- `references/paper-live-automation-roadmap.md`。
+
+默认：
 
 ```text
 AUTO_MONITOR = true
 AUTO_ORDER   = false
 ```
 
-Paper/Live execution must be auditable, reconciled and fail closed on unknown broker/data/policy state.
+Paper/Live 必须可审计、可对账，broker/data/policy 状态未知时 fail closed。
 
-## 26. Reference and example files
+## 28. Governance Version Fields
 
-Core references:
+研究/执行记录至少分开保存：
 
-- `references/scoring-system.md`
-- `references/holding-risk-management.md`
-- `references/data-source-policy.md`
-- `references/industry-coverage-audit.md`
-- `references/adversarial-review.md`
-- `references/evaluation-cases.md`
-- `references/research-basis.md`
-- `references/validation-metrics-and-trade-ledger.md`
-- `references/paper-live-automation-roadmap.md`
+```text
+capital_policy_version
+automation_governance_version
+research_model_governance_version
+skill_version
+strategy_version / model_version
+```
 
-Historical evidence:
+不得只写一个模糊 `policy_version`。
 
-- `references/core-pool-snapshot-2026-08-26.md` — intermediate 36-stock snapshot;
-- `examples/2026-08-26-final-watchlist-case-study.md` — later/final same-day 43-stock research state;
-- `examples/2026-08-26-final-watchlist.json` — machine-readable 43-stock baseline;
-- `examples/README.md` — example immutability and follow-up rules.
+## 29. Reference / Historical Files
 
-The 36→43 change is same-day research evolution, not two competing current whitelists. All are Level-4 history and never override a fresh run.
+### Active references
+
+- `references/scoring-system.md` — 当前 Champion；
+- `references/causal-challenger-model.md` — Challenger / Shadow Only；
+- `references/champion-challenger-forward-test.md`；
+- `references/trade-ledger-mfe-mae-extension.md`；
+- `references/holding-risk-management.md`；
+- `references/data-source-policy.md`；
+- `references/industry-coverage-audit.md`；
+- `references/adversarial-review.md`；
+- `references/evaluation-cases.md`；
+- `references/research-basis.md`；
+- `references/validation-metrics-and-trade-ledger.md`；
+- `references/paper-live-automation-roadmap.md`。
+
+### Historical evidence
+
+- `references/core-pool-snapshot-2026-08-26.md` — 中间36股历史快照；
+- `examples/2026-08-26-final-watchlist-case-study.md` — 同日晚些时候43股最终研究状态；
+- `examples/2026-08-26-final-watchlist.json` — 43股 machine-readable baseline。
+
+36→43 是同日研究演进，不是两个当前有效 whitelist。历史文件不能覆盖 fresh Skill run。
