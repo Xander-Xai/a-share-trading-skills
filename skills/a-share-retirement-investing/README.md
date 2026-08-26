@@ -11,6 +11,7 @@
 - 分红复投
 - 季度/年度持仓复核
 - 对抗审查与退出条件
+- 模拟仓 → 人工实盘 → 半自动 → 自动化交易的验证链路
 
 ## 先读上位规则
 
@@ -74,12 +75,77 @@ Thesis Gate
 
 止盈不按固定盈利百分比全部卖出，而由估值、单股/风险簇超配、机会成本和投资逻辑变化决定 `HOLD / TRIM / EXIT`。
 
+## 十股养老组合示例
+
+本仓库现在保存一个真实研究快照作为 forward-test 示例：
+
+`examples/ten-stock-retirement-portfolio-2026-08-26.md`
+
+十只股票：
+
+```text
+长江电力 / 招商银行 / 伊利股份
+中国石油 / 中国电信 / 格力电器 / 中国神华
+工业富联 / 立讯精密 / 中科曙光
+```
+
+示例模型结构：
+
+```text
+Core Dividend = 80%
+Growth Satellite = 20%
+```
+
+该文件记录：
+
+- 2026-08-26 初始价格快照；
+- 每只股票在组合中的角色；
+- 当时市场/财务验证；
+- 模型目标权重；
+- 风险簇；
+- 建仓、补仓、止损、止盈与复核方式；
+- 后续收益、分红、回撤和绩效归因的记录字段。
+
+它是历史示例，不是永久推荐名单。任何真实买入前必须重新运行 Skill。
+
+## 从模拟仓到自动化交易
+
+完整系统路线见：
+
+`examples/paper-live-automation-roadmap.md`
+
+阶段：
+
+```text
+规则冻结
+→ 模拟仓 Forward Test
+→ 人工实盘
+→ Agent 生成订单 + 人工确认
+→ 受约束自动执行
+→ 持续监控 / 绩效归因 / 版本升级
+```
+
+自动化的重点不是“快速自动下单”，而是建立：
+
+- point-in-time 数据链路；
+- 可复现的 Skill 决策；
+- shared policy 风控；
+- Paper / Live 双轨记录；
+- 订单审计日志；
+- Kill Switch；
+- 财报/公告触发重评；
+- 组合收益、分红和回撤归因；
+- 规则升级后的 consistency audit。
+
 ## 文件结构
 
 ```text
 skills/a-share-retirement-investing/
 ├── SKILL.md
 ├── README.md
+├── examples/
+│   ├── ten-stock-retirement-portfolio-2026-08-26.md
+│   └── paper-live-automation-roadmap.md
 └── references/
     ├── methodology.md
     ├── industry-checklists.md
@@ -95,7 +161,9 @@ skills/a-share-retirement-investing/
 4. `references/methodology.md`
 5. `references/industry-checklists.md`
 6. `references/execution-template.md`
-7. `references/seed-watchlist-2026-08-26.md`
+7. `examples/ten-stock-retirement-portfolio-2026-08-26.md`：查看十股模型组合和 forward-test 基线
+8. `examples/paper-live-automation-roadmap.md`：查看从模拟仓到自动交易的完整链路
+9. `references/seed-watchlist-2026-08-26.md`：历史研究种子池
 
 研究依据与参数边界见 `../../shared/research-validation-2026-08-26.md`。
 
