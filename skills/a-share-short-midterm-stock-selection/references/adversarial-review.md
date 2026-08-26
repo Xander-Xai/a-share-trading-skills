@@ -30,7 +30,44 @@ Ask:
 
 Any look-ahead leakage invalidates the affected score and requires rerun.
 
-## C. “Fake leader” attack
+## C. Industry-taxonomy attack
+
+When industry coverage is part of the task, ask:
+
+- Was one formal taxonomy used consistently for every stock?
+- Was the taxonomy version/current classification checked at the analysis timestamp?
+- Were theme/concept boards mixed into Level-1 industry counts?
+- Was one stock counted in multiple Level-1 industries?
+- Did a stale historical classification survive after restructuring or business transformation?
+- Does the current company principal business support any disputed mapping?
+
+Failure response:
+
+- remap the affected stocks,
+- recompute universe/core coverage,
+- rerun the missing-industry analysis.
+
+## D. Industry-coverage attack
+
+Distinguish these explicitly:
+
+- `taxonomy_total`
+- industries actually present in the locked universe
+- industries represented in the core quality pool
+- `uncovered_but_available`
+- `absent_from_universe`
+
+Then ask:
+
+- Did any outside-universe stock enter merely to fill an absent industry?
+- Was a weak stock promoted solely to make coverage reach 100%?
+- Was the best in-universe representative actually compared with its same-industry peers?
+- Are coverage supplements clearly labeled as supplements rather than equal-priority core names?
+- Was an industry left uncovered when no in-universe candidate passed the normal hard gates?
+
+Coverage is a research diagnostic, not a quota.
+
+## E. “Fake leader” attack
 
 For every company labeled leader, ask:
 
@@ -41,7 +78,7 @@ For every company labeled leader, ask:
 
 If leadership relies mainly on promotional/media wording, remove the premium.
 
-## D. Concept-rubbing attack
+## F. Concept-rubbing attack
 
 Assume the hot theme does not exist. Would the company still be selected?
 
@@ -54,7 +91,7 @@ Check:
 
 If the only thesis is narrative adjacency, reject it.
 
-## E. Accounting attack
+## G. Accounting attack
 
 Try to falsify apparent growth.
 
@@ -71,7 +108,7 @@ Check:
 
 A large profit-growth percentage alone is insufficient.
 
-## F. Cyclical-peak attack
+## H. Cyclical-peak attack
 
 For commodity/cyclical stocks ask:
 
@@ -80,7 +117,7 @@ For commodity/cyclical stocks ask:
 - Are capacity additions likely to reverse margins?
 - Is the stock late in the price cycle even if current earnings look excellent?
 
-## G. Technical trap attack
+## I. Technical trap attack
 
 Assume the chart is a bull trap.
 
@@ -96,7 +133,7 @@ Look for:
 
 If reward/risk is poor, status must be `wait` even when the company remains in the quality pool.
 
-## H. A-share execution attack
+## J. A-share execution attack
 
 Assume the planned stop cannot execute exactly where modeled.
 
@@ -113,7 +150,7 @@ Ask what happens if the first executable exit is materially worse than the plann
 
 If realistic execution loss breaches the account risk budget, reduce size or reject the trade.
 
-## I. Event-gap attack
+## K. Event-gap attack
 
 Ask what happens if tomorrow opens 5–10% against the position.
 
@@ -129,7 +166,7 @@ Check:
 
 If a normal stop cannot protect against the event gap, position size or event exposure must be reduced explicitly.
 
-## J. Capital-flow attack
+## L. Capital-flow attack
 
 Assume vendor “main force inflow” is wrong or noisy.
 
@@ -144,7 +181,7 @@ Would the thesis still hold using:
 
 If not, capital score is overstated.
 
-## K. Correlation attack
+## M. Correlation attack
 
 Ignore industry labels and ask what would make several holdings lose money simultaneously.
 
@@ -158,7 +195,9 @@ Examples:
 
 If more than two holdings share the dominant factor, rebuild the portfolio.
 
-## L. Opportunity-cost attack
+Industry coverage never overrides factor concentration rules.
+
+## N. Opportunity-cost attack
 
 For each selected name, identify the best excluded in-universe peer.
 
@@ -168,9 +207,11 @@ Ask:
 - Is it only more familiar?
 - Is the excluded peer cheaper, stronger, less crowded, or easier to execute?
 
+For a coverage supplement, perform this comparison specifically against other in-universe stocks in the same uncovered industry.
+
 Replace when the alternative clearly dominates.
 
-## M. Holding-inertia attack
+## O. Holding-inertia attack
 
 For any position held beyond the original 5–15 day horizon ask:
 
@@ -180,7 +221,7 @@ For any position held beyond the original 5–15 day horizon ask:
 
 A short-term trade cannot become medium-term merely to avoid realizing a loss.
 
-## N. No-trade attack
+## P. No-trade attack
 
 Ask:
 
@@ -190,7 +231,7 @@ Ask:
 
 The system must never create trades to satisfy an output quota.
 
-## O. Process-overfitting attack
+## Q. Process-overfitting attack
 
 When changing thresholds after recent trades ask:
 
@@ -200,7 +241,7 @@ When changing thresholds after recent trades ask:
 
 Prefer stable rules and explicit experiments over emotional parameter changes.
 
-## P. Source attack
+## R. Source attack
 
 For each material claim ask:
 
@@ -208,10 +249,11 @@ For each material claim ask:
 - Is the date current and point-in-time valid?
 - Is a forecast being presented as reported earnings?
 - Are two sources repeating the same original rumor?
+- For industry coverage, does the classification come from the declared formal taxonomy rather than a media/theme label?
 
 Unresolved source conflict reduces confidence or blocks execution.
 
-## Q. Final pass/fail report
+## S. Final pass/fail report
 
 Before final answer report at least:
 
@@ -219,6 +261,14 @@ Before final answer report at least:
 - duplicate errors: 0 / corrected
 - code-name mismatches: 0 / corrected
 - look-ahead errors: 0 / corrected
+- taxonomy-mapping errors: 0 / corrected
+- stale-industry-classification errors: 0 / corrected
+- taxonomy total industries: count, when relevant
+- locked-universe industry count: count, when relevant
+- core-pool industry count: count, when relevant
+- uncovered-but-available industries: count/list, when relevant
+- absent-from-universe industries: count/list, when relevant
+- weak coverage fillers rejected: count
 - concept-only names removed: count
 - accounting-quality failures removed: count
 - event-isolated names: count
