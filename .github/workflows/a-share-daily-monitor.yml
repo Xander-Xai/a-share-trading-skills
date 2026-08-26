@@ -1,0 +1,51 @@
+name: A-share Daily Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 15:40 Asia/Shanghai = 07:40 UTC. GitHub cron may run with queue delay.
+    - cron: "40 7 * * 1-5"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: a-share-daily-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: runtime/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r runtime/requirements.txt
+
+      - name: Run fail-closed market monitor
+        run: python runtime/daily_monitor.py
+
+      - name: Commit report and market history
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/daily runtime/state/market_history.csv 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No monitor changes to commit."
+          else
+            git commit -m "chore: update A-share daily monitor"
+            git push
+          fi
