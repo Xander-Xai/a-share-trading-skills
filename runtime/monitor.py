@@ -135,6 +135,8 @@ def calculate_sentiment(metrics: Dict[str, Optional[float]]) -> Dict[str, Any]:
     if up is not None and broken is not None and (up + broken) > 0:
         broken_rate = broken / (up + broken)
 
+    # MVP crowding proxy. This is deliberately conservative and is a
+    # Governance Parameter, not a proven market law.
     crowding_flag = bool(
         score >= 80.0
         and (
@@ -143,9 +145,9 @@ def calculate_sentiment(metrics: Dict[str, Optional[float]]) -> Dict[str, Any]:
         )
     )
 
-    if available_weight < 100.0:
-        confidence = "MEDIUM"
-    elif not turnover_history_ready:
+    if not turnover_history_ready:
+        confidence = "LOW"
+    elif available_weight < 100.0:
         confidence = "MEDIUM"
     else:
         confidence = "HIGH"
