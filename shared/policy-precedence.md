@@ -2,6 +2,36 @@
 
 > 本文件定义全仓库规则层级。资金/风险以 `capital-allocation-and-entry-policy.md` 为 Source of Truth；模拟仓、Broker 与自动化安全以 `automation-execution-governance.md` 为上位规则；研究证据、Champion/Challenger、point-in-time、Benchmark 与模型晋级以 `research-model-governance.md` 为上位规则。
 
+## 0. 上游资产配置 Scope
+
+`skills/a-share-multi-asset-allocation/` 位于股票账户之前，负责把：
+
+```text
+Total Financial Assets
+→ Liquidity / Liability Reserve
+→ Fixed Income
+→ Equity Account Equity
+```
+
+它只决定**多少长期风险资本进入股票账户**，不覆盖股票账户内部的 Level 1A 规则。
+
+一旦资金进入：
+
+```text
+Equity Account Equity / Stock Account Equity
+```
+
+长期/短中期比例、Final Short Cap、单股/风险簇、策略批次、回撤和账户级风险全部由 `capital-allocation-and-entry-policy.md` 管理。
+
+因此：
+
+```text
+Multi-Asset Allocation Skill
+!= 可以绕过 Stock Account Capital/Risk Policy 的更高权限
+```
+
+若两者发生边界冲突，先停止新增风险并标记 `Policy Conflict`，统一分母和 scope 后再执行。
+
 ## 1. 规则层级
 
 ```text
@@ -83,6 +113,7 @@ Level 1A、1B、1C 管不同维度：
 
 `skills/*/SKILL.md` 定义各策略生产领域规则：
 
+- 一级资产配置的上游范围与输出；
 - 选股 / 评分 / 估值 / 入场条件；
 - 持仓状态；
 - 领域专用风险逻辑；
@@ -103,6 +134,7 @@ Skill 可比 Level 1 更保守，不可更激进。
 - scoring；
 - data source policy；
 - research basis；
+- Sentiment Regime Index；
 - Challenger model；
 - Champion/Challenger Forward-Test；
 - Expected IRR / Benchmark；
@@ -188,12 +220,12 @@ model_version
 任何 Level-1 或生产 Champion 变更必须同步检查：
 
 1. 根 `README.md`；
-2. 两个 Skill README / `SKILL.md`；
-3. methodology / holding / execution-template / scoring；
+2. 三个 Skill README / `SKILL.md`；
+3. methodology / holding / execution-template / scoring / sentiment；
 4. research-basis / research-validation / adversarial research review；
 5. `research/*.md` 跨策略研究协议；
 6. Champion/Challenger / IRR / Benchmark / validation ledgers；
-7. automation roadmaps；
+7. automation roadmaps / runtime monitor；
 8. examples README / case-study 声明；
 9. evaluation cases；
 10. consistency audit。
