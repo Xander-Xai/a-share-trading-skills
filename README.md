@@ -1,19 +1,23 @@
 # A-share Trading Skills
 
-A股长期养老投资与短中期交易 Skill 集合。
+A股一级资产配置、长期养老投资、短中期交易与自动化监控 Skill / Runtime 集合。
 
-当前仓库包含两套独立策略，并共享三类仓库级治理：
+当前仓库已经形成三层策略链路，并共享三类仓库级治理：
 
 ```text
-长期养老投资 Skill
-+
-短中期选股与交易 Skill
-+
+Multi-Asset Allocation Skill
+→ 决定多少资本进入股票账户
+
+Long Retirement Investing Skill
++ Short/Mid Stock Selection Skill
+→ 管理股票账户内部长期 / 短中期 / 待配置现金
+
+Daily Monitor Runtime
+→ 自动采集市场状态、计算情绪、生成研究监控日报
+
 Capital / Risk Governance
-+
-Automation / Execution Governance
-+
-Research / Model Governance
++ Automation / Execution Governance
++ Research / Model Governance
 ```
 
 ## 当前治理版本
@@ -41,7 +45,18 @@ a-share-trading-skills/
 │   └── consistency-audit-2026-08-26.md
 ├── research/
 │   └── a-share-long-vs-tactical-empirical-study.md
+├── runtime/
+│   ├── README.md
+│   ├── requirements.txt
+│   ├── monitor.py
+│   ├── daily_monitor.py
+│   └── tests/
+├── .github/workflows/
+│   └── a-share-daily-monitor.yml
 └── skills/
+    ├── a-share-multi-asset-allocation/
+    │   ├── README.md
+    │   └── SKILL.md
     ├── a-share-retirement-investing/
     │   ├── README.md
     │   ├── SKILL.md
@@ -51,19 +66,41 @@ a-share-trading-skills/
     │   │   ├── expected-irr-total-return-benchmark.md
     │   │   └── ...
     │   └── examples/
-    │       ├── ten-stock-retirement-portfolio-2026-08-26.md
-    │       └── paper-live-automation-roadmap.md
     └── a-share-short-midterm-stock-selection/
         ├── README.md
         ├── SKILL.md
         ├── references/
         │   ├── scoring-system.md
+        │   ├── a-share-sentiment-regime-index.md
         │   ├── causal-challenger-model.md
         │   ├── champion-challenger-forward-test.md
         │   ├── trade-ledger-mfe-mae-extension.md
         │   └── ...
         └── examples/
 ```
+
+## 从全部金融资产到股票账户
+
+新增 Multi-Asset Allocation Skill，先解决：
+
+```text
+Total Financial Assets
+→ Emergency / Liquidity Reserve
+→ Near-term Liability Reserve
+→ Fixed Income
+→ Equity Account Equity
+```
+
+然后股票账户内部才进入：
+
+```text
+Stock Account Equity
+→ Long Strategic Baseline
++ Short/Mid Final Cap
++ Equity Cash
+```
+
+Multi-Asset Skill 不得绕过股票账户 Level 1A 风险规则。Scope 说明见 `shared/policy-precedence.md`。
 
 ## 规则优先级
 
@@ -79,14 +116,14 @@ Level 3   skills/*/references/*.md + research/*.md
 Level 4   examples / case studies / dated snapshots / watchlists
 ```
 
-- Level 1A：资本、仓位、风险、建仓/补仓/止盈止损、账户级集中度；
+- Level 1A：股票账户资本、仓位、风险、建仓/补仓/止盈止损、账户级集中度；
 - Level 1B：Paper/Live、Broker、虚拟子账、幂等、Kill Switch、自动化与合规；
 - Level 1C：研究证据、point-in-time、Benchmark、Champion/Challenger 与模型晋级；
 - `research/*.md`：跨策略研究协议和实证计划，不是生产 Policy/Skill。
 
 下层规则可以更保守，不能绕过上位规则。
 
-## 统一账户分母
+## 统一股票账户分母
 
 资本与账户级集中度统一使用：
 
@@ -104,9 +141,9 @@ Stock Account Equity
 - 账户级单只股票合计暴露；
 - 账户级风险簇合计暴露。
 
-长期仓内部的 Core/Growth、十股示例 `model_long_book_weight` 使用的是 **long-book 内部分母**，执行前必须先换算到账户级权重。
+长期仓内部的 Core/Growth、十股示例 `model_long_book_weight` 使用的是 long-book 内部分母，执行前必须先换算到账户级权重。
 
-## 顶层资金策略
+## 顶层股票资金策略
 
 | Stock Account Equity | 长期战略基线 | 短中期 Size Cap |
 |---:|---:|---:|
@@ -196,9 +233,40 @@ Hard Ceiling
 - 全部未平仓初始风险：≤3%
 ```
 
-Hard Ceiling 是**计划风险上限**，不是跳空/跌停下的实际亏损保证。
+Hard Ceiling 是计划风险上限，不是跳空/跌停下的实际亏损保证。
 
 回撤治理：4%降风险、6%停止新开仓、8%暂停策略并复核。
+
+## A-Share Sentiment Regime Index
+
+市场情绪已经从主观判断升级为可计算研究变量：
+
+```text
+Breadth                       25
+Limit-up vs Limit-down        20
+Board Quality / Broken Rate   15
+Strong vs Weak Tail           15
+Median Return                 10
+Turnover Expansion            15
+```
+
+输出：
+
+```text
+0–20   PANIC
+20–40  RISK_OFF
+40–60  NEUTRAL
+60–80  RISK_ON
+80–100 EUPHORIA
+```
+
+`EUPHORIA` 不等于加仓，额外检查拥挤和炸板。
+
+完整方法：
+
+`skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md`
+
+权重和阈值仍属于 Governance Parameter，后续按 Forward 数据校准。
 
 ## Research / Model Governance
 
@@ -255,7 +323,7 @@ Point-in-time Risk-free Rate
 
 长期 Benchmark 优先使用 Total Return 口径，例如沪深300全收益指数 `H00300`，避免组合含分红而基准只看价格。
 
-## Active Forward Study
+## Active Forward Study：短期 vs 长期到底差多少
 
 跨策略实证计划：
 
@@ -271,9 +339,40 @@ vs Total Return Benchmark
 vs Cash / Government-Bond Opportunity Cost
 ```
 
-该文件是 Level 3 研究协议，不改变当前生产模型、风险上限或自动下单权限。
+外部研究数字只作为背景；本仓库自己的收益差必须从 2026-08-26 point-in-time baseline 开始积累 Forward 证据，禁止制造带后见之明的历史业绩。
 
-## 自动化执行原则
+## Daily Monitor Runtime
+
+新增可运行 MVP：
+
+```text
+runtime/daily_monitor.py
+```
+
+工作日北京时间 15:40 左右由 GitHub Actions 调度：
+
+```text
+交易日识别
+→ 全A行情
+→ 涨停/跌停/炸板
+→ Sentiment Score / Regime
+→ 43股 whitelist 当日行情合并
+→ pre_action 研究状态
+→ JSON + Markdown 日报
+→ 成交额历史留档
+```
+
+工作流：
+
+`.github/workflows/a-share-daily-monitor.yml`
+
+运行前自动：
+
+```text
+compileall
+→ unit tests
+→ monitor
+```
 
 默认：
 
@@ -281,6 +380,10 @@ vs Cash / Government-Bond Opportunity Cost
 AUTO_MONITOR = true
 AUTO_ORDER   = false
 ```
+
+日报中的 `REFRESH_FULL_GATES / WAIT / EVENT_REVIEW` 等只表示研究状态，不是交易指令。
+
+## 自动化执行原则
 
 成熟路径：
 
@@ -307,11 +410,21 @@ model_version
 
 模型晋级不等于自动化晋级。
 
-## 两套系统边界
+## 三套系统边界
 
-长期仓依赖企业价值、现金流、分红、估值与资本保全，默认使用投资逻辑止损；短中期仓使用价格/失效、逻辑与时间止损。
+### Multi-Asset
 
-短中期亏损交易不得临时改名为长期持有；趋势/催化策略禁止机械摊低成本。长期价值仓只有在 Thesis / Balance / Valuation / Portfolio 四个 Gate 全部重新通过后才允许继续 ADD。
+管理总金融资产到股票账户的上游分配，强调流动性、负债匹配、固收久期和组合 Stress Budget。
+
+### Long
+
+依赖企业价值、现金流、分红、估值与资本保全，默认使用投资逻辑止损。
+
+### Short/Mid
+
+使用价格/失效、逻辑与时间止损。短中期亏损交易不得临时改名为长期持有；趋势/催化策略禁止机械摊低成本。
+
+长期价值仓只有在 Thesis / Balance / Valuation / Portfolio 四个 Gate 全部重新通过后才允许继续 ADD。
 
 短中期已实现利润超出允许资本时，优先回流长期待配置池；长期没有合格机会则保持现金。短中期亏损缩水时不从长期仓自动补血。
 
@@ -332,6 +445,9 @@ model_version
 - 研究证据与参数边界：`shared/research-validation-2026-08-26.md`
 - 对抗审查：`shared/adversarial-research-review-2026-08-26.md`
 - 跨策略实证研究：`research/a-share-long-vs-tactical-empirical-study.md`
+- 一级资产配置：`skills/a-share-multi-asset-allocation/SKILL.md`
+- A股情绪指数：`skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md`
+- Runtime：`runtime/README.md`
 - 全仓一致性扫描：`shared/consistency-audit-2026-08-26.md`
 
 具体比例、阈值、评分权重和批次属于治理参数，后续通过 Forward/Live 数据持续校准。
