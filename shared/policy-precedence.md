@@ -1,6 +1,6 @@
 # Repository Policy Precedence
 
-> 本文件定义整个仓库的规则优先级，用于避免不同 Skill、reference、历史快照之间出现新旧理论冲突。
+> 本文件只定义规则层级，不重复保存具体资金比例和风险参数。具体数值唯一以 `capital-allocation-and-entry-policy.md` 为准。
 
 ## 1. 唯一优先级
 
@@ -22,8 +22,9 @@ Level 4 — *snapshot-YYYY-MM-DD.md / *watchlist-YYYY-MM-DD.md
 
 - 长期 / 短中期资金分配
 - Size Cap / Risk Cap / Edge Cap
-- 单笔和组合风险预算的硬上限
-- 长期与短中期的默认建仓批次
+- Operating Target / Hard Ceiling 的具体数值
+- 长期与短中期默认建仓批次
+- 动态单股与风险簇上限
 - 跨策略再平衡和利润回流
 - 账户级回撤熔断
 - 大资金流动性和执行约束
@@ -32,18 +33,18 @@ Level 4 — *snapshot-YYYY-MM-DD.md / *watchlist-YYYY-MM-DD.md
 
 ### Level 2：各 Skill 的领域规则
 
-`skills/*/SKILL.md` 负责定义各自策略的：
+`skills/*/SKILL.md` 负责定义：
 
 - 选股 / 评分 / 估值 / 入场条件
 - 持仓状态
 - 领域专用风险逻辑
 - 输出格式
 
-Skill 可以比 shared 更保守，但不能更激进。
+Skill 可以比 shared 更保守，但不能更激进。例如 Skill 可以把日常风险目标设得低于 Level 1 的 Hard Ceiling，但不能突破 Level 1 上限。
 
 ### Level 3：Reference
 
-reference 用来解释、展开、模板化 Skill 规则。若 reference 与 SKILL 或 shared 冲突，reference 自动失效，以更高层规则为准。
+Reference 用来解释、展开、模板化 Skill 规则。若 reference 与 SKILL 或 shared 冲突，reference 自动失效，以更高层规则为准。
 
 ### Level 4：历史快照
 
@@ -53,29 +54,18 @@ reference 用来解释、展开、模板化 Skill 规则。若 reference 与 SKI
 - 不能被视为永久推荐名单；
 - 不能把历史价格、分红、评分、仓位直接当作当前事实。
 
-## 2. 风险参数的两层语义
+## 2. Operating Target 与 Hard Ceiling 的语义
 
-短中期交易同时区分：
+仓库区分：
 
 ```text
 Operating Target = 日常默认目标
 Hard Ceiling      = 绝对不能突破的上限
 ```
 
-当前默认：
+具体数值只在 `capital-allocation-and-entry-policy.md` 保存。
 
-```text
-Operating Target
-- 单笔计划风险：0.5% × 短中期策略净值
-- 全部未平仓初始风险：2%
-- 单一行业/因子初始风险：1%
-
-Hard Ceiling
-- 单笔计划风险：1%
-- 全部未平仓初始风险：3%
-```
-
-只有在策略 Edge 已被充分验证、市场环境和 setup 质量都较好时，单笔风险才允许从 0.5% 向 1% 靠近；任何时候都不得突破 Hard Ceiling。
+下层 Skill 或 reference 可以采用更保守的 Operating Target，但 Hard Ceiling 永远由 Level 1 决定。
 
 ## 3. 策略批次 ≠ 执行拆单
 
@@ -84,17 +74,13 @@ Hard Ceiling
 - **策略批次**：一次新的投资/交易判断是否被事实或价格确认；
 - **执行拆单**：为了流动性、滑点和冲击成本，把同一策略批次拆成多个订单。
 
-例如短中期默认策略批次仍是：
+策略批次的当前默认值只从 `capital-allocation-and-entry-policy.md` 读取。
 
-```text
-50% Setup + 50% Confirmation
-```
-
-即使一笔 50% 的策略批次为了成交被拆成 4 个订单，也不等于策略变成 4 批。
+执行拆单数量可以随流动性和订单规模变化，但不能被误记为新的策略判断。
 
 ## 4. 参数更新规则
 
-任何仓库级风险参数修改时，必须同步检查：
+任何 Level 1 参数修改时，必须同步检查：
 
 1. 根 `README.md`
 2. 两个 `SKILL.md`
@@ -114,4 +100,4 @@ Hard Ceiling
 当前政策优先于历史快照
 ```
 
-若无法判断冲突，应停止执行相关动作并标记 `Policy Conflict`，先修正规则再下单或给出仓位建议。
+若无法判断冲突，应停止执行相关动作并标记 `Policy Conflict`，先修正规则再给出仓位或交易建议。
