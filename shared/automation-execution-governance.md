@@ -1,4 +1,4 @@
-# Shared Automation & Execution Governance
+# Shared Automation & Execution Governance v1.1
 
 > 适用范围：本仓库长期养老与短中期两套策略从研究、模拟仓、人工实盘、半自动到自动执行的共同上位规则。
 >
@@ -29,9 +29,31 @@ AUTO_ORDER   = false
 
 没有完成验证和合规门禁时，不得因为券商接口“技术上可以下单”就启用无人值守交易。
 
-## 2. Paper 模式必须区分“执行本金”和“展示 NAV”
+## 2. Policy / Skill 版本必须分开记录
 
-为解决标准化 NAV 与 A 股 100 股交易单位之间的冲突，模拟系统必须同时保存：
+仓库有两个 Level-1 规则文件，不能只保存一个含义不明的 `policy_version`。
+
+最低要求：
+
+```text
+capital_policy_version
+automation_governance_version
+skill_version
+strategy_version
+```
+
+当前设计基线例如：
+
+```text
+capital_policy_version      = v2.3
+automation_governance_version = v1.1
+```
+
+不同文件的版本号是各自 artifact 的版本，不能因为数字大小不同就推断谁“更新”。优先级由 `policy-precedence.md` 决定。
+
+## 3. Paper 模式必须区分“执行本金”和“展示 NAV”
+
+模拟系统必须同时保存：
 
 ```text
 paper_capital_rmb   = 模拟执行本金，用于股数、100股单位、费用、滑点和仓位计算
@@ -58,7 +80,7 @@ planned order price
 simulated or actual fill price
 ```
 
-## 3. 策略批次与执行拆单
+## 4. 策略批次与执行拆单
 
 策略批次只能来自 shared capital policy：
 
@@ -73,7 +95,43 @@ simulated or actual fill price
 
 任何 automation/runtime 模块都不得通过“多下几笔订单”绕过策略批次规则。
 
-## 4. 模式晋级必须靠证据
+## 5. 跨策略同股 / 同因子必须聚合
+
+长期和短中期可能同时研究甚至持有同一股票。券商端通常只看到**账户净持仓**，因此必须同时维护：
+
+```text
+Broker Net Position      = 券商真实账户持仓，执行层真相源
+Strategy Virtual Position = 长期/短中期各自的逻辑子账
+```
+
+最低字段：
+
+```text
+strategy_id
+sleeve = long | short_mid
+stock_code
+virtual_shares
+broker_account_total_shares
+```
+
+下单前必须检查：
+
+- 同一股票长期 + 短中期的账户级合计暴露；
+- 同一风险簇长期 + 短中期的账户级合计暴露；
+- 是否存在两个策略对同一股票发出互相冲突的订单；
+- 本次卖出是否会误卖另一策略逻辑上仍需持有的份额；
+- T+1、可卖数量与券商实际持仓是否一致。
+
+默认原则：
+
+```text
+策略可以共享研究标的
+但不能共享“独立风险额度”
+```
+
+同股/同因子上限最终按账户级合计暴露执行。
+
+## 6. 模式晋级必须靠证据
 
 ### Paper → Manual Live
 
@@ -111,17 +169,20 @@ simulated or actual fill price
 - independent kill switch；
 - 全量审计日志。
 
-## 5. 下单前统一硬门禁
+## 7. 下单前统一硬门禁
 
 无论长期还是短中期，自动/半自动下单前必须全部通过：
 
 ```text
-current policy loaded
+current capital policy loaded
+current automation governance loaded
 current skill version loaded
 approved symbol / universe
 fresh quote
 fresh official-event check
 position reconciled with broker truth
+strategy virtual positions reconciled
+no cross-strategy order conflict
 no Policy Conflict
 no data MISSING / CONFLICT on required fields
 position/risk calculation valid
@@ -131,9 +192,9 @@ compliance state valid
 kill switch not active
 ```
 
-策略可以比这些要求更保守，不能更宽松。
+策略可以更保守，不能更宽松。
 
-## 6. Fail Closed 与 Kill Switch
+## 8. Fail Closed 与 Kill Switch
 
 出现以下任一情况，默认停止**新订单**：
 
@@ -141,6 +202,8 @@ kill switch not active
 - 官方披露抓取失败；
 - 代码/价格/复权冲突；
 - 本地持仓与券商持仓不一致；
+- 策略虚拟子账与券商净持仓无法对账；
+- 长期/短中期对同一股票出现未解决的订单冲突；
 - 仓位或风险计算异常；
 - 重复订单检测触发；
 - 券商连接状态未知；
@@ -151,13 +214,14 @@ kill switch not active
 - `Policy Conflict`；
 - 人工紧急停止。
 
-Fail closed 后只允许执行预定义的安全动作，例如：读取、对账、告警、取消允许取消的未成交订单、按既定风险计划管理已有仓位。不得“猜测状态后继续买入”。
+Fail closed 后只允许执行预定义安全动作，例如读取、对账、告警、取消允许取消的未成交订单、按既定风险计划管理已有仓位。不得“猜测状态后继续买入”。
 
-## 7. 订单幂等与券商真相源
+## 9. 订单幂等与券商真相源
 
-每个 decision/order 必须有稳定 ID。
+每个 decision/order 必须有稳定 ID：
 
 ```text
+strategy_id
 decision_id
 order_id
 client_order_id / idempotency_key
@@ -169,17 +233,21 @@ client_order_id / idempotency_key
 - 本地状态更新前先持久化 broker 返回；
 - API 超时后先查询订单状态，不盲目重试；
 - 进程重启后先 reconcile，再允许新订单；
-- 同一股票同一决策不得被两个 worker 重复提交。
+- 同一股票同一决策不得被两个 worker 重复提交；
+- 跨策略对同一股票的订单必须经过 conflict/netting 检查。
 
-## 8. 最低审计字段
+## 10. 最低审计字段
 
 每个决策至少保存：
 
 ```text
 as_of
-policy_version
+capital_policy_version
+automation_governance_version
 skill_version
-strategy_mode
+strategy_version
+strategy_id
+sleeve
 stock_code
 thesis / reason
 action
@@ -195,6 +263,7 @@ human_approved
 ```text
 order_id
 decision_id
+strategy_id
 created/submitted/fill time
 side
 order type
@@ -208,7 +277,7 @@ broker
 
 原始决策字段不可用后来的结果覆盖；修订必须追加新事件。
 
-## 9. 人工确认默认保留的动作
+## 11. 人工确认默认保留的动作
 
 即使未来允许 `AUTO_ORDER=true`，以下动作默认仍应要求更高等级确认，除非单独完成风险评审：
 
@@ -217,9 +286,10 @@ broker
 - 全部清仓 / EXIT；
 - 财报、监管、重大公司事件后的第一笔交易；
 - shared policy 或 Skill 刚升级后的首次订单；
-- broker/runtime 发生异常后的恢复首单。
+- broker/runtime 发生异常后的恢复首单；
+- 同一股票同时存在于长期和短中期子账时的首次跨策略调仓。
 
-## 10. 程序化交易 / 合规门禁
+## 12. 程序化交易 / 合规门禁
 
 自动提交 A 股交易指令前，必须按**实际账户、实际券商、实际接口和当时最新规则**确认是否构成程序化交易以及相应报告、测试、频率、接口和权限要求。
 
@@ -234,7 +304,7 @@ broker
 
 这些链接是研究基线，不代表未来仍未变化。进入 Live/Semi-auto/Auto 前必须重新联网核验并向实际券商确认。
 
-## 11. 安全与凭据
+## 13. 安全与凭据
 
 仓库不得提交：
 
@@ -247,7 +317,7 @@ broker
 
 凭据必须通过安全的环境变量、密钥管理或券商官方授权机制注入。
 
-## 12. 规则升级
+## 14. 规则升级
 
 运行中的系统不得自行修改 policy 或 Skill。
 
