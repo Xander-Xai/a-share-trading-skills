@@ -1,24 +1,35 @@
-# Research Basis and Design Rationale v2
+# Research Basis and Design Rationale v3
 
 ## Purpose
 
-This file records external evidence used to validate the short/mid-term Skill. It is not a promise that historical relationships will persist and does not override current shared policy.
+本文件记录短中期 Skill 的外部研究依据和设计边界，不覆盖当前 shared policy，也不把海外研究数字直接当成 A 股参数。
 
-Policy order:
+上位规则：
 
 ```text
-../../../shared/capital-allocation-and-entry-policy.md
-→ ../SKILL.md
-→ this reference
+../../../shared/policy-precedence.md
+├─ capital-allocation-and-entry-policy.md
+├─ automation-execution-governance.md
+└─ research-model-governance.md
+        ↓
+../SKILL.md
+        ↓
+this reference
 ```
 
-The evidence supports principles; it does not prove that any exact percentage, score weight or tranche split is uniquely optimal.
+所有结论区分：
+
+```text
+Fact / Regulation
+Research-supported Principle
+Governance Parameter
+```
+
+具体百分比、评分权重、批次、time stop 和 R 阈值属于 Governance Parameter，除非明确有更强证据。
 
 ## 1. A-share execution constraints are real risk
 
-### SSE / SZSE trading rules
-
-Ordinary A-share execution is not equivalent to a market where a new position can always be reversed immediately. Price limits, gaps, settlement rules, suspension/resumption and abnormal-volatility measures can make a theoretical stop non-executable.
+普通 A 股执行存在 T+1、价格限制、gap、停牌/复牌、异常波动和流动性问题，理论 stop 不保证成交。
 
 Sources:
 
@@ -27,81 +38,84 @@ Sources:
 - SZSE Trading Rules, 2026 revision:
   https://www.szse.cn/lawrules/rule/trade/current/t20260424_620190.html
 
-Design consequence:
+设计结论：
 
-- first entries must be survivable;
-- stops are invalidation plans, not guaranteed fill prices;
-- gap/limit risk must be handled through smaller size, event isolation and first-executable-price logic.
+- 首批仓位必须能承受失效；
+- stop 是 invalidation plan，不是 fill guarantee；
+- gap/limit risk 通过仓位、事件隔离和现实成交模拟处理。
 
 ## 2. Material information requires official disclosure
-
-Chinese listed-company disclosure rules make periodic and material-event filings primary evidence.
 
 Source:
 
 - CSRC, Measures for the Administration of Information Disclosure by Listed Companies:
   https://www.csrc.gov.cn/csrc/c106256/c1653948/content.shtml
 
-Design consequence:
+设计结论：
 
-- official filings outrank theme articles and stale secondary summaries;
-- scheduled-but-unreleased reports are event risk;
-- analysis is point-in-time and must not use look-ahead information.
+- 重大事实优先官方披露；
+- 未披露报告是 event risk，不是事实；
+- 全流程 point-in-time，禁止 look-ahead。
 
 ## 3. Risk-based sizing
 
-Fidelity educational material presents position sizing as a function of allowed loss and stop/invalidation distance:
+Fidelity / Schwab 教育材料支持先定义风险和退出，再反推仓位：
 
 ```text
-position size = risk per trade / risk per share
+position size = allowed loss / risk per share
 ```
 
 Sources:
 
-- Fidelity position-sizing / exit-strategy material:
-  https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/learning-center/Presentation_Exit%20Strategy.pdf
-- Fidelity Wealth-Lab User Guide:
-  https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/WLP_User_Guide.pdf
-
-Charles Schwab trade-plan education also emphasizes predefining maximum risk and exit logic:
-
+- https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/learning-center/Presentation_Exit%20Strategy.pdf
+- https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/WLP_User_Guide.pdf
 - https://www.schwab.com/learn/story/5-elements-smart-trade-plan
 
-### Current repository interpretation
-
-The repository distinguishes normal operation from an absolute ceiling:
+当前仓库治理参数：
 
 ```text
 Operating Target
-- per trade: 0.5% of strategy NAV
-- aggregate open initial risk: <= 2%
-- one industry/factor: <= 1%
+- per trade: 0.5% of short-strategy NAV
+- aggregate open initial risk: <=2%
+- one industry/factor: <=1%
 
 Hard Ceiling
-- per trade: <= 1%
-- aggregate open initial risk: <= 3%
+- planned per trade: <=1%
+- aggregate open initial risk: <=3%
 ```
 
-The 0.5% operating target is intentionally conservative because this strategy is a satellite beside a long-term wealth account. Moving toward 1% requires validated Edge and favorable conditions; 1% is not the default.
+这些是计划风险阈值，不保证 gap/跌停下最大实际亏损。
 
-## 4. Entry tranches
+## 4. Account-level aggregation is a risk-governance decision
 
-External research does not prove that 50/50 is uniquely optimal. The repository uses it as a governance rule because short/mid-term trades have a limited time horizon and should not accumulate many decision tranches.
+同一股票或经济因子同时存在于长期与短中期时，风险不会因为策略标签不同而消失。
 
-Current policy:
+因此仓库使用：
+
+```text
+Account Symbol Exposure
+= Long + Short/Mid
+
+Account Cluster Exposure
+= Long Cluster + Short/Mid Cluster
+```
+
+这是风险治理原则。具体上限只由 shared capital policy 决定。
+
+## 5. Entry tranches
+
+公开研究不能证明 50/50 唯一最优。
+
+当前治理：
 
 ```text
 Default: 50% Setup + 50% Confirmation
-Exception: 50% / 30% / 20% when there are three genuine confirmation levels
+Exception: 50% / 30% / 20%
 ```
 
-The old rule that account size mechanically determines 3 or 4 strategy tranches is retired.
+大资金的多个 child orders 是 execution slicing，不是更多策略批次。
 
-A large capital order may still be split into multiple child orders for liquidity. This is execution slicing, not additional strategy tranches.
-
-## 5. Earnings quality requires cash-flow and accrual checks
-
-CFA Institute research emphasizes that accounting earnings can be distorted by accruals and that cash-flow evidence is important for persistence and quality analysis.
+## 6. Earnings quality requires cash-flow and accrual checks
 
 Sources:
 
@@ -110,66 +124,54 @@ Sources:
 - CFA Institute, Evaluating Quality of Financial Reports:
   https://www.cfainstitute.org/sites/default/files/-/media/documents/book/curriculum-update/rr-v-2017-n2-1.pdf
 
-Design consequence:
+设计结论：利润增长不能单独给满分；检查扣非、OCF、应收、存货、一次性项目和行业适配指标。
 
-- profit growth alone never earns full quality points;
-- adjusted profit, OCF, receivables, inventory, one-offs and balance-sheet changes must be checked;
-- sector-specific accounting logic is mandatory.
-
-## 6. Quality is multidimensional
-
-AQR Quality Minus Junk and Fama/French profitability research support treating quality as more than recent growth.
+## 7. Quality is multidimensional
 
 Sources:
 
 - AQR, Quality Minus Junk:
   https://www.aqr.com/Insights/Research/Working-paper/Quality-minus-Junk
-- Kenneth French Data Library, Fama/French 5 Factors:
+- Kenneth French Data Library:
   https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/f-f_5_factors_2x3.html
 
-Design consequence:
+这些支持质量维度的重要性，但不是 A 股短期择时参数校准。
 
-- use profitability, resilience, cash conversion and durable industry position;
-- do not treat these studies as A-share timing calibrations.
-
-## 7. Momentum exists, but chasing can fail
-
-NBER research documents return/earnings momentum as well as severe momentum reversals/crashes.
+## 8. Momentum / technical evidence has boundaries
 
 Sources:
 
-- Chan, Jegadeesh & Lakonishok, Momentum Strategies:
+- Chan, Jegadeesh & Lakonishok:
   https://www.nber.org/papers/w5375
-- Chabot, Ghysels & Jagannathan, Momentum Trading, Return Chasing, and Predictable Crashes:
+- Chabot, Ghysels & Jagannathan:
   https://www.nber.org/papers/w20660
 
-Design consequence:
+统一结论：
 
-- relative strength and confirmation matter;
-- late-stage acceleration, crowding and extension require penalties;
-- `no trade today` must remain valid.
+```text
+Technical / momentum information can contain conditional predictive content,
+but tradable Alpha is regime-, parameter- and cost-dependent and must pass out-of-sample validation.
+```
 
-## 8. Factor momentum and hidden concentration
+因此既不说“看线必然有效”，也不说“历史数据所以完全没用”。
 
-Research on factor momentum supports treating apparently different stocks as potentially one economic bet.
+## 9. Factor momentum and hidden concentration
 
 Source:
 
-- Ehsani & Linnainmaa, Factor Momentum and the Momentum Factor:
+- Ehsani & Linnainmaa:
   https://www.nber.org/papers/w25551
 
-Design consequence:
+设计结论：formal industry 与 dominant economic factor 分开记录；实际持仓按因子相关性控制。
 
-- tag industry and dominant economic factor separately;
-- factor concentration limits apply even when industry labels differ.
+## 10. Exit design
 
-## 9. Exit design
+Source:
 
-Fidelity educational material treats profit/loss ratios and time exits as legitimate planning frameworks:
+- Fidelity Exit Strategies:
+  https://www.fidelity.com/learning-center/trading-investing/trading/exit-strategies
 
-- https://www.fidelity.com/learning-center/trading-investing/trading/exit-strategies
-
-The repository therefore uses:
+当前治理：
 
 ```text
 price/invalidation stop
@@ -177,41 +179,67 @@ price/invalidation stop
 + time stop
 ```
 
-and gives R-multiple / structure priority over fixed percentage profit zones.
+R-multiple/结构优先于固定百分比观察区。
 
-Historical `+3%–5%` traditional and `+6%–10%` growth zones are secondary observation zones only.
+`+1.5R/+2R`、3–5日 time review 等是治理初值，必须通过 MFE/MAE 与 Forward 数据继续校准。
 
-## 10. What research does NOT justify
+## 11. Frequent trading evidence does not prove all short strategies fail
 
-The evidence does not justify:
+Barber/Odean 等研究支持高换手个人投资者平均表现可能受交易成本和行为影响，但不能推出所有短中期策略必然无效。
 
-- assuming historical return relationships repeat unchanged in A-shares;
-- choosing a stock solely because it has momentum;
-- treating a moving average as universally optimal;
-- treating vendor “main force inflow” as institutional truth;
-- using one valuation threshold for every industry;
-- assuming stops execute exactly at stop price;
-- using account size to mechanically increase strategy tranche count;
-- extending a 5–15 day trade indefinitely;
-- treating 0.5%, 1%, 2%, 3%, 4/6/8 or 50/50 as academically proven optimums.
+当前设计结论：短中期仓必须通过真实成本后 Edge “挣仓位”，模型变化进入 Champion/Challenger，而不是靠近期表现直接放大风险。
 
-## 11. Methodological conclusion
+## 12. Champion / Challenger is the correct model-change path
 
-The defensible architecture is:
+当前 Champion：
+
+```text
+Technical 30
+Capital 30
+Fundamentals 25
+Catalyst 15
+```
+
+新因果模型只做 Challenger Shadow，见：
+
+- `causal-challenger-model.md`
+- `champion-challenger-forward-test.md`
+
+晋级遵循 `../../../shared/research-model-governance.md`。
+
+## 13. What research does NOT justify
+
+不能据此：
+
+- 假设海外历史关系在 A 股原样重复；
+- 只因 momentum 买股；
+- 宣称某 MA 参数普适最优；
+- 把 vendor 主力流入当机构真实净买入；
+- 用同一估值阈值横跨所有行业；
+- 假设 stop 一定按 stop price 成交；
+- 用账户规模机械增加策略批次；
+- 将5–15日交易无限延期；
+- 把0.5%、1%、2%、3%、4/6/8、50/50、+1.5R/+2R写成学术最优；
+- 让 Challenger 在未晋级前影响生产订单。
+
+## 14. Methodological conclusion
+
+当前可辩护架构：
 
 ```text
 locked universe
-→ hard eligibility
-→ leader/authenticity
-→ financial quality
+→ point-in-time hard eligibility
+→ leader/authenticity + financial quality
+→ current Champion score
 → market/sector regime
-→ technical/participation/catalyst score
 → execution-risk check
 → risk-based sizing
-→ 50/50 confirmation-based entry by default
+→ account-level cross-sleeve aggregation
+→ confirmation-based entry
 → explicit holding state
 → adversarial audit
-→ post-trade learning
+→ MFE/MAE + Forward learning
+→ Challenger only through promotion process
 ```
 
-The model is designed to minimize avoidable process errors, not maximize trade count.
+目标是减少可避免的流程错误并验证净期望，不是最大化交易次数。
