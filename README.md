@@ -14,7 +14,8 @@ A股交易 Skill 集合。仓库用于沉淀两套相互隔离、但共享顶层
 a-share-trading-skills/
 ├── README.md
 ├── shared/
-│   └── capital-allocation-and-entry-policy.md
+│   ├── capital-allocation-and-entry-policy.md
+│   └── research-validation-2026-08-26.md
 └── skills/
     └── a-share-retirement-investing/
         ├── SKILL.md
@@ -33,6 +34,10 @@ a-share-trading-skills/
 统一规则见：
 
 `shared/capital-allocation-and-entry-policy.md`
+
+本轮联网调研与证据边界见：
+
+`shared/research-validation-2026-08-26.md`
 
 v2.0 不再使用永久固定的 70/30，而采用 **资本规模 + 风险预算 + 策略有效性 + 流动性** 四层约束。
 
@@ -84,6 +89,19 @@ A股 100 股交易单位、小资金账户、估值变化、单股流动性和�
 - 优先选择潜在收益/风险 ≥ 2 的交易
 - 短中期仓回撤 4%/6%/8% 分级降风险、停新仓、暂停复核
 ```
+
+## 研究边界
+
+公开资料支持以下原则：
+
+- 资产配置应由期限、风险承受能力和目标决定，而不是永远固定一个比例；
+- 个股组合需要充分分散；
+- 分批投入能降低部分择时压力，但长期拖延现金也有机会成本；
+- 主动交易需要严格限制仓位与单笔风险；
+- 入场前应定义退出和最大损失；
+- 时间止损、Reward/Risk 和分批退出可作为短中期交易计划的一部分。
+
+但 `70/30`、`80/20`、`85/15`、`40/30/30`、`4%/6%/8%` 等具体参数均是本仓库的治理基线，不宣称为学术研究证明的唯一最优值。后续必须用真实实盘数据继续校准。
 
 ## 两套系统之间的资金纪律
 
