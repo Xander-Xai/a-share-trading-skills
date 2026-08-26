@@ -25,13 +25,14 @@ a-share-trading-skills/
 │   └── consistency-audit-2026-08-26.md
 └── skills/
     ├── a-share-retirement-investing/
-    │   ├── SKILL.md
     │   ├── README.md
+    │   ├── SKILL.md
     │   ├── references/
     │   └── examples/
     │       ├── ten-stock-retirement-portfolio-2026-08-26.md
     │       └── paper-live-automation-roadmap.md
     └── a-share-short-midterm-stock-selection/
+        ├── README.md
         ├── SKILL.md
         ├── references/
         └── examples/
