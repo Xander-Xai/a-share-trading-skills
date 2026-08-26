@@ -1,10 +1,10 @@
 ---
 name: a-share-short-midterm-stock-selection
-description: Select, rank, size, and manage A-share stocks for short-to-medium-term holding from a user-supplied universe. Uses fresh public data, A-share execution constraints, risk-based sizing, adversarial review, and explicit entry/exit rules.
+description: Select, rank, size, and manage A-share stocks for short-to-medium-term holding from a user-supplied universe. Uses fresh public data, A-share execution constraints, risk-based sizing, industry-coverage auditing, adversarial review, and explicit entry/exit rules.
 compatibility: Requires fresh public market data, official A-share disclosures, and web research.
 metadata:
   author: yandexuanxuan
-  version: "1.2.0"
+  version: "1.3.0"
   market: "China A-share"
 ---
 
@@ -138,6 +138,47 @@ For every stock tag:
 
 Do not treat exchange industry labels as proof of diversification.
 
+### Industry taxonomy discipline
+
+When industry coverage itself matters, use one explicit taxonomy consistently. Default to the **current Shenwan 2021 Level-1 industry classification** unless the user requests another system.
+
+- map every unique stock to exactly one primary Level-1 industry for coverage counting;
+- keep economic-factor tags separately;
+- do not mix concept boards with formal Level-1 industry counts;
+- use the classification valid at the analysis timestamp;
+- check current principal business when restructuring or business transformation makes an old classification misleading.
+
+Use `references/industry-coverage-audit.md` for the full method.
+
+## 6A. Industry coverage audit
+
+Industry coverage is a **research-completeness diagnostic**, not a quota.
+
+When the user asks how many industries are represented, which industries the selected pool missed, or asks to supplement missing industries:
+
+1. compute `taxonomy_total` for the chosen current taxonomy;
+2. compute unique industries in the locked universe;
+3. compute unique industries in the quality-first core pool;
+4. calculate `core_coverage_ratio = core_coverage_count / universe_coverage_count`;
+5. separate:
+   - `uncovered_but_available = universe_industries - core_industries`, and
+   - `absent_from_universe = taxonomy_industries - universe_industries`;
+6. never fill `absent_from_universe` with outside stocks unless the user explicitly permits universe expansion;
+7. for each `uncovered_but_available` industry, compare only in-universe candidates and choose at most one default representative that passes the normal leader/fundamental gates;
+8. if no in-universe candidate passes hard gates, leave the industry uncovered rather than promoting a weak stock.
+
+Maintain two distinct layers:
+
+```text
+core quality pool
++
+qualified industry-coverage supplement pool
+```
+
+Coverage supplements must remain explicitly labeled as supplements and are not automatically equal-priority trade candidates.
+
+A wide research whitelist may cover many industries; the executable portfolio still obeys holding, factor, heat, timing and score constraints.
+
 ## 7. Leader and concept-authenticity gate
 
 Leader status requires at least two evidence categories such as:
@@ -152,6 +193,8 @@ Leader status requires at least two evidence categories such as:
 A theme is economically authentic only when official or reliable evidence supports material revenue, profit, shipment, order, capacity, customer or product exposure.
 
 Narrative adjacency alone does not earn leader or catalyst premium.
+
+Do not force every industry to be represented in the **core quality pool**. Missing coverage should be handled by the separate coverage-audit process, and only with qualified in-universe representatives.
 
 ## 8. Fundamental quality gate
 
@@ -191,6 +234,8 @@ Interpretation:
 - <65: normally no new position.
 
 A score never overrides a hard veto.
+
+Industry coverage itself adds **no score premium**. A stock cannot gain points merely because its industry is missing from the core pool.
 
 ## 10. Entry-quality gate
 
@@ -366,6 +411,8 @@ whitelist
 
 Portfolio heat must be tracked as planned loss at invalidation, not only money invested.
 
+Industry coverage belongs at the **whitelist/research** layer. It never overrides actual-portfolio same-industry, same-factor, score, entry or heat limits.
+
 ## 18. Circuit breakers
 
 Measured from strategy-account high-water mark:
@@ -403,6 +450,9 @@ Before finalizing, run:
 
 - universe auditor,
 - identity auditor,
+- point-in-time auditor,
+- industry-taxonomy auditor,
+- industry-coverage auditor,
 - concept auditor,
 - accounting auditor,
 - event auditor,
@@ -414,6 +464,15 @@ Before finalizing, run:
 - no-trade auditor,
 - policy-precedence auditor.
 
+The industry-coverage auditor must verify that:
+
+- one taxonomy was used consistently;
+- one stock was not counted in multiple Level-1 industries;
+- stale historical classifications did not artificially fill a gap;
+- outside-universe names did not enter the supplement pool;
+- weak names were not promoted solely for coverage;
+- coverage supplements remain labeled separately from core quality names.
+
 If a hard gate fails, remove the name and rerun checks.
 
 ## 21. Source policy
@@ -424,7 +483,8 @@ Use `references/data-source-policy.md`.
 - current price/technical data for current decisions;
 - explicit `as_of`;
 - unknown remains unknown;
-- vendor “main force inflow” is supporting evidence only.
+- vendor “main force inflow” is supporting evidence only;
+- current formal industry classification must come from the declared taxonomy source, not concept/theme boards.
 
 ## 22. Required output
 
@@ -437,6 +497,18 @@ When screening a universe, report:
 5. near misses;
 6. adversarial audit;
 7. current shared-policy allocation/risk tier.
+
+When industry coverage is requested, additionally report:
+
+- chosen taxonomy and classification date;
+- taxonomy total industries;
+- industries represented in the locked universe;
+- industries represented in the core pool;
+- core coverage ratio;
+- `uncovered_but_available` industries;
+- `absent_from_universe` industries;
+- best qualified in-universe representative for each uncovered-but-available industry;
+- industries intentionally left uncovered because no candidate passed hard gates.
 
 ## 23. Learning loop
 
@@ -454,6 +526,17 @@ Every closed trade should record:
 
 Review by setup and regime. Do not change rules after a handful of trades.
 
-## 24. Historical snapshot
+## 24. Reference files
 
-`references/core-pool-snapshot-2026-08-26.md` is a historical research snapshot only. It does not override current policy or current data.
+- `references/scoring-system.md` — 100-point scoring, penalties and sector adjustments.
+- `references/holding-risk-management.md` — sizing, adds, exits, time stops, portfolio heat and review.
+- `references/data-source-policy.md` — freshness, source hierarchy and point-in-time evidence.
+- `references/adversarial-review.md` — independent red-team checks.
+- `references/evaluation-cases.md` — process regression tests.
+- `references/research-basis.md` — regulatory and research basis.
+- `references/industry-coverage-audit.md` — taxonomy, coverage counts, gap detection and in-universe leader supplementation.
+- `references/core-pool-snapshot-2026-08-26.md` — historical core-pool snapshot.
+
+## 25. Historical snapshot
+
+`references/core-pool-snapshot-2026-08-26.md` is a historical research snapshot only. It does not override current policy, current classification or current market/fundamental data.
