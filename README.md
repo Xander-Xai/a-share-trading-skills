@@ -19,9 +19,9 @@ Research / Model Governance
 ## 当前治理版本
 
 ```text
-Capital / Risk:        v2.3
+Capital / Risk:          v2.3
 Automation / Execution: v1.2
-Research / Model:       v3
+Research / Model:        v3
 ```
 
 版本号分别属于不同 artifact，优先级统一由 `shared/policy-precedence.md` 决定。
@@ -39,6 +39,8 @@ a-share-trading-skills/
 │   ├── research-validation-2026-08-26.md
 │   ├── adversarial-research-review-2026-08-26.md
 │   └── consistency-audit-2026-08-26.md
+├── research/
+│   └── a-share-long-vs-tactical-empirical-study.md
 └── skills/
     ├── a-share-retirement-investing/
     │   ├── README.md
@@ -72,14 +74,15 @@ Level 1C  shared/research-model-governance.md
     ↓
 Level 2   skills/*/SKILL.md
     ↓
-Level 3   skills/*/references/*.md
+Level 3   skills/*/references/*.md + research/*.md
     ↓
 Level 4   examples / case studies / dated snapshots / watchlists
 ```
 
 - Level 1A：资本、仓位、风险、建仓/补仓/止盈止损、账户级集中度；
 - Level 1B：Paper/Live、Broker、虚拟子账、幂等、Kill Switch、自动化与合规；
-- Level 1C：研究证据、point-in-time、Benchmark、Champion/Challenger 与模型晋级。
+- Level 1C：研究证据、point-in-time、Benchmark、Champion/Challenger 与模型晋级；
+- `research/*.md`：跨策略研究协议和实证计划，不是生产 Policy/Skill。
 
 下层规则可以更保守，不能绕过上位规则。
 
@@ -199,7 +202,7 @@ Hard Ceiling 是**计划风险上限**，不是跳空/跌停下的实际亏损�
 
 ## Research / Model Governance
 
-短中期当前 Champion 仍为：
+短中期当前 Champion：
 
 ```text
 Technical 30
@@ -208,7 +211,7 @@ Fundamentals 25
 Catalyst 15
 ```
 
-新的因果模型仍是：
+新的因果模型仍为：
 
 ```text
 CHALLENGER / SHADOW ONLY
@@ -235,7 +238,7 @@ Champion
 Price Low != Valuation Low
 ```
 
-长期估值优先使用 Bear/Base/Bull 逐期现金流 IRR：
+长期估值使用 Bear/Base/Bull 逐期现金流 IRR：
 
 ```text
 0 = -P0 + Σ[CF_t/(1+r)^t] + TV_T/(1+r)^T
@@ -251,6 +254,24 @@ Point-in-time Risk-free Rate
 风险溢价做敏感性分析，不写死为统一真理。
 
 长期 Benchmark 优先使用 Total Return 口径，例如沪深300全收益指数 `H00300`，避免组合含分红而基准只看价格。
+
+## Active Forward Study
+
+跨策略实证计划：
+
+`research/a-share-long-vs-tactical-empirical-study.md`
+
+当前研究对照：
+
+```text
+Long Retirement Book
+vs Short/Mid Champion
+vs Causal Challenger (Shadow)
+vs Total Return Benchmark
+vs Cash / Government-Bond Opportunity Cost
+```
+
+该文件是 Level 3 研究协议，不改变当前生产模型、风险上限或自动下单权限。
 
 ## 自动化执行原则
 
@@ -310,6 +331,7 @@ model_version
 - 研究/模型：`shared/research-model-governance.md`
 - 研究证据与参数边界：`shared/research-validation-2026-08-26.md`
 - 对抗审查：`shared/adversarial-research-review-2026-08-26.md`
+- 跨策略实证研究：`research/a-share-long-vs-tactical-empirical-study.md`
 - 全仓一致性扫描：`shared/consistency-audit-2026-08-26.md`
 
 具体比例、阈值、评分权重和批次属于治理参数，后续通过 Forward/Live 数据持续校准。
