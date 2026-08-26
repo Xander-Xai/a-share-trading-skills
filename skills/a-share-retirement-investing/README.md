@@ -24,9 +24,9 @@
 
 共享政策优先于本 Skill、references 和 examples 中的通用规则。
 
-## 长期 / 短中期 Size Cap 基线
+## 长期 / 短中期战略基线
 
-| 股票专用资金规模 | 长期养老仓 | 短中期仓 |
+| 股票专用资金规模 | 长期战略基线 | 短中期 Size Cap |
 |---:|---:|---:|
 | ≤5 万 | 70% | 30% |
 | 5–30 万 | 75% | 25% |
@@ -34,7 +34,16 @@
 | 200–1000 万 | 85% | 15% |
 | ≥1000 万 | 85%–90% | 10%–15% |
 
-最终短中期占比还必须满足 `Risk Cap` 和 `Edge Cap`。具体数值以 shared capital policy 为唯一 Source of Truth。
+最终短中期：
+
+```text
+Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
+Actual Short Exposure <= Final Short Cap
+```
+
+如果短中期被 Risk/Edge Cap 压低，差额不自动强制买入长期仓；长期候选也必须通过自身质量、估值和组合 Gate，没有合格机会时允许保留待配置现金。
+
+具体数值以 shared capital policy 为唯一 Source of Truth。
 
 ## 长期仓内部结构
 
@@ -76,6 +85,8 @@ Thesis Gate
 - 降低单股目标上限；
 - 降低单一风险簇上限；
 - 大额成交额外考虑流动性与执行拆单。
+
+任何漂移/再平衡参考带都不能突破 shared-policy Cap。
 
 ## 长期止损与止盈
 
@@ -121,7 +132,7 @@ Growth Satellite = 20%
 
 **它属于 Level 4 历史案例，不是永久推荐名单。**
 
-真实买入前必须重新运行 Skill。案例中的模型权重不能突破当前 shared-policy 单股/风险簇限制。
+真实买入前必须重新运行 Skill。案例中的模型权重不能突破当前 shared-policy 单股/风险簇限制；如果某只处于 WATCH 或估值 Gate 未通过，对应资金可以继续留在现金池。
 
 ## Paper → Live → Automation
 
