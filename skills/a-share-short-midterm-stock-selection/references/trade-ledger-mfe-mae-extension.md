@@ -1,6 +1,8 @@
-# Trade Ledger — MFE / MAE Extension
+# Trade Ledger — MFE / MAE Extension v1.1
 
-> 本文件扩展现有交易日志，使退出规则可以被数据反向校准，而不是只看最终盈亏。
+> 本文件扩展短中期交易日志，使退出规则可以被数据反向校准，而不是只看最终盈亏。
+>
+> 参数修改受 `../../../shared/research-model-governance.md` 约束；风险受 shared capital policy 约束；Live 执行受 shared automation governance 约束。
 
 ## 1. 为什么必须记录 MFE / MAE
 
@@ -29,6 +31,13 @@ MAE = Maximum Adverse Excursion
 
 ```yaml
 trade_id:
+strategy_id:
+sleeve: short_mid
+capital_policy_version:
+automation_governance_version:
+research_model_governance_version:
+skill_version:
+strategy_version:
 model_version:
 stock_code:
 stock_name:
@@ -39,8 +48,10 @@ entry_timestamp:
 entry_price:
 invalidation_price:
 initial_risk_amount:
-initial_risk_pct_nav:
+initial_risk_pct_strategy_nav:
 position_size:
+account_symbol_exposure_at_entry:
+account_cluster_exposure_at_entry:
 exit_timestamp:
 exit_price:
 exit_reason:
@@ -58,12 +69,15 @@ stamp_tax:
 slippage:
 impact_estimate:
 rule_violation:
+cap_breach_event:
 notes:
 ```
 
+不得用一个模糊 `policy_version` 替代三类 shared governance 版本。
+
 ## 3. 派生指标
 
-### 3.1 MFE Capture Ratio
+### MFE Capture Ratio
 
 ```text
 MFE Capture Ratio = realized_R / MFE_R
@@ -71,55 +85,47 @@ MFE Capture Ratio = realized_R / MFE_R
 
 仅在 `MFE_R > 0` 时计算。
 
-解释：
+长期过低可能提示止盈过早；很高但最终回撤大可能提示利润保护过松。必须按 setup/regime 聚合，不能判断单笔好坏。
 
-- 长期过低：可能止盈过早；
-- 很高但回撤显著：可能持有过久才退出；
-- 不作为单笔好坏判断，必须按 setup/regime 聚合。
-
-### 3.2 Giveback Ratio
+### Giveback
 
 ```text
 Giveback_R = MFE_R - realized_R
 ```
 
-用于识别盈利回吐。
-
-### 3.3 Adverse Efficiency
-
-观察盈利交易通常需要承受多少 MAE：
+### Adverse Efficiency
 
 ```text
 median(MAE_R | realized_R > 0)
 ```
 
-若大多数赢家从未接近当前止损，而止损长期很宽，可研究缩小止损；但必须重新测 gap/噪声风险。
+用于研究止损宽度，但调整前仍需重新测试 gap/噪声风险。
 
-## 4. 用 MFE / MAE 校准规则
+## 4. 用 MFE / MAE 校准治理初值
 
 ### +1.5R / +2R
 
 当前只是治理初值。
 
-若大量交易满足：
+若大量交易：
 
 ```text
 realized_R ≈ 1.5R
 MFE_R >= 3R or 4R
 ```
 
-则说明 partial exit / trailing 可能过早。
+可能说明 partial/trailing 过早。
 
-反之若：
+若：
 
 ```text
 MFE_R ≈ 1.6R
 realized_R frequently turns negative
 ```
 
-说明保护利润机制可能太松。
+可能说明利润保护过松。
 
-### 3–5 日 Time Review
+### 3–5日 Time Review
 
 按持仓天数统计：
 
@@ -128,21 +134,36 @@ P(MFE_R >= target | first_3d_behavior)
 P(stop_out | first_3d_relative_weakness)
 ```
 
-只有数据支持后，才调整 time stop。
+只有数据支持后，才提出新 Challenger 参数。
 
-## 5. 禁止的调参方式
+## 5. CAP_BREACH 与计划风险要分开
 
-- 看 3–5 笔交易就改规则；
-- 只研究亏损交易；
-- 删除跳空止损、涨跌停等坏样本；
-- 只看平均值，不看分布和尾部；
-- 用最终结果倒推当时“不该买”。
+市场价格变化可能让资本暴露被动超 Cap；跳空也可能让实际亏损超过计划风险。
 
-## 6. 推荐聚合切片
-
-至少按以下维度复盘：
+记录时区分：
 
 ```text
+planned_risk_violation
+passive_cap_breach
+realized_tail_loss
+```
+
+不能把被动市场事件误记成主动规则违规，也不能因为被动越界曾发生就放宽未来新订单限制。
+
+## 6. 禁止的调参方式
+
+- 看3–5笔交易就改规则；
+- 只研究亏损交易；
+- 删除跳空、涨跌停坏样本；
+- 只看平均值不看尾部；
+- 用最终结果倒推当时“不该买”；
+- Challenger 未晋级就改 Champion；
+- 系统根据近期 MFE/MAE 自动提高仓位或风险。
+
+## 7. 推荐聚合切片
+
+```text
+model_version
 setup_type
 market_regime
 sector_regime
@@ -151,26 +172,26 @@ entry_extension_bucket
 catalyst_type
 holding_days
 winner/loser
+account_cluster_state
 ```
 
-输出中同时报告样本数，避免小样本误导。
+报告样本数，避免小样本误导。
 
-## 7. 与自动化的关系
-
-自动监控可以实时更新 MFE/MAE，但：
+## 8. 与自动化的关系
 
 ```text
 MFE/MAE statistics
-→ 生成研究建议
-→ 人工评审
-→ 新 Challenger
+→ research hypothesis
+→ Challenger
+→ Forward-Test
+→ human Promotion Review
 ```
 
 不得：
 
 ```text
 最近 MFE 变大
-→ 系统自动扩大止盈目标/风险
+→ 自动提高止盈目标/仓位/风险
 ```
 
-策略参数修改仍受 shared model governance 与 automation governance 双重约束。
+模型晋级和自动化晋级是独立 Gate。
