@@ -6,6 +6,8 @@
 - 科技/成长卫星仓筛选；
 - 行业适配财务分析；
 - 合理价值与买入区间；
+- Bear/Base/Bull Expected IRR；
+- Total Return Benchmark；
 - 动态仓位与分批建仓；
 - 补仓 Gate；
 - 分红复投；
@@ -19,8 +21,9 @@
 
 1. `../../shared/policy-precedence.md`
 2. `../../shared/capital-allocation-and-entry-policy.md`
-3. `../../shared/automation-execution-governance.md`（涉及 Paper / Live / 自动化时）
-4. `SKILL.md`
+3. `../../shared/research-model-governance.md`
+4. `../../shared/automation-execution-governance.md`（涉及 Paper / Live / 自动化时）
+5. `SKILL.md`
 
 共享政策优先于本 Skill、references 和 examples 中的通用规则。
 
@@ -54,6 +57,59 @@ Growth Satellite：15%–25%
 
 这是长期仓内部功能划分，不是全账户的长期/短中期比例。
 
+## 长期“低位”定义升级
+
+长期不把“离历史高点很远”直接当作便宜。
+
+必须区分：
+
+```text
+Price Low
+!=
+Valuation Low
+```
+
+新增统一估值语言：
+
+`references/expected-irr-total-return-benchmark.md`
+
+每只长期候选至少输出：
+
+```text
+Bear IRR
+Base IRR
+Bull IRR
+Required Return assumptions
+Bear/Base/Bull Max Buy Price
+Current Price
+Margin of Safety
+```
+
+Required Return 使用 point-in-time 无风险利率加配置的 Required Risk Premium。风险溢价必须做敏感性分析，不把固定 4%–6% 写成所有 A 股通用真理。
+
+## 长期 Benchmark
+
+长期组合必须优先和含分红再投资的 Total Return Benchmark 比较。
+
+例如沪深300：
+
+```text
+Price Index  = 000300
+Total Return = H00300
+```
+
+组合至少保存：
+
+```text
+price_return
+cash_dividends_received
+dividends_reinvested
+total_return
+benchmark_total_return
+```
+
+禁止用“组合含分红、Benchmark 不含分红”的不同口径证明超额收益。
+
 ## 长期建仓
 
 当前 shared policy 基线：
@@ -64,7 +120,9 @@ Growth Satellite：15%–25%
 4批例外：30% / 25% / 25% / 20%
 ```
 
-后续批次必须有新的价格或事实确认，不能机械“越跌越买”。
+这些比例是当前治理参数，不宣称数学最优。
+
+后续批次必须有新的估值、价格或事实确认，不能机械“越跌越买”。
 
 长期后续 ADD 必须同时通过：
 
@@ -74,6 +132,8 @@ Thesis Gate
 + Valuation Gate
 + Portfolio Gate
 ```
+
+并重新计算 Bear/Base/Bull IRR。价格下跌只有在 thesis 未恶化且 Expected IRR 确实改善时，才可能提高安全边际。
 
 ## 动态仓位
 
@@ -97,8 +157,10 @@ Thesis Gate
 
 止盈：
 不用固定盈利百分比全卖；
-使用估值、集中度、机会成本和 thesis 状态决定 HOLD / TRIM / EXIT。
+使用 Expected IRR、估值、集中度、机会成本和 thesis 状态决定 HOLD / TRIM / EXIT。
 ```
+
+如果价格上涨导致 Base Expected IRR 低于当前 Required Return，应触发估值复核，但是否 TRIM 仍需结合税费、组合集中度和替代机会。
 
 ## 十股养老组合示例
 
@@ -133,6 +195,8 @@ Growth Satellite = 20%
 **它属于 Level 4 历史案例，不是永久推荐名单。**
 
 真实买入前必须重新运行 Skill。案例中的模型权重不能突破当前 shared-policy 单股/风险簇限制；如果某只处于 WATCH 或估值 Gate 未通过，对应资金可以继续留在现金池。
+
+历史案例不会因为后来结果好坏被静默改写；后续实际结果必须单独记录，用于 prediction error 和 Forward validation。
 
 ## Paper → Live → Automation
 
@@ -174,6 +238,12 @@ AUTO_ORDER   = false
 - 审计日志；
 - policy/Skill 版本治理。
 
+研究模型晋级另受：
+
+`../../shared/research-model-governance.md`
+
+约束。Good Model 不等于 Safe Auto Execution。
+
 ## 文件结构
 
 ```text
@@ -187,6 +257,7 @@ skills/a-share-retirement-investing/
     ├── methodology.md
     ├── industry-checklists.md
     ├── execution-template.md
+    ├── expected-irr-total-return-benchmark.md
     └── seed-watchlist-2026-08-26.md
 ```
 
@@ -194,16 +265,21 @@ skills/a-share-retirement-investing/
 
 1. `../../shared/policy-precedence.md`
 2. `../../shared/capital-allocation-and-entry-policy.md`
-3. `../../shared/automation-execution-governance.md`（涉及执行链路时）
-4. `SKILL.md`
-5. `references/methodology.md`
-6. `references/industry-checklists.md`
-7. `references/execution-template.md`
-8. `examples/ten-stock-retirement-portfolio-2026-08-26.md`
-9. `examples/paper-live-automation-roadmap.md`
-10. `references/seed-watchlist-2026-08-26.md`
+3. `../../shared/research-model-governance.md`
+4. `../../shared/automation-execution-governance.md`（涉及执行链路时）
+5. `SKILL.md`
+6. `references/methodology.md`
+7. `references/industry-checklists.md`
+8. `references/expected-irr-total-return-benchmark.md`
+9. `references/execution-template.md`
+10. `examples/ten-stock-retirement-portfolio-2026-08-26.md`
+11. `examples/paper-live-automation-roadmap.md`
+12. `references/seed-watchlist-2026-08-26.md`
 
-研究依据与参数边界见 `../../shared/research-validation-2026-08-26.md`。
+研究依据与参数边界见：
+
+- `../../shared/research-validation-2026-08-26.md`
+- `../../shared/adversarial-research-review-2026-08-26.md`
 
 ## 关键原则
 
@@ -213,7 +289,8 @@ skills/a-share-retirement-investing/
 → 再看利润能否转成现金/资本
 → 再看分红是否可持续
 → 再看是否有增长
-→ 再看当前价格值不值得买
+→ 再算 Bear/Base/Bull IRR
+→ 再判断当前价格值不值得买
 → 最后才看当前股息率
 ```
 
