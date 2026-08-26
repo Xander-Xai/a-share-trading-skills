@@ -6,20 +6,23 @@
 - 科技/成长卫星仓筛选
 - 行业适配财务分析
 - 合理价值与买入区间
-- 分批建仓与仓位控制
+- 动态仓位与分批建仓
+- 补仓 Gate
 - 分红复投
 - 季度/年度持仓复核
 - 对抗审查与退出条件
 
-## 顶层资金、建仓与风险规则
+## 先读上位规则
 
-本 Skill 不单独决定“长期 vs 短中期”的总资金比例，统一遵循仓库共享规则：
+执行本 Skill 前先读取：
 
-`../../shared/capital-allocation-and-entry-policy.md`
+1. `../../shared/policy-precedence.md`
+2. `../../shared/capital-allocation-and-entry-policy.md`
+3. `SKILL.md`
 
-共享政策优先于本 Skill 内部的通用仓位默认值。
+共享政策优先于本 Skill 内部任何通用仓位默认值。
 
-### 当前动态资金基线
+## 当前长期/短中期 Size Cap 基线
 
 | 股票专用资金规模 | 长期养老仓 | 短中期仓 |
 |---:|---:|---:|
@@ -29,9 +32,20 @@
 | 200–1000 万 | 85% | 15% |
 | ≥1000 万 | 85%–90% | 10%–15% |
 
-最终短中期比例还必须通过 Risk Cap 与 Edge Cap；表格不是自动满配指令。
+最终短中期占比还必须满足 `Risk Cap` 和 `Edge Cap`，不能机械满配。
 
-### 长期个股建仓
+## 长期仓内部
+
+长期仓内部仍使用：
+
+```text
+Core Dividend：75%–85%
+Growth Satellite：15%–25%
+```
+
+这不是全账户的长期/短中期比例。
+
+## 长期个股建仓
 
 ```text
 默认：3 批 40% / 30% / 30%
@@ -39,26 +53,26 @@
 大单股金额/较高不确定性：4 批 30% / 25% / 25% / 20%
 ```
 
-长期后续批次不是机械“越跌越买”，必须同时满足：
+不再使用模糊的“3–5批都可以”。后续批次必须有新的价格/事实确认。
+
+## 动态仓位
+
+单股和风险簇上限不再永久写死为 25% / 30%–35%。执行时根据股票专用资金规模从 shared policy 动态读取。
+
+长期后续加仓必须同时满足：
 
 ```text
-投资逻辑仍成立
-+ 资产负债/现金流未恶化
-+ 估值仍有安全边际
-+ 单股与风险簇仓位未超限
+Thesis Gate
++ Balance Gate
++ Valuation Gate
++ Portfolio Gate
 ```
 
-### 长期止损与止盈
+## 止损与止盈
 
-```text
-止损：默认不用机械 5%/8%/10% 价格止损，使用投资逻辑止损；
-大幅下跌是重新研究的触发器，不是自动卖出或自动补仓信号。
+长期仓默认不用统一 5%/8%/10% 机械价格止损；大幅下跌是重新研究触发器。
 
-止盈：不因为固定盈利百分比全部卖出；
-使用估值过高、单股/风险簇超配、机会成本和基本面变化决定 HOLD/TRIM/EXIT。
-```
-
-随着股票资金规模增长，长期仓应提高分散度并降低单股权重。百万、千万级长期仓不应仍把 4–5 只个股当作完整分散组合。
+止盈不按固定盈利百分比全部卖出，而由估值、单股/风险簇超配、机会成本和投资逻辑变化决定 `HOLD / TRIM / EXIT`。
 
 ## 文件结构
 
@@ -73,21 +87,17 @@ skills/a-share-retirement-investing/
     └── seed-watchlist-2026-08-26.md
 ```
 
-仓库共享规则：
-
-```text
-shared/
-└── capital-allocation-and-entry-policy.md
-```
-
 ## 推荐使用顺序
 
-1. `../../shared/capital-allocation-and-entry-policy.md`：先确定长期/短中期资金隔离、风险预算、建仓、补仓、止损、止盈与再平衡。
-2. `SKILL.md`：执行长期养老股筛选、估值和持仓决策。
-3. `references/methodology.md`：第一性原理、估值、压力测试和持仓哲学。
-4. `references/industry-checklists.md`：按行业选择正确指标，避免一套财务指标机械套用。
-5. `references/execution-template.md`：每次实盘研究的输入、数据检查、单股研究卡和组合研究卡。
-6. `references/seed-watchlist-2026-08-26.md`：本轮讨论形成的研究种子，仅用于回溯，不是永久推荐名单。
+1. `../../shared/policy-precedence.md`
+2. `../../shared/capital-allocation-and-entry-policy.md`
+3. `SKILL.md`
+4. `references/methodology.md`
+5. `references/industry-checklists.md`
+6. `references/execution-template.md`
+7. `references/seed-watchlist-2026-08-26.md`
+
+研究依据与参数边界见 `../../shared/research-validation-2026-08-26.md`。
 
 ## 关键原则
 
