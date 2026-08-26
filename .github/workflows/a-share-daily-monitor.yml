@@ -16,7 +16,9 @@ permissions:
 
 concurrency:
   group: a-share-daily-monitor
-  cancel-in-progress: false
+  # During runtime development, keep evidence only for the newest revision.
+  # Scheduled daily runs normally do not overlap.
+  cancel-in-progress: true
 
 jobs:
   monitor:
