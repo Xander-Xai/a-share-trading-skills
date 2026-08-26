@@ -1,6 +1,6 @@
-# 执行模板 v2.0
+# 执行模板 v2.1
 
-本模板用于每次真实运行长期养老 Skill，确保不会因为聊天上下文、行情波动或旧参数跳过关键步骤。
+本模板用于每次真实运行长期养老 Skill，防止聊天上下文、行情波动或旧参数绕过 shared policy。
 
 ## A. 上位规则加载
 
@@ -10,6 +10,12 @@
 ../../../shared/policy-precedence.md
 ../../../shared/capital-allocation-and-entry-policy.md
 ../SKILL.md
+```
+
+涉及 Paper / Live / 自动化时额外读取：
+
+```text
+../../../shared/automation-execution-governance.md
 ```
 
 若模板与上位规则冲突，以上位规则为准。
@@ -25,9 +31,12 @@ holding_horizon: 10年以上（若用户另有说明则覆盖）
 
 stock_capital_amount: 用户输入
 
-long_vs_short_allocation:
+strategic_allocation:
   source: shared/capital-allocation-and-entry-policy.md
-  derived: true
+  long_baseline: derived
+  short_size_cap: derived
+  final_short_cap: derived_from_size_risk_edge
+  cash_allowed: true
 
 core_dividend_target_within_long_book: 75%-85%
 growth_target_within_long_book: 15%-25%
@@ -50,7 +59,9 @@ extra_filters:
   excluded_industries: null
 ```
 
-禁止在这里写死 `25%` 单股上限或 `30%-35%` 风险簇上限；执行时必须根据当前股票专用资金规模从 shared policy 动态读取。
+禁止在这里写死旧的 `25%` 单股上限或 `30%-35%` 风险簇上限。
+
+同样禁止假设股票专用资金必须 100% 满仓：如果长期候选未通过质量/估值/组合 Gate，资金可以留在待配置现金池。
 
 ## C. 数据获取检查
 
@@ -79,7 +90,7 @@ extra_filters:
 ### 股票名（代码）
 
 **角色**：Core / Growth
-**as_of**：YYYY-MM-DD
+**as_of**：YYYY-MM-DD HH:MM
 **数据质量**：High / Medium / Low
 
 #### 1. 一句话投资逻辑
@@ -137,12 +148,13 @@ ADD / HOLD / WATCH / TRIM / EXIT
 
 #### 11. 动态仓位
 - Current shared-policy tier:
-- Target weight:
+- Model/desired weight:
 - Maximum single-stock weight:
 - Risk-cluster weight after trade:
+- Deployable weight after all caps:
 
 #### 12. 建仓批次
-- Chosen mode: 2 / 3 / 4 tranches
+- Chosen mode: 2 / 3 / 4 strategy tranches
 - Why this mode:
 - Tranche 1 trigger:
 - Tranche 2 trigger:
@@ -156,7 +168,7 @@ ADD / HOLD / WATCH / TRIM / EXIT
 
 ## E. 长期补仓 Gate
 
-每次后续加仓前必须全部通过：
+每次后续 ADD 前必须全部通过：
 
 ```text
 Thesis Gate
@@ -181,16 +193,21 @@ Portfolio Gate
 ```markdown
 # Portfolio Review — YYYY-MM-DD
 
-## 顶层配置
+## 顶层资本状态
 - Stock capital amount:
-- Long-book target from shared policy:
-- Short-book target from shared policy:
-- Current drift:
+- Long strategic baseline:
+- Final Short Cap:
+- Actual long exposure:
+- Actual short exposure:
+- Cash / pending deployment:
+- Any cap violation: Yes/No
+
+注意：Final Short Cap 是上限；未部署资金允许为现金，不能为了“回到比例”制造交易。
 
 ## 长期仓内部结构
-- Core: xx%
-- Growth: xx%
-- Cash pending deployment: xx%
+- Core deployed weight within long book: xx%
+- Growth deployed weight within long book: xx%
+- Long-book cash pending deployment: xx%
 
 ## 动态集中度限制
 - Current single-stock cap:
@@ -219,9 +236,16 @@ Portfolio Gate
 3. ...
 ```
 
+### 再平衡检查
+
+- [ ] Actual Short Exposure 是否 ≤ Final Short Cap？
+- [ ] 是否错误使用 ±5pp 漂移带突破 Cap？
+- [ ] 短中期亏损后是否错误从长期仓补血？
+- [ ] 短中期盈利回流后，长期是否也重新通过 Gate，而不是机械买入？
+
 ## G. 对抗审查 Gate
 
-只有以下全部回答完成后，才允许给出最终组合：
+只有以下关键问题完成后，才允许给出最终组合：
 
 - [ ] 是否误把特别分红当普通分红？
 - [ ] 是否用景气高点利润计算可持续收益？
@@ -235,18 +259,20 @@ Portfolio Gate
 - [ ] 是否明确区分事实、市场预测、模型估算？
 - [ ] 是否给出了最强 Bear Case？
 - [ ] 是否给出了可观察的退出/失效条件？
-- [ ] 当前仓位上限是否来自 shared policy，而不是旧固定参数？
-- [ ] 建仓是否使用当前 2/3/4 批规则，而不是旧的“3–5批随意选择”？
+- [ ] 当前仓位上限是否来自 shared policy？
+- [ ] 建仓是否使用当前 2/3/4 批规则，而不是旧“3–5批随意选择”？
+- [ ] 是否允许现金，而不是强制把所有资金投满？
 
 任一关键项未完成，结论降级为 WATCH 或继续研究。
 
 ## H. 推荐输出顺序
 
-1. 当前上位资金规则与动态仓位上限。
-2. 候选/持仓状态。
-3. 核心逻辑。
-4. 估值与买入区间。
-5. 建仓/补仓条件。
-6. 组合权重与风险簇。
-7. Bear Case / 失效条件。
-8. 官方证据和 `as_of`。
+1. 当前上位资本规则、Final Short Cap 和动态仓位上限。
+2. 当前长期已部署/现金状态。
+3. 候选/持仓状态。
+4. 核心逻辑。
+5. 估值与买入区间。
+6. 建仓/补仓条件。
+7. 组合权重与风险簇。
+8. Bear Case / 失效条件。
+9. 官方证据和 `as_of`。
