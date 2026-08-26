@@ -2,13 +2,14 @@
 
 ## Scope
 
-This audit checks the current `main` branch for stale rules, contradictory parameters, and policy-precedence problems across:
+This audit checks the current `main` branch after the v3 research-governance upgrade for stale rules, contradictory parameters, Champion/Challenger leakage, and policy-precedence problems across:
 
 - root `README.md`
-- `shared/` governance files
-- long-term retirement Skill
-- short/mid-term trading Skill
-- related methodology / execution / risk-management / research references
+- `shared/` capital / automation / research governance
+- long-term retirement Skill and README
+- short/mid-term trading Skill and README
+- new Challenger / Forward-Test / MFE-MAE / IRR references
+- existing methodology / execution / scoring / research references
 
 Historical dated snapshots are treated as records, not current policy.
 
@@ -17,16 +18,18 @@ Historical dated snapshots are treated as records, not current policy.
 The repository now uses:
 
 ```text
-Level 1 — shared/capital-allocation-and-entry-policy.md
+Level 1A — shared/capital-allocation-and-entry-policy.md
+Level 1B — shared/automation-execution-governance.md
+Level 1C — shared/research-model-governance.md
   ↓
-Level 2 — skills/*/SKILL.md
+Level 2  — skills/*/SKILL.md
   ↓
-Level 3 — skills/*/references/*.md
+Level 3  — skills/*/references/*.md
   ↓
-Level 4 — dated snapshot/watchlist files
+Level 4  — examples / dated snapshot / watchlist
 ```
 
-Lower-level files may be more conservative, but may not loosen Level-1 risk limits.
+Level 1A controls capital/risk, 1B controls execution/automation, and 1C controls research-model evidence, bias control and promotion.
 
 ## Migration checks completed
 
@@ -34,45 +37,162 @@ Lower-level files may be more conservative, but may not loosen Level-1 risk limi
 
 PASS.
 
-- Both Skills are now listed as present.
-- The root README no longer describes the short/mid-term Skill as merely “planned” or “still being organized”.
-- Shared policy and research-validation files are linked explicitly.
+- Both Skills are listed as active.
+- Capital, automation and research governance are separately named.
+- v3 explicitly uses Champion/Challenger instead of silently replacing current scoring.
+- Long-term IRR / Total Return and short-term MFE/MAE are discoverable from the root README.
 
 ### 2. Long/short capital allocation
 
 PASS.
 
-The retired fixed rule `70% long / 30% short for every capital size` is no longer the repository-wide policy.
-
-Current allocation uses:
+Current allocation remains governed only by Level 1A:
 
 ```text
-Short Allocation = min(Size Cap, Risk Cap, Edge Cap)
+Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
+Actual Short Exposure <= Final Short Cap
 ```
 
-with the dynamic Size-Cap baseline maintained only in the shared capital policy.
+The v3 research upgrade does not modify capital tiers, Operating Target, Hard Ceiling or circuit breakers.
 
-### 3. Short/mid-term legacy 30%-of-savings rule
-
-PASS.
-
-The old rule `short-term capital <= 30% of total savings` is explicitly retired in the short/mid-term Skill. Strategy capital must be derived from shared policy.
-
-### 4. Long-term single-stock / cluster limits
+### 3. Research model governance separation
 
 PASS.
 
-The old permanent `single stock <=25%` and `risk cluster <=30%-35%` defaults are retired as universal limits.
+`research-model-governance.md` does not override position sizing or broker execution.
 
-Long-term position caps are now derived dynamically from the current shared-policy capital tier.
+It governs only:
 
-### 5. Long-term entry tranches
+- evidence classification;
+- Champion/Challenger;
+- point-in-time / survivorship / look-ahead controls;
+- Benchmark;
+- Required Return parameter discipline;
+- model promotion;
+- MFE/MAE learning.
+
+### 4. Champion remains current production model
 
 PASS.
 
-The vague old rule `3–5 tranches` is retired.
+The short/mid-term `SKILL.md` and `scoring-system.md` remain the production Champion.
 
-Current strategy-tranche policy:
+Current Champion:
+
+```text
+Technical 30
+Capital Participation 30
+Fundamentals 25
+Catalyst 15
+```
+
+The new `causal-challenger-model.md` explicitly declares:
+
+```text
+CHALLENGER / SHADOW ONLY
+```
+
+It cannot change real orders before Promotion Review.
+
+### 5. Challenger weight conflict
+
+PASS.
+
+The v3 Challenger contains experimental weights, but labels them research parameters rather than replacing Champion thresholds.
+
+No production rule claims that the new weights are proven optimal.
+
+### 6. Champion / Challenger fair-comparison protocol
+
+PASS.
+
+`champion-challenger-forward-test.md` requires:
+
+```text
+same universe
+same as_of
+same available information
+same risk budget
+same A-share execution constraints
+same cost/slippage assumptions
+```
+
+It also records NO_TRADE signals and prohibits look-ahead information.
+
+### 7. Model Promotion vs Automation Promotion
+
+PASS.
+
+The repository now explicitly states:
+
+```text
+Good Model != Safe Auto Execution
+Safe Executor != Positive Edge
+```
+
+Model promotion is governed by Level 1C; automation promotion remains governed by Level 1B.
+
+`AUTO_ORDER=false` remains the default.
+
+### 8. Point-in-time / survivorship bias
+
+PASS.
+
+Level 1C now requires historical handling of:
+
+- listed/delisted stocks;
+- historical ST/*ST state;
+- actual filing publication dates;
+- historical index constituents;
+- suspension / limits / T+1;
+- fees / tax / slippage / impact.
+
+Historical results that cannot reconstruct point-in-time inputs are marked `Biased / Non-promotable`.
+
+### 9. Long-term “low price” vs valuation
+
+PASS.
+
+The long-term README and new IRR reference now explicitly separate:
+
+```text
+Price Low
+!=
+Valuation Low
+```
+
+A large drawdown from the historical high does not automatically permit ADD.
+
+### 10. Long-term Expected IRR
+
+PASS.
+
+The new framework uses Bear/Base/Bull scenarios and makes Required Risk Premium configurable.
+
+It does not hard-code `ERP = 4%-6%` as universal truth.
+
+The 4%/6%/8% values appear only as a sensitivity example / research grid.
+
+### 11. Long-term Total Return Benchmark
+
+PASS.
+
+The repository now requires long-term performance comparison on a total-return basis where available.
+
+沪深300 is explicitly documented as:
+
+```text
+Price Index  = 000300
+Total Return = H00300
+```
+
+The repository rejects comparing a dividend-receiving portfolio against a price-only benchmark without disclosing the mismatch.
+
+### 12. Long-term entry tranches
+
+PASS.
+
+Current strategy-tranche policy remains:
 
 ```text
 Default: 40% / 30% / 30%
@@ -80,39 +200,37 @@ Small/high-certainty exception: 60% / 40%
 Large-position/higher-uncertainty exception: 30% / 25% / 25% / 20%
 ```
 
-The long-term methodology and execution template now use this hierarchy.
+The v3 docs explicitly label these as governance parameters, not mathematically optimal weights.
 
-### 6. Short/mid-term entry tranches
+### 13. Short/mid-term entry tranches
 
 PASS.
 
-The old account-size-based `3 / 4 / 4` strategy-tranche rule is retired.
-
-Current policy:
+Current policy remains:
 
 ```text
 Default: 50% Setup + 50% Confirmation
 Three-stage exception: 50% / 30% / 20%
 ```
 
-Later tranches require positive confirmation. Averaging down merely to reduce cost is prohibited.
+The Challenger preserves the prohibition on averaging down merely because a trend/catalyst position is losing.
 
-### 7. Strategy tranche vs execution slicing
+Long-term value ADD remains separately allowed only after Thesis + Balance + Valuation + Portfolio Gates pass.
 
-PASS.
-
-The repository now distinguishes:
-
-- strategy tranche = new investment/trading decision,
-- execution slicing = multiple child orders used to manage liquidity/slippage.
-
-Large capital may require more child orders without creating extra strategy decisions.
-
-### 8. Short/mid-term risk-budget conflict
+### 14. Strategy tranche vs execution slicing
 
 PASS.
 
-The previous apparent conflict between `0.5% / 2%` and `1% / 3%` has been resolved by defining two layers:
+The repository still distinguishes:
+
+- strategy tranche = new decision based on information/confirmation;
+- execution slicing = child orders for liquidity/slippage.
+
+### 15. Short/mid-term risk budget
+
+PASS.
+
+No v3 research document changes:
 
 ```text
 Operating Target
@@ -125,25 +243,37 @@ Hard Ceiling
 - aggregate open initial risk: <=3%
 ```
 
-Lower-level Skill/reference files may stay at the Operating Target; they may never exceed the Hard Ceiling.
-
-### 9. Short/mid-term profit-management conflict
+### 16. Profit-management parameter status
 
 PASS.
 
-Primary hierarchy is now:
++1.5R/+2R and 3–5 day time review remain usable governance starting points, but v3 removes any claim that they are universally optimal.
+
+`trade-ledger-mfe-mae-extension.md` requires MFE/MAE evidence before changing them.
+
+### 17. Vendor “main force inflow” interpretation
+
+PASS.
+
+The existing short-term scoring system already warns not to equate vendor-labeled main-force inflow with institutional conviction.
+
+The Challenger strengthens this by separating:
 
 ```text
-R multiple + technical structure + original setup target
+Participation
+Positioning Evidence
+Price Confirmation
 ```
 
-Historical percentage zones (`+3%-5%` traditional/cyclical and `+6%-10%` growth/technology) remain only secondary observation zones. If they conflict, R/structure wins.
+No new rule treats vendor flow as a standalone buy signal.
 
-### 10. Historical snapshots
+### 18. Historical snapshots
 
 PASS.
 
-Dated stock-pool/watchlist files remain historical snapshots. They do not override current policy, current market data, or current scoring.
+Dated candidate pools remain Level 4 evidence only.
+
+No historical example is promoted to a permanent recommendation because of later price performance.
 
 ## Current Source-of-Truth map
 
@@ -153,30 +283,45 @@ Dated stock-pool/watchlist files remain historical snapshots. They do not overri
 | Size/Risk/Edge Cap | `shared/capital-allocation-and-entry-policy.md` |
 | Operating Target / Hard Ceiling | `shared/capital-allocation-and-entry-policy.md` |
 | default entry tranches | `shared/capital-allocation-and-entry-policy.md` |
+| automation / broker safety | `shared/automation-execution-governance.md` |
+| research-model governance | `shared/research-model-governance.md` |
 | policy precedence | `shared/policy-precedence.md` |
-| long-term selection/valuation | `skills/a-share-retirement-investing/SKILL.md` |
-| short/mid-term selection/execution | `skills/a-share-short-midterm-stock-selection/SKILL.md` |
-| long-term detailed method | `skills/a-share-retirement-investing/references/methodology.md` |
-| long-term execution template | `skills/a-share-retirement-investing/references/execution-template.md` |
-| short/mid-term holding/risk | `skills/a-share-short-midterm-stock-selection/references/holding-risk-management.md` |
-| short/mid-term research basis | `skills/a-share-short-midterm-stock-selection/references/research-basis.md` |
+| long-term production selection/valuation | `skills/a-share-retirement-investing/SKILL.md` |
+| long-term IRR / total-return method | `skills/a-share-retirement-investing/references/expected-irr-total-return-benchmark.md` |
+| short/mid-term production selection/execution | `skills/a-share-short-midterm-stock-selection/SKILL.md` |
+| current short-term Champion scoring | `skills/a-share-short-midterm-stock-selection/references/scoring-system.md` |
+| v3 short-term Challenger | `skills/a-share-short-midterm-stock-selection/references/causal-challenger-model.md` |
+| Champion/Challenger validation | `skills/a-share-short-midterm-stock-selection/references/champion-challenger-forward-test.md` |
+| MFE/MAE extension | `skills/a-share-short-midterm-stock-selection/references/trade-ledger-mfe-mae-extension.md` |
 | historical candidate pools | dated snapshot/watchlist files only |
 
 ## Regression checks
 
 Current repository passes these regression questions:
 
-1. Does any active rule still require short/mid-term capital to remain exactly 30% for all account sizes? **No.**
-2. Does any active long-term rule still permit a universal 25% single-stock cap regardless of capital size? **No.**
-3. Does any active short/mid-term rule still require 3/4/4 strategy tranches by capital size? **No.**
-4. Does any active long-term rule still leave tranche count as an undefined 3–5 range? **No.**
-5. Are `0.5%/2%` and `1%/3%` still contradictory? **No; they are Operating Target vs Hard Ceiling.**
-6. Can fixed percentage profit zones override R/structure in short/mid-term management? **No.**
-7. Can a dated snapshot override current policy or current data? **No.**
-8. If a lower-level reference conflicts with shared policy, is precedence explicit? **Yes.**
+1. Can the Challenger silently replace the 30/30/25/15 Champion? **No.**
+2. Can a model promote itself because backtest results improved? **No.**
+3. Can Forward-Test use later filings, later ST status or future delisting information? **No.**
+4. Can a dividend portfolio claim excess return against a price-only benchmark without disclosure? **No.**
+5. Is 4%–6% ERP treated as universal A-share truth? **No.**
+6. Are +1.5R/+2R and 3–5 days described as mathematically optimal? **No.**
+7. Can a vendor main-force-flow label independently create a buy signal? **No.**
+8. Can a short-term loser be renamed long-term to avoid realizing a loss? **No.**
+9. Does Level 1C change Level 1A risk ceilings? **No.**
+10. Does passing Model Promotion automatically permit Full Auto? **No.**
+11. Can dated snapshots override current policy or current data? **No.**
+12. If a lower-level reference conflicts with Level 1, is precedence explicit? **Yes.**
 
-## Remaining caveat
+## Remaining caveats
 
-The repository is internally consistent at this audit point, but the numeric governance parameters are still policy choices rather than universally optimal values. They should be recalibrated only with meaningful real trading/investment data, not after a handful of recent outcomes.
+The repository is internally consistent at this audit point, but several numeric values remain governance parameters rather than universally optimal constants.
 
-Any future Level-1 change must trigger a new consistency audit across both Skills and their references.
+The most important unresolved empirical question is now explicit:
+
+```text
+Does the Causal Challenger produce better net, risk-adjusted, cost-aware Forward performance than the current Champion?
+```
+
+Until real Forward/Live evidence answers that question, the Champion remains unchanged and the Challenger remains Shadow Only.
+
+Any future Level-1 change or Champion Promotion must trigger a new consistency audit across both Skills, references, examples and automation roadmaps.
