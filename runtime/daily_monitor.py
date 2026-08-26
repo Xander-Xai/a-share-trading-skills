@@ -89,9 +89,15 @@ def load_watchlist(path: Path) -> list[dict]:
 
 
 def candidate_pre_action(stock: dict, regime: str, crowding: bool, current_day_pct: float | None) -> str:
+    """Return a monitor/research state, never an executable order.
+
+    PANIC and DATA_INSUFFICIENT are fail-closed for new trend entries. RISK_OFF
+    is not an absolute production veto: it routes to RISK_REVIEW so the full
+    Skill can apply tighter entry thresholds and lower-end risk sizing.
+    """
     status = stock.get("status", "")
 
-    if regime in {"PANIC", "RISK_OFF", "DATA_INSUFFICIENT"}:
+    if regime in {"PANIC", "DATA_INSUFFICIENT"}:
         return "NO_NEW_ENTRY"
     if status == "event_isolation":
         return "EVENT_REVIEW"
@@ -99,6 +105,8 @@ def candidate_pre_action(stock: dict, regime: str, crowding: bool, current_day_p
         return "WAIT_NO_CHASE"
     if current_day_pct is not None and current_day_pct >= 5.0:
         return "WAIT_NO_CHASE"
+    if regime == "RISK_OFF":
+        return "RISK_REVIEW"
     if status == "priority_scan":
         return "REFRESH_FULL_GATES"
     if status == "wait_technical_confirmation":
@@ -158,7 +166,7 @@ def build_candidate_rows(watchlist: list[dict], spot: pd.DataFrame | None, regim
                 "snapshot_status": stock.get("status"),
                 "dominant_factor": stock.get("dominant_factor"),
                 "pre_action": candidate_pre_action(stock, regime, crowding, day_pct),
-                "note": "pre_action is a monitor state, not a buy/sell order; current fundamentals/catalyst/score/invalidation must be refreshed before execution.",
+                "note": "pre_action is monitor/research output only; current fundamentals/catalyst/Champion-or-approved-model score/invalidation/risk/account caps must be refreshed before execution.",
             }
         )
     return rows
@@ -170,11 +178,18 @@ def render_markdown(report: dict) -> str:
         f"# A-share Daily Monitor — {report['date']}",
         "",
         f"- as_of: `{report['as_of']}`",
+        f"- runtime_mode: `{report['runtime_mode']}`",
         f"- trading_day_status: `{report['trading_day_status']}`",
         f"- sentiment_score: `{s.get('sentiment_score')}`",
         f"- regime: `{s.get('regime')}`",
         f"- crowding_flag: `{s.get('crowding_flag')}`",
         f"- data_confidence: `{s.get('data_confidence')}`",
+        "",
+        "## Governance references",
+        "",
+        "```json",
+        json.dumps(report.get("governance_refs", {}), ensure_ascii=False, indent=2),
+        "```",
         "",
         "## Market metrics",
         "",
@@ -311,12 +326,20 @@ def main() -> int:
     )
 
     report = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "date": today_str,
         "as_of": now.isoformat(),
+        "runtime_mode": "MONITOR_ONLY",
         "trading_day_status": trading_day_status,
         "auto_monitor": True,
         "auto_order": False,
+        "governance_refs": {
+            "capital_policy": "shared/capital-allocation-and-entry-policy.md",
+            "automation_governance": "shared/automation-execution-governance.md",
+            "research_model_governance": "shared/research-model-governance.md",
+            "short_mid_skill": "skills/a-share-short-midterm-stock-selection/SKILL.md",
+            "sentiment_model": "skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md",
+        },
         "market_metrics": metrics,
         "sentiment": sentiment,
         "candidates": candidates,
