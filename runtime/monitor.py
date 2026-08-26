@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 
+# Research / monitor parameters. They mirror the current sentiment reference,
+# but remain subordinate to shared research-model governance and are not
+# production Alpha guarantees.
 SENTIMENT_WEIGHTS = {
     "breadth_score": 25.0,
     "limit_balance_score": 20.0,
@@ -171,6 +174,11 @@ def decide_short_mid_action(s: DecisionInput) -> str:
 
     This engine never bypasses broker or capital-policy gates. It is deliberately
     conservative: incomplete data always produces NO_ACTION.
+
+    RISK_OFF is not itself a hard veto in the production Skill. Upstream callers
+    must tighten entry quality and risk sizing; if those stricter gates still
+    pass, this state machine may return READY. PANIC and DATA_INSUFFICIENT remain
+    fail-closed for new trend entries.
     """
     if not s.data_complete:
         return "NO_ACTION"
@@ -179,7 +187,7 @@ def decide_short_mid_action(s: DecisionInput) -> str:
         return "REJECT" if not s.has_position else "EXIT_REVIEW"
 
     if not s.has_position:
-        if s.market_regime in {"PANIC", "RISK_OFF", "DATA_INSUFFICIENT"}:
+        if s.market_regime in {"PANIC", "DATA_INSUFFICIENT"}:
             return "WAIT"
         if s.market_regime == "EUPHORIA" and s.crowding_flag:
             return "WAIT_NO_CHASE"
