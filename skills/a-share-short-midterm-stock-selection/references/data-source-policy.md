@@ -41,8 +41,9 @@ Use for:
 - margin-financing data
 - turnover
 - technical indicators
+- structured industry membership when the taxonomy implementation is explicit and current
 
-Cross-check material discrepancies with Tier 1 or another reliable data source.
+Cross-check material discrepancies with Tier 1 or the taxonomy owner.
 
 ### Tier 3 — reputable financial media / broker research
 
@@ -84,7 +85,41 @@ Forbidden:
 
 If recreating a historical decision, use only contemporaneously available data.
 
-## 3. Freshness rules
+## 3. Industry taxonomy and classification policy
+
+When formal industry coverage is analyzed, declare one taxonomy and one level before counting.
+
+Default for this skill:
+
+```text
+industry_taxonomy = Shenwan 2021
+industry_level = Level 1
+classification_as_of = analysis timestamp/date
+```
+
+Preferred taxonomy sources:
+
+1. Shenwan Hongyuan Research current industry-classification download/index pages;
+2. reliable structured market data that explicitly implements current Shenwan Level-1 membership;
+3. recent official company filings to resolve material ambiguity after restructuring/business transformation.
+
+Authoritative Shenwan references:
+
+- Current industry classification download center: https://www.swsresearch.com/institute_sw/allIndex/downloadCenter/industryType
+- Shenwan 2021 revision comparison document: https://wxweb.swsresearch.com/swsreport/2021_08/328340.pdf
+
+Rules:
+
+- do not mix formal Level-1 industries with theme/concept boards in the same count;
+- assign each stock exactly one primary Level-1 industry for coverage counting;
+- economic-factor tags remain separate and may be many-to-one or cross-industry;
+- do not hard-code the taxonomy total forever; re-check current taxonomy membership/count when coverage is requested;
+- historical labels must not override current classification merely to fill a missing industry;
+- if classification remains ambiguous, mark confidence and explain the ambiguity instead of forcing a mapping.
+
+See `industry-coverage-audit.md` for the full coverage method.
+
+## 4. Freshness rules
 
 ### Price and technical data
 
@@ -113,11 +148,21 @@ Prefer catalysts:
 
 A catalyst older than 30 days should be rechecked for progress and whether the market has already priced it in.
 
-## 4. Evidence standards by claim type
+## 5. Evidence standards by claim type
 
 ### Code/name identity
 
 Must match a reliable market/exchange source.
+
+### Industry classification
+
+Must identify:
+
+- taxonomy owner/name,
+- classification level,
+- classification date/as-of,
+- mapping source,
+- confidence if ambiguous.
 
 ### Industry leader claim
 
@@ -164,7 +209,7 @@ Commercial “main force” data is vendor-defined. Use it only with:
 - sector participation
 - financing/institutional data where available
 
-## 5. A-share market-rule awareness
+## 6. A-share market-rule awareness
 
 Always check current SSE/SZSE rules when execution assumptions matter because market rules can change.
 
@@ -188,7 +233,7 @@ Execution implications that must be checked rather than assumed:
 
 A planned stop is not guaranteed to execute at the stop price.
 
-## 6. Material-event monitoring
+## 7. Material-event monitoring
 
 Explicitly search for recent or upcoming:
 
@@ -209,7 +254,7 @@ Explicitly search for recent or upcoming:
 
 The absence of a media report is not proof that no event exists. Search official disclosures.
 
-## 7. Data completeness label
+## 8. Data completeness label
 
 Every final stock should receive one of:
 
@@ -219,7 +264,9 @@ Every final stock should receive one of:
 
 A stock with `Insufficient` data should not be an executable trade candidate.
 
-## 8. Research trail
+For industry-coverage work, a separate classification-confidence field should also be maintained when needed.
+
+## 9. Research trail
 
 For every selected stock, keep:
 
@@ -233,7 +280,15 @@ For every selected stock, keep:
 
 For universe-locked tasks, also keep the screenshot/list provenance for code and name.
 
-## 9. Conflict resolution
+For industry-coverage tasks, also keep:
+
+- taxonomy,
+- taxonomy level,
+- industry mapping source,
+- classification date,
+- ambiguity/reclassification note if material.
+
+## 10. Conflict resolution
 
 When sources conflict:
 
@@ -241,14 +296,17 @@ When sources conflict:
 2. prefer audited/board-approved filing over media summary
 3. distinguish company guidance/forecast from reported results
 4. distinguish restated/revised data from originally reported data
-5. state unresolved uncertainty rather than averaging incompatible numbers
+5. for formal industry coverage, prefer the declared taxonomy owner's current classification over stale third-party labels
+6. state unresolved uncertainty rather than averaging incompatible numbers
 
-## 10. No-hallucination rule
+## 11. No-hallucination rule
 
 When a universe is locked, web research is for **validation and ranking**, not for expanding the candidate set.
 
 If research discovers a superior outside-universe stock, do not insert it unless the user explicitly permits external alternatives.
 
-## 11. Research basis
+For coverage work, an industry that exists in the taxonomy but has no stock in the locked universe must be reported as `absent_from_universe`, not filled externally by default.
+
+## 12. Research basis
 
 See `research-basis.md` for the regulatory, accounting-quality, position-sizing, quality-factor, momentum, and factor-concentration evidence used to justify the architecture of this skill.
