@@ -18,7 +18,8 @@ a-share-trading-skills/
 ├── shared/
 │   ├── policy-precedence.md
 │   ├── capital-allocation-and-entry-policy.md
-│   └── research-validation-2026-08-26.md
+│   ├── research-validation-2026-08-26.md
+│   └── consistency-audit-2026-08-26.md
 └── skills/
     ├── a-share-retirement-investing/
     └── a-share-short-midterm-stock-selection/
@@ -42,7 +43,7 @@ Level 4  带日期的 snapshot / watchlist
 
 ## 顶层资金策略
 
-资金与风险规则见 `shared/capital-allocation-and-entry-policy.md`；调研证据与边界见 `shared/research-validation-2026-08-26.md`。
+资金与风险规则见 `shared/capital-allocation-and-entry-policy.md`；调研证据与边界见 `shared/research-validation-2026-08-26.md`；一致性审计见 `shared/consistency-audit-2026-08-26.md`。
 
 股票专用资金的 Size Cap 基线：
 
