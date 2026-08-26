@@ -78,6 +78,14 @@ spot_provider = SINA_FALLBACK
 data_confidence <= MEDIUM
 ```
 
+不同 Provider 的股票代码会统一规范为 6 位数字代码，例如：
+
+```text
+sh600000 → 600000
+sz000001 → 000001
+bj430017 → 430017
+```
+
 Primary 与 fallback 都不可用时：
 
 ```text
@@ -85,7 +93,7 @@ spot_provider = UNAVAILABLE
 regime = DATA_INSUFFICIENT
 ```
 
-因此 fallback 用于提高**监控可用性**，不是把单一聚合数据源升级为 Live 真相源。
+因此 fallback 用于提高**监控可用性**，不是把聚合数据源升级为 Live 真相源。
 
 AKShare 是聚合数据接口，不是交易所/Broker 真相源。进入 Manual Live / Semi-auto / Auto 前必须增加官方披露、券商行情和真实持仓交叉验证。
 
@@ -96,6 +104,7 @@ https://akshare.akfamily.xyz/data/stock/stock.html
 
 ```bash
 python -m pip install -r runtime/requirements.txt
+python -m pip check
 python -m compileall -q runtime
 python -m unittest discover -s runtime/tests -v
 python runtime/daily_monitor.py
@@ -108,6 +117,8 @@ reports/daily/YYYY-MM-DD-market-monitor.json
 reports/daily/YYYY-MM-DD-market-monitor.md
 runtime/state/market_history.csv
 ```
+
+`market_history.csv` 只有在有效交易日且成功取得全市场成交额时才创建/更新。即使 history 文件不存在，fail-closed 日报也必须独立保留。
 
 这些输出属于 **Generated Evidence / Runtime State**，不是 Policy，也不是可直接执行的订单。
 
@@ -252,11 +263,25 @@ spot_provider_gate
 ```text
 checkout
 → install pinned runtime dependencies
+→ pip check
 → compileall
 → unit tests
 → run fail-closed monitor
+→ verify runtime/workflow did not change during run
 → commit generated report/history if changed
 ```
+
+日报目录与可选的 `market_history.csv` **分别 staging**，避免 history 因 Provider 失败而不存在时把当天 fail-closed 日报一起丢弃。
+
+如果执行期间 main 上的 Runtime/Workflow 已更新，旧运行会跳过日报提交；由最新 revision 重新生成，避免旧代码结果污染新版本证据。
+
+开发阶段使用：
+
+```text
+concurrency.cancel-in-progress = true
+```
+
+只保留最新 Runtime revision 的验证任务。正常每日定时运行通常不存在重叠。
 
 `contents: write` 只用于提交生成的报告/历史状态；当前 runtime 不包含 Broker 下单模块。
 
@@ -264,7 +289,7 @@ checkout
 
 `runtime/tests/test_monitor.py` 至少回归：
 
-- 代码标准化；
+- Eastmoney/Sina 代码标准化；
 - 缺核心数据 → `DATA_INSUFFICIENT`；
 - PANIC 新仓 fail closed；
 - RISK_OFF 不是自动硬否决；
