@@ -7,7 +7,26 @@ RUNTIME_DIR = Path(__file__).resolve().parents[1]
 if str(RUNTIME_DIR) not in sys.path:
     sys.path.insert(0, str(RUNTIME_DIR))
 
-from monitor import DecisionInput, calculate_sentiment, decide_short_mid_action
+from monitor import (
+    DecisionInput,
+    calculate_sentiment,
+    decide_short_mid_action,
+    normalize_stock_code,
+)
+
+
+class CodeNormalizationTests(unittest.TestCase):
+    def test_eastmoney_numeric_code(self):
+        self.assertEqual(normalize_stock_code("600000"), "600000")
+
+    def test_sina_prefixed_codes(self):
+        self.assertEqual(normalize_stock_code("sh600000"), "600000")
+        self.assertEqual(normalize_stock_code("sz000001"), "000001")
+        self.assertEqual(normalize_stock_code("bj430017"), "430017")
+
+    def test_empty_code(self):
+        self.assertEqual(normalize_stock_code(None), "")
+        self.assertEqual(normalize_stock_code(""), "")
 
 
 class SentimentTests(unittest.TestCase):
