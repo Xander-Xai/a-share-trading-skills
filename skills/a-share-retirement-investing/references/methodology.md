@@ -1,6 +1,11 @@
-# A股长期养老选股方法论 v2.0
+# A股长期养老选股方法论 v2.1
 
-> 本文解释长期养老 Skill 的第一性原理、估值、建仓、补仓与持仓哲学。涉及跨策略资金分配、动态单股上限、风险簇上限和建仓批次时，必须以 `../../../shared/capital-allocation-and-entry-policy.md` 为上位规则。
+> 本文解释长期养老 Skill 的第一性原理、估值、建仓、补仓与持仓哲学。
+>
+> 上位规则：
+> - 资本/分母/仓位：`../../../shared/capital-allocation-and-entry-policy.md`
+> - 研究/模型/Benchmark：`../../../shared/research-model-governance.md`
+> - Paper/Live/自动化：`../../../shared/automation-execution-governance.md`
 
 ## 一、目标函数
 
@@ -10,16 +15,16 @@
 长期年化股东回报
 ≈ 起始普通股息率
 + 每股正常化盈利/分红增长
-+ 估值均值回归或扩张
++ 估值变化
 - 税费
 - 永久性资本损失
 ```
 
-因此优化的是：
+优化：
 
 ```text
 最大化：可持续真实现金流 + 合理资本增值
-约束：永久损失、分红不可持续、估值过高、组合集中、治理风险
+约束：永久损失、分红不可持续、估值过高、账户级集中、治理风险
 ```
 
 ## 二、高股息不等于高质量
@@ -30,56 +35,56 @@
 - 周期高点利润；
 - 股价因基本面恶化而暴跌；
 - 特别分红或资产处置；
-- 以高支付率甚至新增负债维持分红。
+- 高支付率甚至新增负债维持分红。
 
 长期养老核心优先寻找第一类。
 
-## 三、长期仓内部采用 Core + Growth
+## 三、长期已部署权益仓采用 Core + Growth
 
 ```text
 Core Dividend 75%–85%
 Growth Satellite 15%–25%
 ```
 
-这只是长期仓内部结构，不代表总账户的长期/短中期比例。
+这是 long-book 内部权重，不是全账户权重。
 
-- Core：稳定盈利、分红、资本保全；
-- Growth：长期盈利增长和资本增值。
+账户级集中度使用：
 
-两个子仓必须使用不同评分体系。
+```text
+Stock Account Equity
+= 长期股票市值 + 短中期股票市值 + 待配置现金
+```
+
+模型 long-book 权重必须先换算为账户权重，再检查 shared Cap。
 
 ## 四、核心分红股筛选漏斗
 
 ### Level 0：数据可信性
 
-先确认最新正式披露、股价、市值、普通/特别分红。无法验证就停止。
+确认最新正式披露、股价、市值、普通/特别分红。无法验证就停止。
 
 ### Level 1：长期存在价值
 
-问：
-
 1. 10–20年后需求是否仍存在？
 2. 是否有资源、牌照、品牌、网络、成本、技术、规模或客户壁垒？
-3. 维持业务是否需要不可持续的资本投入？
+3. 维持业务是否需要不可持续资本投入？
 4. 是否长期有能力赚取高于资本成本的回报？
 5. 监管、技术替代、人口结构是否可能破坏商业模式？
 
 ### Level 2：利润质量
 
-排查扣非、应收、存货、经营现金流、资本化支出和一次性收益。
+排查扣非、应收、存货、OCF、资本化支出和一次性收益。
 
 ### Level 3：分红可持续性
-
-至少分析：
 
 ```text
 普通现金分红 / 正常化归母净利润
 普通现金分红 / 正常化自由现金流
-过去5–10年每股分红轨迹
+过去5–10年每股普通分红轨迹
 削减分红年份及原因
 ```
 
-银行使用资本充足率和监管资本约束替代普通 FCF 逻辑。
+银行使用监管资本和资产质量替代普通 FCF 逻辑。
 
 ### Level 4：资产负债表
 
@@ -87,12 +92,10 @@ Growth Satellite 15%–25%
 
 ### Level 5：价格与组合适配
 
-必须分别回答：
-
 ```text
 Quality：是不是长期好资产？
-Price：当前价格是否提供足够未来回报？
-Portfolio Fit：是否真正降低组合风险？
+Price：当前价格是否提供足够 Expected Return？
+Portfolio Fit：加入账户后是否通过同股/同因子聚合限制？
 ```
 
 三者都合格才进入 ADD。
@@ -106,16 +109,14 @@ Portfolio Fit：是否真正降低组合风险？
 5. 稳定且增长的分红
 6. 稳定增长 + 良好资本配置
 
-养老核心优先寻找 4–6 层。
-
-普通股息率与特别股息必须分开：
+普通股息与特别股息分开：
 
 ```text
 Ordinary Dividend Yield = 普通现金分红 / 当前股价
 Special Dividend Yield  = 特别分红 / 当前股价
 ```
 
-特别分红不得外推到未来。
+特别分红不得外推。
 
 ## 六、压力测试
 
@@ -129,36 +130,43 @@ Special Dividend Yield  = 特别分红 / 当前股价
 | Stress 1 | 80% | Capex +10% 或利息上升 |
 | Stress 2 | 70% | Capex +20% 或现金转化下降 |
 
-重新计算支付率、FCF覆盖、净债务和利息覆盖。
+重算支付率、FCF覆盖、净债务和利息覆盖。
 
 ### 银行
 
-测试净息差、信用成本、ROE、不良率、CET1/核心一级资本缓冲。
+测试 NIM、信用成本、ROE、不良率、CET1/资本缓冲。
 
 ### 周期资源股
 
-必须使用中周期利润，不能把商品价格高点盈利外推为长期分红能力。
+使用中周期利润，不能把商品价格高点盈利外推为长期分红能力。
 
-## 七、估值
+## 七、Expected IRR 与估值
 
-按行业交叉使用：
+读取 `expected-irr-total-return-benchmark.md`。
 
-- 普通股息率历史分位；
-- 正常化 PE；
-- PB-ROE；
-- FCF Yield；
-- EV/EBITDA；
-- DDM/DCF sanity check。
-
-输出：
+必须尊重现金流时点。正式 IRR `r` 满足：
 
 ```text
-Conservative Fair Value
-Base Fair Value
-Max Buy Price
+0 = -P0 + Σ[CF_t/(1+r)^t] + TV_T/(1+r)^T
 ```
 
-安全边际不能机械写死成所有行业相同的百分比。
+给定 Required Return `k`：
+
+```text
+Max Buy Price
+= Σ[CF_t/(1+k)^t] + TV_T/(1+k)^T
+```
+
+Bear/Base/Bull 至少同时输出：
+
+```text
+Expected IRR
+Max Buy Price
+关键盈利/分红/终值假设
+Required Return sensitivity
+```
+
+“累计分红 + 终值全部放到最后一年”的 CAGR 只能作近似 sanity check，不称精确 IRR。
 
 ## 八、成长卫星仓
 
@@ -179,7 +187,7 @@ Max Buy Price
 
 ## 九、风险簇而不是只看行业名
 
-例如：
+示例：
 
 - 能源商品：煤炭、石油、部分火电；
 - 利率/信用：银行、保险、地产链；
@@ -190,22 +198,31 @@ Max Buy Price
 
 申万行业不同不代表经济驱动不同。
 
-## 十、动态仓位与分散
+并且风险簇必须跨策略聚合：
 
-仓位上限不在本文件写死，以 shared policy 为准。当前治理基线示例：
+```text
+Account Cluster Exposure
+= Long Cluster Exposure + Short/Mid-term Cluster Exposure
+```
 
-| 股票专用资金 | 长期持股参考数量 | 单股目标上限 | 风险簇参考上限 |
-|---:|---:|---:|---:|
-| ≤5万 | 2–4只或ETF辅助 | 约30% | 约40% |
-| 5–30万 | 5–8只 | 20% | 30%–35% |
-| 30–200万 | 8–12只 | 15% | 25%–30% |
-| ≥200万 | 10–15只 | 10%–12% | 20%–25% |
+## 十、动态仓位与同股聚合
 
-资本越大，重点是提高分散度和资本保全，而不是同比例放大单股金额。
+仓位上限以 shared policy 为准。
 
-## 十一、建仓：默认3批，不再泛化为3–5批
+同一股票跨策略：
 
-标准模式：
+```text
+Account Symbol Exposure
+= Long Sleeve Exposure + Short/Mid-term Sleeve Exposure
+```
+
+长期策略不得因为另一份仓位被标记为“短中期”就忽略账户真实集中度。
+
+若市场上涨造成被动超限，标记 `CAP_BREACH`、停止新增并进入再平衡，而不是用漂移区间合理化继续加仓。
+
+## 十一、建仓
+
+默认：
 
 ```text
 40% / 30% / 30%
@@ -214,28 +231,21 @@ Max Buy Price
 例外：
 
 ```text
-2批：60% / 40%
-适合小资金、交易单位限制、高确定性且单股目标仓较小
-
-4批：30% / 25% / 25% / 20%
-适合单股金额较大、信息不确定性高或流动性一般
+60% / 40%
+30% / 25% / 25% / 20%
 ```
 
-通常建议在约 1–3 个月完成。分批目的是管理估值误差和信息逐步释放，不是无限期等待完美买点。
+通常约1–3个月完成。分批管理估值误差和信息释放，不是无限期等待完美买点。
 
-后续批次只能在：
+后续批次只有在：
 
-- 估值更有安全边际且逻辑未坏；
+- Expected IRR / 安全边际更好且 thesis 未坏；
 - 新财报/经营事实继续验证；
-- 市场错杀但长期逻辑未改变；
+- 账户级同股/风险簇仍有容量；
 
-等条件下触发。
-
-如果估值已超过 Max Buy Price，取消后续批次。
+才触发。
 
 ## 十二、补仓：四个 Gate
-
-长期补仓必须同时通过：
 
 ```text
 Thesis Gate
@@ -246,94 +256,92 @@ Portfolio Gate
 
 价格下跌不是补仓理由。
 
-- 下跌约15%–20%：强制重新研究；
-- 下跌约25%–30%：深度 thesis review；
+- 下跌约15%–20%：重新研究；
+- 下跌约25%–30%：深度 thesis review。
 
-这些是研究触发线，不是机械买卖线。
+这些是研究触发线，不是机械交易线。
 
 ## 十三、长期止损与止盈
 
-### 止损
-
-默认使用投资逻辑止损，而不是统一百分比：
+### EXIT
 
 - 商业模式/护城河结构性破坏；
 - 正常化盈利能力永久下降；
 - 分红削减背后是现金流/偿债/资本恶化；
 - 审计、造假、治理红旗；
 - 债务或资本结构失控；
-- 原始 thesis 被事实证伪。
+- 原 thesis 被事实证伪。
 
-### 止盈
-
-不使用“涨20%全卖”。TRIM 主要由：
+### TRIM
 
 ```text
-估值过高
-+ 单股或风险簇超配
-+ 更好的机会成本
+Expected IRR 明显低于 Required Return
++ 账户级单股/风险簇超配
++ 更优替代机会
 ```
 
-触发。
+不使用固定“涨20%全卖”。
 
 ## 十四、分红复投
 
-分红进入组合级现金池，重新评估全部现有持仓和候选池。优先投向：
+分红进入组合现金池，重新评估全部持仓和候选。没有合格标的时允许持有现金。
 
-```text
-仍通过硬性筛选
-+ 评分高
-+ 估值安全边际高
-+ 组合适配度好
-```
+## 十五、Benchmark
 
-没有合格标的时允许持有现金。
+长期绩效优先使用 Total Return Benchmark。
 
-## 十五、复核节奏
+组合自身 Total Return 与基准必须使用一致的分红再投资口径。若没有对应全收益指数，要明确口径差异。
+
+## 十六、复核节奏
 
 - 季度：轻复核；
-- 年报：完整评分、正常化盈利、压力测试、估值、集中度；
+- 年报：完整评分、正常化盈利、压力测试、IRR、集中度；
 - 重大事件：立即复核。
 
-## 十六、对抗审查
+## 十七、对抗审查
 
-每次推荐前至少做：
+至少做：
 
-- Yield Trap Test
-- Peak Cycle Test
-- Debt-funded Dividend Test
-- Governance Test
-- Correlation Test
-- Reverse Valuation Test
-- Replacement Test
-- Opportunity Cost Test
+- Yield Trap Test；
+- Peak Cycle Test；
+- Debt-funded Dividend Test；
+- Governance Test；
+- Correlation / Cross-sleeve Concentration Test；
+- Reverse Valuation / Expected IRR Test；
+- Replacement Test；
+- Opportunity Cost Test；
+- Point-in-time Test。
 
-## 十七、记录格式
+## 十八、记录格式
 
 ```yaml
-as_of: YYYY-MM-DD
-portfolio_version: vX
+as_of:
+capital_policy_version:
+research_model_governance_version:
+skill_version:
+portfolio_version:
 stock:
   ticker:
   role: core|growth
   score:
   action: ADD|HOLD|WATCH|TRIM|EXIT
-  normalized_earnings:
-  ordinary_dividend_per_share:
-  dividend_yield:
-  valuation_range:
-  target_weight:
-  max_weight:
+  bear_irr:
+  base_irr:
+  bull_irr:
+  required_return:
+  model_long_book_weight:
+  model_total_account_weight:
+  account_symbol_exposure:
+  account_cluster_exposure:
+  max_buy_price:
   thesis:
   bear_case:
   invalidation_triggers:
   sources:
 ```
 
-下一轮必须说明：什么变了、为什么变、是否足以改变仓位。
+下一轮必须说明什么变了、为什么变、是否足以改变仓位。
 
-## 十八、证据原则
+## 十九、证据原则
 
-本方法参考监管对稳定分红、盈利能力、资本支出和偿债能力的要求，以及中证红利/红利质量指数对连续分红、支付率和盈利质量的约束。
-
-具体资金比例、仓位上限、建仓批次属于仓库治理参数，不宣称为学术研究证明的唯一最优值。
+事实、研究支持原则和治理参数必须分层。具体资金比例、评分权重、仓位上限、建仓批次、Required Risk Premium 网格都不宣称为学术证明的唯一最优值；修改应遵循 research-model-governance 的版本与验证流程。
