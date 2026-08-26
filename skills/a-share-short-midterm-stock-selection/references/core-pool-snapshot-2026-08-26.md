@@ -1,8 +1,19 @@
 # Core Pool Snapshot — 2026-08-26
 
+> Status: **intermediate historical snapshot**.
+>
+> This 36-stock pool was produced earlier in the 2026-08-26 research workflow. It is **not** the final same-day forward-validation whitelist.
+>
+> The later/final 2026-08-26 research artifact contains 43 stocks and is stored at:
+>
+> - `../examples/2026-08-26-final-watchlist-case-study.md`
+> - `../examples/2026-08-26-final-watchlist.json`
+>
+> Both artifacts are historical Level-4 evidence records. The 43-stock example supersedes this file only as the **later same-day research state**; neither overrides current policy, current market data or a fresh Skill run.
+
 ## Scope
 
-This is the 36-stock shortlist produced from the user's five screenshot batches on 2026-08-26.
+This is the 36-stock shortlist produced from the user's five screenshot batches during an intermediate stage on 2026-08-26.
 
 Important:
 
@@ -10,9 +21,11 @@ Important:
 - The 36 names below are unique by stock code.
 - Every name below came from the user-supplied screenshot universe.
 - This is a historical **research/watchlist snapshot**, not a permanent buy list.
+- Do not interpret `36` versus the later `43` as a contradiction: additional industry-coverage and final-market validation steps produced the later 43-stock whitelist.
+- For forward validation from the final 2026-08-26 state, use the 43-stock example files above.
 - Revalidate after earnings, major announcements, abnormal price moves, or market-regime changes.
 
-## 36-stock pool
+## 36-stock intermediate pool
 
 | # | Code | Name | Source batch | Primary role |
 |---:|---|---|---:|---|
@@ -55,7 +68,7 @@ Important:
 
 ## Portfolio-correlation warning
 
-This list intentionally contains multiple candidates from some broad themes so they can compete internally. They are **not** intended to be held together.
+This list intentionally contains multiple candidates from broad themes so they can compete internally. They are **not** intended to be held together automatically.
 
 Examples:
 
@@ -63,18 +76,21 @@ Examples:
 - 工业富联 / 立讯精密 / 长电科技 / 华勤技术 / 中天科技 / 亨通光电 / 水晶光电 share varying degrees of technology-capex/electronics-cycle risk.
 - 京东方A and TCL科技 should normally compete for the same display-sector slot rather than both being treated as independent diversification.
 
-Apply the skill's same-factor limit before opening positions.
+Apply current shared-policy and Skill same-factor limits before opening positions.
 
 ## Revalidation rule
 
-The snapshot should be refreshed when any of the following occurs:
+This file must not be used as an executable current shortlist without a fresh run.
 
-- new quarterly/interim/annual report
-- earnings forecast or major guidance change
-- material regulatory/governance event
-- major contract/restructuring event
-- large commodity/product-price regime change
-- stock becomes technically extended or breaks its trend
-- broad market regime changes
+Refresh when any of the following occurs:
+
+- new quarterly/interim/annual report;
+- earnings forecast or major guidance change;
+- material regulatory/governance event;
+- major contract/restructuring event;
+- large commodity/product-price regime change;
+- stock becomes technically extended or breaks its trend;
+- broad market regime changes;
+- shared policy / Skill version changes.
 
 A stock can remain a good company while being removed from the executable trading list.
