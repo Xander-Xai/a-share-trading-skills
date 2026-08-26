@@ -13,8 +13,18 @@ Capital / Risk Governance
 +
 Automation / Execution Governance
 +
-Research / Model Governance v3
+Research / Model Governance
 ```
+
+## 当前治理版本
+
+```text
+Capital / Risk:        v2.3
+Automation / Execution: v1.2
+Research / Model:       v3
+```
+
+版本号分别属于不同 artifact，优先级统一由 `shared/policy-precedence.md` 决定。
 
 ## 当前结构
 
@@ -34,7 +44,10 @@ a-share-trading-skills/
     │   ├── README.md
     │   ├── SKILL.md
     │   ├── references/
-    │   │   └── expected-irr-total-return-benchmark.md
+    │   │   ├── methodology.md
+    │   │   ├── execution-template.md
+    │   │   ├── expected-irr-total-return-benchmark.md
+    │   │   └── ...
     │   └── examples/
     │       ├── ten-stock-retirement-portfolio-2026-08-26.md
     │       └── paper-live-automation-roadmap.md
@@ -45,13 +58,12 @@ a-share-trading-skills/
         │   ├── scoring-system.md
         │   ├── causal-challenger-model.md
         │   ├── champion-challenger-forward-test.md
-        │   └── trade-ledger-mfe-mae-extension.md
+        │   ├── trade-ledger-mfe-mae-extension.md
+        │   └── ...
         └── examples/
 ```
 
 ## 规则优先级
-
-统一遵循 `shared/policy-precedence.md`：
 
 ```text
 Level 1A  shared/capital-allocation-and-entry-policy.md
@@ -65,95 +77,35 @@ Level 3   skills/*/references/*.md
 Level 4   examples / case studies / dated snapshots / watchlists
 ```
 
-Level 1A 管资金与风险，Level 1B 管执行与自动化，Level 1C 管模型证据、回测偏差和 Champion/Challenger 晋级。
+- Level 1A：资本、仓位、风险、建仓/补仓/止盈止损、账户级集中度；
+- Level 1B：Paper/Live、Broker、虚拟子账、幂等、Kill Switch、自动化与合规；
+- Level 1C：研究证据、point-in-time、Benchmark、Champion/Challenger 与模型晋级。
 
-下层规则可以更保守，但不能放宽上位风险限制。Examples、case studies 和历史快照是证据记录，不是当前政策。
+下层规则可以更保守，不能绕过上位规则。
 
-## v3 研究架构
+## 统一账户分母
 
-本仓库不再因为“一个新模型听起来更合理”就直接覆盖旧模型。
-
-统一采用：
-
-```text
-Champion
-→ Challenger Shadow Score
-→ Forward-Test
-→ Cost / Risk / Regime / Bias Audit
-→ Human Promotion Review
-→ New Champion (only if promoted)
-```
-
-短中期当前 Champion 仍是：
+资本与账户级集中度统一使用：
 
 ```text
-Technical 30
-Capital Participation 30
-Fundamentals 25
-Catalyst 15
+Stock Account Equity
+= 长期股票市值
++ 短中期股票市值
++ 股票账户待配置现金
 ```
 
-新因果评分只作为 Challenger：
+以下都以该分母计算：
 
-```text
-Business / Survival Quality
-Valuation / Expectation Gap
-Catalyst / Expectation Change
-Market / Sector Regime
-Participation / Relative Strength
-Price Structure / Execution
-```
+- 长期 / 短中期 Size Cap；
+- `Final Short Cap`；
+- 账户级单只股票合计暴露；
+- 账户级风险簇合计暴露。
 
-在 Challenger 通过样本外/Forward、成本、回撤和 point-in-time 审查前，不能替换当前 Champion。
-
-## 长期研究升级
-
-长期“低位”不等于“离历史高点很远”。
-
-新增：
-
-```text
-Bear / Base / Bull Expected IRR
-+ Required Return sensitivity
-+ Max Buy Price
-+ Total Return Benchmark
-```
-
-长期比较优先使用含分红再投资的全收益指数口径。例如沪深300：
-
-```text
-Price Index  = 000300
-Total Return = H00300
-```
-
-具体方法见：
-
-`skills/a-share-retirement-investing/references/expected-irr-total-return-benchmark.md`
-
-## 回测与历史复盘防偏差
-
-模型晋级必须审计：
-
-```text
-Point-in-time data
-Survivorship bias
-Look-ahead bias
-Historical ST/delisting state
-Financial report publication time
-Index constituent history
-Suspension / price limits / T+1
-Fees / tax / slippage / impact
-```
-
-无法重建当时真实输入的结果可以作为研究灵感，但不得作为模型晋级的主要证据。
+长期仓内部的 Core/Growth、十股示例 `model_long_book_weight` 使用的是 **long-book 内部分母**，执行前必须先换算到账户级权重。
 
 ## 顶层资金策略
 
-当前资本/风险政策版本：`v2.2`。
-
-股票专用资金的 Size Cap 基线：
-
-| 股票资金规模 | 长期战略基线 | 短中期 Size Cap |
+| Stock Account Equity | 长期战略基线 | 短中期 Size Cap |
 |---:|---:|---:|
 | ≤5 万 | 70% | 30% |
 | 5–30 万 | 75% | 25% |
@@ -165,75 +117,142 @@ Fees / tax / slippage / impact
 
 ```text
 Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
-Actual Short Exposure <= Final Short Cap
 ```
 
-股票专用资金不要求永远 100% 满仓：
+新订单必须满足：
 
 ```text
-股票专用资金
-= 已部署长期仓
-+ 已部署短中期仓
-+ 待配置现金
+Planned Post-Trade Short Exposure <= Final Short Cap
 ```
 
-短中期被 Risk/Edge Cap 压低后的差额，不自动强制买入长期股；长期机会也必须通过自己的质量、估值与组合 Gate。
+股票资金不要求100%满仓。长期和短中期都没有合格机会时，待配置现金是合法状态。
 
-具体数值唯一以 `shared/capital-allocation-and-entry-policy.md` 为准。
+### 被动 CAP_BREACH
+
+若市场上涨导致已有仓位被动超过 Cap：
+
+```text
+CAP_BREACH
+→ 禁止继续增加风险
+→ 进入再平衡/利润回流评估
+→ 在现实可执行窗口恢复
+```
+
+不得把 ±5pp 漂移带当作主动突破 Cap 的理由，也不要求在异常价格下机械市价砍仓。
+
+## 跨策略同股 / 同因子
+
+同一股票若同时被长期和短中期持有：
+
+```text
+Account Symbol Exposure
+= Long Sleeve Exposure + Short/Mid-term Sleeve Exposure
+```
+
+风险簇同理：
+
+```text
+Account Cluster Exposure
+= Long Cluster Exposure + Short/Mid-term Cluster Exposure
+```
+
+策略标签不能创造第二套风险额度。
+
+Broker 执行时同时维护：
+
+```text
+Broker Net Position
+Strategy Virtual Position: long
+Strategy Virtual Position: short_mid
+```
+
+防止短中期卖单误卖长期逻辑份额。
 
 ## 建仓基线
 
 ```text
-长期单股：默认 3 批 40/30/30
-例外：2 批 60/40，或 4 批 30/25/25/20
+长期单股：默认 40/30/30
+例外：60/40，或 30/25/25/20
 
-短中期单股：默认 2 批 50/50
+短中期单股：默认 50/50
 三级确认例外：50/30/20
 ```
 
-这些比例属于当前治理参数，不宣称数学最优。
-
-策略批次与大额订单的执行拆单是不同概念。
+这些是治理参数，不宣称数学最优。策略批次和大额订单执行拆单不是同一概念。
 
 ## 短中期风险层级
 
 ```text
 Operating Target
-- 单笔计划风险：0.5%
-- 全部未平仓初始风险：2%
-- 单一行业/因子初始风险：1%
+- 单笔计划风险：0.5% × 短中期策略 NAV
+- 全部未平仓初始风险：≤2%
+- 单一行业/因子初始风险：≤1%
 
 Hard Ceiling
-- 单笔计划风险：1%
-- 全部未平仓初始风险：3%
+- 单笔计划风险：≤1%
+- 全部未平仓初始风险：≤3%
 ```
 
-回撤治理基线：4% 降风险、6% 停止新开仓、8% 暂停策略并复核。
+Hard Ceiling 是**计划风险上限**，不是跳空/跌停下的实际亏损保证。
 
-任何“漂移区间”都不能突破 Final Short Cap、单股/风险簇上限或 Hard Ceiling。
+回撤治理：4%降风险、6%停止新开仓、8%暂停策略并复核。
 
-## 短中期学习闭环
+## Research / Model Governance
 
-每笔交易除最终 PnL 外，新增强制研究字段：
+短中期当前 Champion 仍为：
 
 ```text
-realized_R
-MFE_R
-MAE_R
-holding_days
-exit_reason
-fees / tax / slippage / impact
-regime
-rule_violation
+Technical 30
+Capital Participation 30
+Fundamentals 25
+Catalyst 15
 ```
 
-+1.5R/+2R、3–5 日 time review 等规则只作为当前治理初值，通过 MFE/MAE 与 Forward 数据校准。
+新的因果模型仍是：
+
+```text
+CHALLENGER / SHADOW ONLY
+```
+
+统一晋级路径：
+
+```text
+Champion
+→ Challenger Shadow
+→ Forward-Test
+→ Cost / Risk / Regime / Bias Audit
+→ Human Promotion Review
+→ New Champion only if promoted
+```
+
+无法重建 point-in-time 输入的历史结果标记 `Biased / Non-promotable`，不能用于正式模型晋级。
+
+## 长期研究升级
+
+长期不把“距离历史高点很远”直接等同于便宜：
+
+```text
+Price Low != Valuation Low
+```
+
+长期估值优先使用 Bear/Base/Bull 逐期现金流 IRR：
+
+```text
+0 = -P0 + Σ[CF_t/(1+r)^t] + TV_T/(1+r)^T
+```
+
+Required Return：
+
+```text
+Point-in-time Risk-free Rate
++ Configured Required Risk Premium
+```
+
+风险溢价做敏感性分析，不写死为统一真理。
+
+长期 Benchmark 优先使用 Total Return 口径，例如沪深300全收益指数 `H00300`，避免组合含分红而基准只看价格。
 
 ## 自动化执行原则
-
-统一执行治理见：
-
-`shared/automation-execution-governance.md`
 
 默认：
 
@@ -249,39 +268,48 @@ Research
 → Forward Paper
 → Manual Live
 → Automated Research / Manual Order
-→ Human-confirmed Execution
+→ Human-confirmed Broker Execution
 → Limited Semi-auto
 → Full Auto only after Edge + Compliance + Reliability gates
 ```
 
-模型晋级与自动化晋级是两个独立 Gate：
+每个运行 cohort / 决策 / 订单必须保存 Governance Bundle：
 
 ```text
-Good Model != Safe Auto Execution
-Safe Executor != Positive Edge
+capital_policy_version
+automation_governance_version
+research_model_governance_version
+skill_version
+strategy_version
+model_version
 ```
 
-任何自动化都不能绕过 shared capital/risk policy、broker position reconciliation、Kill Switch 或当期程序化交易/券商合规要求。
+模型晋级不等于自动化晋级。
 
 ## 两套系统边界
 
-长期仓依赖企业价值、现金流、分红、估值与资本保全，默认使用投资逻辑止损；短中期仓使用价格/失效、逻辑与时间止损，禁止把亏损交易临时改名为长期持有。
+长期仓依赖企业价值、现金流、分红、估值与资本保全，默认使用投资逻辑止损；短中期仓使用价格/失效、逻辑与时间止损。
 
-趋势/催化短中期策略禁止因为亏损而机械摊低成本；长期价值仓则可以在 Thesis、Balance、Valuation、Portfolio 四个 Gate 全部重新通过后，利用更高安全边际继续分批。
+短中期亏损交易不得临时改名为长期持有；趋势/催化策略禁止机械摊低成本。长期价值仓只有在 Thesis / Balance / Valuation / Portfolio 四个 Gate 全部重新通过后才允许继续 ADD。
 
-短中期已实现利润超过 Final Short Cap 时，优先逐步回流长期待配置池；只有长期 Gate 通过才继续买入，否则保持现金。短中期因亏损缩水时，不自动从长期仓补足。
+短中期已实现利润超出允许资本时，优先回流长期待配置池；长期没有合格机会则保持现金。短中期亏损缩水时不从长期仓自动补血。
 
 ## 当前验证案例
 
-长期 Skill 已保存十股养老模型组合作为 Forward-Test 示例；短中期 Skill 保存 2026-08-26 的 43 股最终研究 whitelist 与 machine-readable baseline。
+长期：十股养老模型组合 Forward-Test 示例。
 
-这些示例只用于回溯和前测。真实买入前必须重新运行对应 Skill，并重新获取当时价格、财报、估值、事件与风险上限。
+短中期：2026-08-26 的 43 股最终研究 whitelist + machine-readable baseline；同日36股文件是较早中间快照。
+
+所有 dated examples 都是 Level 4 历史证据，不是当前买入名单。真实交易前必须重新运行对应 Skill。
 
 ## 审计与证据
 
-- 研究与参数边界：`shared/research-validation-2026-08-26.md`
-- 对抗审查与纠错：`shared/adversarial-research-review-2026-08-26.md`
-- 研究模型治理：`shared/research-model-governance.md`
-- 全仓库一致性扫描：`shared/consistency-audit-2026-08-26.md`
+- 规则优先级：`shared/policy-precedence.md`
+- 资本/风险：`shared/capital-allocation-and-entry-policy.md`
+- 自动化/执行：`shared/automation-execution-governance.md`
+- 研究/模型：`shared/research-model-governance.md`
+- 研究证据与参数边界：`shared/research-validation-2026-08-26.md`
+- 对抗审查：`shared/adversarial-research-review-2026-08-26.md`
+- 全仓一致性扫描：`shared/consistency-audit-2026-08-26.md`
 
-具体比例、阈值、权重和批次属于当前风险/研究治理参数，不宣称为唯一最优解；后续应通过真实 Forward/Live 数据持续校准。
+具体比例、阈值、评分权重和批次属于治理参数，后续通过 Forward/Live 数据持续校准。
