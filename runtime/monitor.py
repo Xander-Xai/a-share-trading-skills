@@ -79,12 +79,13 @@ def calculate_sentiment(metrics: Dict[str, Optional[float]]) -> Dict[str, Any]:
     if median_return is not None:
         components["median_score"] = clip(50.0 + 12.5 * median_return)
 
+    turnover_history_ready = bool(turnover_20d is not None and turnover_20d > 0)
     if turnover is not None:
-        if turnover_20d is None or turnover_20d <= 0:
+        if not turnover_history_ready:
             components["turnover_score"] = 50.0
         else:
             components["turnover_score"] = clip(
-                50.0 + 25.0 * math.log(max(turnover, 1.0) / turnover_20d)
+                50.0 + 25.0 * math.log(max(turnover, 1.0) / float(turnover_20d))
             )
 
     available_weight = sum(
@@ -100,6 +101,7 @@ def calculate_sentiment(metrics: Dict[str, Optional[float]]) -> Dict[str, Any]:
             "regime": "DATA_INSUFFICIENT",
             "crowding_flag": False,
             "available_weight": available_weight,
+            "turnover_history_ready": turnover_history_ready,
             "data_confidence": "LOW",
         }
 
@@ -123,7 +125,12 @@ def calculate_sentiment(metrics: Dict[str, Optional[float]]) -> Dict[str, Any]:
         )
     )
 
-    confidence = "HIGH" if available_weight >= 100.0 else "MEDIUM"
+    if available_weight < 100.0:
+        confidence = "MEDIUM"
+    elif not turnover_history_ready:
+        confidence = "MEDIUM"
+    else:
+        confidence = "HIGH"
 
     return {
         **components,
@@ -131,6 +138,7 @@ def calculate_sentiment(metrics: Dict[str, Optional[float]]) -> Dict[str, Any]:
         "regime": regime,
         "crowding_flag": crowding_flag,
         "available_weight": available_weight,
+        "turnover_history_ready": turnover_history_ready,
         "data_confidence": confidence,
     }
 
