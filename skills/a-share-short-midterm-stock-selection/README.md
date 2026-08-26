@@ -13,7 +13,7 @@
 当前治理基线：
 
 ```text
-Capital / Risk:         v2.3
+Capital / Risk:          v2.3
 Automation / Execution: v1.2
 Research / Model:        v3
 Short/Mid Skill:         v1.5.0
@@ -137,6 +137,43 @@ Strategy Virtual Position: short_mid
 
 策略批次与大额 child-order 执行拆单不同。
 
+## Market Sentiment Regime
+
+新增：
+
+`references/a-share-sentiment-regime-index.md`
+
+把市场情绪从主观描述转换为 0–100 的研究状态变量：
+
+```text
+Breadth                       25
+Limit-up vs Limit-down        20
+Board Quality / Broken Rate   15
+Strong vs Weak Tail           15
+Median Return                 10
+Turnover Expansion            15
+```
+
+映射：
+
+```text
+0–20   PANIC
+20–40  RISK_OFF
+40–60  NEUTRAL
+60–80  RISK_ON
+80–100 EUPHORIA
+```
+
+情绪层的职责是描述**短中期风险环境**，不是预测明天必涨必跌。
+
+硬边界：
+
+- `EUPHORIA != ALL_IN`；
+- PANIC/RISK_OFF 不能覆盖个股 Hard Veto；
+- 情绪分数不能突破 Final Short Cap、单股/风险簇 Cap 或 Hard Ceiling；
+- 情绪缺数时 `DATA_INSUFFICIENT`，默认禁止由该层解锁新风险；
+- 权重和阈值均为 Governance Parameter，后续通过 Forward 数据校准。
+
 ## Champion / Challenger
 
 ### Champion — 当前生产研究模型
@@ -191,6 +228,52 @@ rule_violation
 ```
 
 `+1.5R/+2R`、3–5日 time review 等继续作为当前治理初值，不宣称最优，后续由 Forward 数据和 MFE/MAE 校准。
+
+## Daily Monitor Runtime
+
+仓库根目录新增：
+
+```text
+../../runtime/daily_monitor.py
+```
+
+工作日收盘后自动完成：
+
+```text
+交易日识别
+→ 全A行情
+→ 涨停/跌停/炸板
+→ Sentiment Score / Regime
+→ 43股历史 whitelist 当日行情合并
+→ pre_action 研究状态
+→ JSON + Markdown 日报
+```
+
+GitHub Actions：
+
+`../../.github/workflows/a-share-daily-monitor.yml`
+
+默认：
+
+```text
+AUTO_MONITOR = true
+AUTO_ORDER   = false
+```
+
+日报中的：
+
+```text
+NO_NEW_ENTRY
+WAIT_NO_CHASE
+EVENT_REVIEW
+REFRESH_FULL_GATES
+REFRESH_SETUP
+RISK_REVIEW
+```
+
+均为研究/监控状态，不是 BUY/SELL 指令。
+
+如果交易日历未知、关键数据不足或 Provider 失败，Runtime fail closed，不允许监控状态解锁新仓。
 
 ## 36 股与 43 股历史文件
 
@@ -249,6 +332,7 @@ skills/a-share-short-midterm-stock-selection/
 │   └── 2026-08-26-final-watchlist.json
 └── references/
     ├── scoring-system.md
+    ├── a-share-sentiment-regime-index.md
     ├── causal-challenger-model.md
     ├── champion-challenger-forward-test.md
     ├── trade-ledger-mfe-mae-extension.md
@@ -267,17 +351,19 @@ skills/a-share-short-midterm-stock-selection/
 
 1. `SKILL.md`
 2. `references/scoring-system.md`
-3. `references/causal-challenger-model.md`
-4. `references/champion-challenger-forward-test.md`
-5. `references/trade-ledger-mfe-mae-extension.md`
-6. `references/holding-risk-management.md`
-7. `references/data-source-policy.md`
-8. `references/industry-coverage-audit.md`
-9. `references/adversarial-review.md`
-10. `references/evaluation-cases.md`
-11. `references/research-basis.md`
-12. `references/validation-metrics-and-trade-ledger.md`
-13. `references/paper-live-automation-roadmap.md`
-14. `examples/`
+3. `references/a-share-sentiment-regime-index.md`
+4. `references/causal-challenger-model.md`
+5. `references/champion-challenger-forward-test.md`
+6. `references/trade-ledger-mfe-mae-extension.md`
+7. `references/holding-risk-management.md`
+8. `references/data-source-policy.md`
+9. `references/industry-coverage-audit.md`
+10. `references/adversarial-review.md`
+11. `references/evaluation-cases.md`
+12. `references/research-basis.md`
+13. `references/validation-metrics-and-trade-ledger.md`
+14. `references/paper-live-automation-roadmap.md`
+15. `../../runtime/README.md`
+16. `examples/`
 
 任何时候都优先错过交易，而不是在数据、规则、模型状态、持仓或 Broker 状态不确定时制造未知风险。
