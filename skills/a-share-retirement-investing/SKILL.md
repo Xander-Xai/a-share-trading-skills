@@ -1,37 +1,42 @@
 ---
 name: a-share-retirement-investing
 description: 用于沪深A股长期养老型股票的筛选、估值、组合构建、分红复投和持仓复核。核心目标不是追求最高当期股息率，而是建立可持续、可增长、可穿越周期的股东现金流；允许配置少量科技成长卫星仓。所有时效性数据必须联网重新验证。
-version: 2.1.0
+version: 2.2.0
 ---
 
 # A股长期养老选股与持仓 Skill
 
 ## 0. 上位规则
 
-本 Skill 必须先读取：
+执行前必须读取：
 
 1. `../../shared/policy-precedence.md`
 2. `../../shared/capital-allocation-and-entry-policy.md`
-3. 涉及 Paper / Live / Broker / 自动化执行时，再读取 `../../shared/automation-execution-governance.md`
+3. `../../shared/research-model-governance.md`
+4. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
 
-跨 Skill 的资金分配、动态单股/风险簇上限、建仓批次、再平衡和大资金流动性规则，以 shared capital policy 为唯一 Source of Truth。
+职责：
 
-Paper/Live、Broker 对账、幂等、Kill Switch、程序化交易/券商合规与自动化晋级，以 shared automation governance 为跨策略上位规则。
+- 资本分母、账户级单股/风险簇上限、建仓批次、跨策略聚合：Level 1A；
+- 研究证据、Expected IRR、Benchmark、模型晋级：Level 1C；
+- Broker/虚拟子账/自动化：Level 1B。
 
-本 Skill 可以更保守，但不得放宽 shared 的限制。
+本 Skill 可以更保守，不得放宽 shared 限制。
 
 ## 1. 目标
 
-把“养老股”定义为长期股权现金流系统，而不是“高股息排行榜”。优化目标：
+把“养老股”定义为长期股权现金流系统，而不是高股息排行榜。
 
-- 尽量降低永久性本金损失；
+优化目标：
+
+- 降低永久性本金损失；
 - 分红主要来自可重复盈利和现金流；
-- 分红和每股价值具备长期增长能力；
-- 买入估值合理；
-- 组合不过度集中于同一行业或经济因子；
-- 在长期仓内部保留适量成长引擎。
+- 每股价值和分红具有长期增长能力；
+- 买入估值提供合理预期回报；
+- 组合不过度集中同一公司、行业或经济因子；
+- 长期仓内部保留适量成长引擎。
 
-> 本 Skill 管理的是长期养老股票仓，不等于用户全部金融资产。现金、固收、保险、应急金等一级资产配置需单独处理。
+> 本 Skill 管理长期养老股票仓，不等于全部金融资产。现金、固收、保险、应急金等一级资产配置需单独处理。
 
 ## 2. 第一性原理
 
@@ -52,23 +57,23 @@ Paper/Live、Broker 对账、幂等、Kill Switch、程序化交易/券商合规
 → 现金流/资本约束
 → 分红可持续性
 → 增长
-→ 估值
+→ Expected Return / 估值
 → 当前股息率
 ```
 
-禁止从“谁股息率最高”倒推投资结论。
+禁止从“谁股息率最高”或“离历史高点最远”倒推投资结论。
 
 ## 3. 强制实时数据协议
 
-每次执行必须记录 `as_of`，并联网验证最新信息。
+每次执行必须记录 `as_of` 并联网验证最新信息。
 
 数据源优先级：
 
-1. 上交所 / 深交所 / 巨潮资讯 / 公司正式年报、半年报、季度报告、分红公告
-2. 公司官网投资者关系与正式业绩材料
-3. 证监会、财政部、税务总局、中证指数等官方机构
-4. 可靠行情服务商，用于价格、市值、估值等交叉验证
-5. 主流财经媒体，只作背景补充
+1. 上交所 / 深交所 / 巨潮资讯 / 公司正式年报、半年报、季度报告、分红公告；
+2. 公司官网投资者关系与正式业绩材料；
+3. 证监会、财政部、税务总局、中证指数等官方机构；
+4. 可靠行情服务商，用于价格、市值、估值交叉验证；
+5. 主流财经媒体，仅作背景补充。
 
 每只股票至少检查：
 
@@ -81,28 +86,50 @@ Paper/Live、Broker 对账、幂等、Kill Switch、程序化交易/券商合规
 - 当前估值与自身历史分位；
 - 审计、处罚、治理、关联交易异常。
 
-关键数据缺失或冲突时，结论标记 `数据不足，暂不推荐`，不得 ADD。
+关键数据 `MISSING / CONFLICT` 时标记 `数据不足，暂不推荐`，不得 ADD。
 
-## 4. 长期仓内部结构
+## 4. 分母与长期仓内部结构
 
-长期**已部署权益仓**默认：
+### 4.1 账户级分母
+
+资本和集中度必须使用 shared 定义：
+
+```text
+Stock Account Equity
+= 长期股票市值
++ 短中期股票市值
++ 股票账户待配置现金
+```
+
+账户级单股/风险簇上限用这个分母。
+
+### 4.2 长期仓内部结构
+
+长期**已部署权益仓**内部默认：
 
 ```text
 Core Dividend：75%–85%
 Growth Satellite：15%–25%
 ```
 
-这只描述长期仓内部功能分工，不是“长期 vs 短中期”的全账户比例。
+这是 long-book 内部权重，不是全账户权重。
 
-没有合格长期买点时允许保留待配置现金，不为了维持 Core/Growth 百分比强制买入。
+若模型给出：
 
-### Core Dividend
+```text
+model_long_book_weight
+```
 
-目标：稳定盈利、可持续分红、较低永久损失概率、适度分红增长。
+则先换算：
 
-### Growth Satellite
+```text
+model_total_account_weight
+= model_long_book_weight × planned_long_exposure
+```
 
-目标：增强长期资本增值能力。科技/成长股使用独立成长评分，不能硬套高股息模型。
+再与账户级单股/风险簇 Cap 比较。
+
+没有合格长期买点时允许保留待配置现金，不为维持 Core/Growth 百分比强制买入。
 
 ## 5. 硬性排除项
 
@@ -128,12 +155,12 @@ Growth Satellite：15%–25%
 | 估值与安全边际 | 15 |
 | 组合适配度 | 5 |
 
-解释：
-
-- 80–100：核心候选，估值合格后才允许建仓；
+- 80–100：核心研究候选，估值合格后才允许建仓；
 - 70–79：观察候选；
 - <70：原则上不进入核心仓；
-- 硬性排除项优先于总分。
+- 硬性排除优先于总分。
+
+评分权重属于当前治理参数，不宣称数学最优；重大修改需走 Level 1C 模型治理。
 
 ## 7. 成长卫星评分
 
@@ -151,83 +178,101 @@ Growth Satellite：15%–25%
 
 ## 8. 行业适配
 
-必须读取 `references/industry-checklists.md`。
+读取 `references/industry-checklists.md`。
 
 尤其注意：
 
 - 银行：资本充足率、不良率、拨备、净息差、ROE、分红率；
-- 水电/公用事业：利用小时、Capex、债务、运营现金流、资产寿命、电价机制；
-- 电信：经营现金流、Capex强度、FCF、ARPU、云/算力增长、分红政策；
-- 煤炭/石油：必须使用中周期盈利；
+- 水电/公用事业：利用小时、Capex、债务、OCF、资产寿命、电价机制；
+- 电信：OCF、Capex强度、FCF、ARPU、云/算力利润质量、分红政策；
+- 煤炭/石油：使用中周期盈利；
 - 消费：品牌、份额、现金转化、库存、定价能力、ROIC/ROE；
-- 科技/AI：真实订单、收入、扣非、毛利率、研发、现金流、客户集中和AI Capex周期。
+- 科技/AI：真实订单、收入、扣非、毛利率、研发、现金流、客户集中和 AI Capex 周期。
 
-## 9. 估值与买入区间
+## 9. Expected IRR、估值与买入区间
 
-至少交叉使用2–3种适合行业的方法：
+读取 `references/expected-irr-total-return-benchmark.md`。
 
-- 当前普通股息率 vs 自身5/10年分位；
-- PE/PB/EV-EBITDA/FCF Yield vs 自身历史与可比公司；
-- 正常化 EPS × 合理估值倍数；
-- 简化 DDM/DCF sanity check；
-- 周期股使用中周期盈利；
-- 银行优先 PB-ROE + 资本质量 + 可持续分红。
+至少交叉使用2–3种行业适配方法，并建立 Bear / Base / Bull。
+
+Expected IRR 必须按现金流时点计算：
+
+```text
+0
+= -P0
++ Σ[CF_t/(1+r)^t]
++ TV_T/(1+r)^T
+```
+
+给定 Required Return `k`：
+
+```text
+Max Buy Price
+= Σ[CF_t/(1+k)^t]
++ TV_T/(1+k)^T
+```
+
+不能把累计分红全部假设在终点后仍称“精确 IRR”。
 
 输出：
 
 ```text
-Conservative Fair Value
-Base Fair Value
-Max Buy Price
+Bear IRR / Base IRR / Bull IRR
+Required Return assumptions
+Bear/Base/Bull Max Buy Price
+Current Price
+Margin of Safety
 ```
 
-安全边际不能机械写死为所有行业同一百分比。
+Required Risk Premium 是模型参数，做敏感性分析，不写死成 A 股统一真理。
 
-## 10. 仓位与分散：动态读取 shared policy
+## 10. 仓位、跨策略聚合与分散
 
-禁止永久写死“单股25% / 风险簇30%–35%”。
+账户级上限由 shared policy 动态读取，禁止永久写死旧 `25% / 30%-35%`。
 
-当前 shared 治理基线示例：
+如果同一股票同时出现在长期与短中期：
 
-| 股票资金规模 | 长期持股参考数量 | 单只长期股目标上限 | 单一风险簇参考上限 |
-|---:|---:|---:|---:|
-| ≤5 万 | 2–4只或ETF辅助 | 约30% | 约40% |
-| 5–30 万 | 5–8只 | 20% | 30%–35% |
-| 30–200 万 | 8–12只 | 15% | 25%–30% |
-| ≥200 万 | 10–15只 | 10%–12% | 20%–25% |
+```text
+Account Symbol Exposure
+= Long Sleeve Exposure
++ Short/Mid-term Sleeve Exposure
+```
 
-若 shared policy 更新，以 shared 为准。
+如果多个持仓共享同一经济驱动：
 
-长期战略基线也不是“必须满仓”：若没有合格标的，资金可留在现金池。
+```text
+Account Cluster Exposure
+= Long Cluster Exposure
++ Short/Mid-term Cluster Exposure
+```
+
+长期下单必须使用**账户级合计暴露**检查 Cap，不能按策略标签分别享受上限。
+
+若价格被动造成 `CAP_BREACH`，禁止继续增加同方向风险并进入再平衡评估；不为机械恢复比例在异常价格下无条件卖出。
 
 ## 11. 长期建仓
 
-默认策略批次：
+策略批次从 shared policy 读取：
 
 ```text
-3批：40% / 30% / 30%
+默认：40% / 30% / 30%
+小资金/高确定性例外：60% / 40%
+大金额/高不确定性例外：30% / 25% / 25% / 20%
 ```
 
-例外：
+一般约1–3个月完成。
 
-```text
-小资金或高确定性：2批 60% / 40%
-大单股金额、流动性或信息不确定性较高：4批 30% / 25% / 25% / 20%
-```
+每批都是新判断：
 
-一般建议约1–3个月完成，而不是机械拖成6–12个月。
+- 第1批：质量、估值、组合适配通过；
+- 第2批：更高安全边际或新事实继续验证；
+- 第3/4批：强确认，且账户级单股/风险簇仍合格。
 
-每一批都是新的判断：
-
-- 第1批：质量、估值、组合适配度通过；
-- 第2批：安全边际更高或新财报/经营事实继续验证；
-- 第3/4批：强确认，且组合上限仍合格。
-
-股价超过 `Max Buy Price` 时，后续批次取消，不为“买满计划”追高。
+股价超过 `Max Buy Price` 时取消后续批次，不为“买满计划”追高。
 
 ## 12. 长期补仓
 
-股价下跌只是复核触发器，不是买入信号。
+价格下跌只是复核触发，不是买入信号。
 
 必须同时通过：
 
@@ -238,7 +283,7 @@ Valuation Gate
 Portfolio Gate
 ```
 
-内部复核触发线：
+并重新计算 Bear/Base/Bull Expected IRR。
 
 - 下跌约15%–20%：强制重新研究；
 - 下跌约25%–30%：深度 thesis review。
@@ -247,34 +292,33 @@ Portfolio Gate
 
 ## 13. 长期止损、止盈与状态
 
-长期仓默认不使用统一5%/8%/10%机械价格止损。
-
 ### EXIT
 
-- 商业模式或护城河结构性破坏；
+- 商业模式/护城河结构性破坏；
 - 正常化盈利能力永久下降；
 - 分红削减且背后是现金流/偿债/资本恶化；
 - 重大审计、造假、治理问题；
-- 债务或资本结构明显失控；
-- 原始投资逻辑被事实证伪。
+- 债务/资本结构明显失控；
+- 原始 thesis 被事实证伪。
 
 ### TRIM
 
-- 单股或风险簇因上涨超上限；
-- 估值进入极端乐观区间；
-- 存在质量相近但安全边际明显更高的替代品。
+- 账户级单股/风险簇超限；
+- Expected IRR 明显低于当前 Required Return；
+- 估值极端乐观；
+- 存在质量相近、安全边际明显更高的替代品。
 
 ### HOLD
 
-逻辑成立、估值和仓位合理。
+Thesis 成立、Expected Return 和账户级暴露合理。
 
 ### ADD
 
-逻辑成立、估值有安全边际、四个补仓 Gate 全部通过。
+Thesis 成立、Expected IRR/安全边际足够、四个 Gate 通过。
 
 ### WATCH
 
-质量尚可，但价格、数据或基本面仍需确认。
+质量尚可，但价格、数据、估值或基本面需确认。
 
 ## 14. 分红复投
 
@@ -283,16 +327,22 @@ Portfolio Gate
 ```text
 仍通过硬性筛选
 + 评分高
-+ 安全边际更高
++ Expected IRR / 安全边际更高
 + 组合适配度更好
 ```
 
 没有合格标的时允许继续持有现金。
 
-## 15. 复核节奏
+## 15. Benchmark 与复核节奏
+
+长期绩效优先使用 Total Return Benchmark，避免组合含分红而 Benchmark 只看价格。
+
+例如沪深300：价格指数 `000300`，全收益指数 `H00300`。使用时仍应重新核验当前指数口径。
+
+复核：
 
 - 季度：轻复核经营、现金流/资本、负债、分红政策、关键KPI；
-- 年报：完整重做评分、正常化盈利、分红压力测试、估值和集中度；
+- 年报：完整重做评分、正常化盈利、压力测试、IRR估值和集中度；
 - 重大事件：立即复核。
 
 ## 16. 对抗审查
@@ -304,58 +354,64 @@ Portfolio Gate
 - 是否存在举债分红？
 - 低PE/PB是否是价值陷阱？
 - 组合是否表面分散、实际同因子？
+- 长期与短中期是否持有同一股票/因子而未合并风险？
 - 好公司是否已透支未来增长？
-- 哪些数字是事实、市场预期、模型估计？
+- Expected IRR 是否按现金流时点计算？
+- 哪些数字是事实、研究推论、治理参数或模型估计？
 - 最强 Bear Case 是什么？
 - 如果今天没有持仓，是否仍愿以当前价格买入？
-- 是否错误为了“达到目标比例”而忽略现金作为合法状态？
+- 是否为了达到目标比例而忽略现金合法状态？
 
 ## 17. 输出合同
 
 每只股票至少输出：
 
 - 股票/代码；
-- 角色：Core / Growth；
+- 角色 Core / Growth；
 - 评分及关键分项；
 - 当前价格/市值与 `as_of`；
 - 投资逻辑；
 - 普通股息率与分红覆盖；
 - 5–10年分红趋势；
 - 资产负债/资本质量；
-- 估值与合理价值区间；
+- Bear/Base/Bull IRR 与 Required Return；
+- Max Buy Price；
 - ADD/HOLD/WATCH/TRIM/EXIT；
-- 动态单股上限与风险簇上限；
+- `model_long_book_weight`；
+- `model_total_account_weight`；
+- 账户级同股/风险簇当前暴露与上限；
 - Bear Case；
 - 失效条件；
 - 官方证据。
 
-组合层面额外输出：
+组合层面输出：
 
-- Long strategic baseline；
-- Actual long exposure；
-- 待配置现金；
-- 长期已部署权益仓内部 Core/Growth 比例；
-- 行业与风险簇集中度；
-- 普通股息率情景；
+- Stock Account Equity；
+- Long strategic baseline / Actual long exposure / pending cash；
+- 长期已部署权益仓内部 Core/Growth；
+- 账户级跨策略单股与风险簇暴露；
+- 组合 Total Return / Benchmark Total Return；
 - 未来12个月重点事件；
-- 与上一轮结论的 diff。
+- 与上一轮结论 diff。
 
 ## 18. 历史示例与种子池
 
 - `references/seed-watchlist-2026-08-26.md`：早期方法论种子快照；
-- `examples/ten-stock-retirement-portfolio-2026-08-26.md`：同日晚些时候的十股 Forward-Test 模型组合；
-- `examples/paper-live-automation-roadmap.md`：长期从 Paper 到 Live/Automation 的执行路线。
+- `examples/ten-stock-retirement-portfolio-2026-08-26.md`：十股 Forward-Test 模型组合；
+- `examples/paper-live-automation-roadmap.md`：Paper→Live/Automation 路线。
 
-这些均不得覆盖当前 shared policy 和最新 Skill run。
+它们均为 Level 4，不能覆盖当前 shared policy / Skill / 最新研究。
 
 ## 19. 参考材料
 
 - `../../shared/policy-precedence.md`
 - `../../shared/capital-allocation-and-entry-policy.md`
+- `../../shared/research-model-governance.md`
 - `../../shared/automation-execution-governance.md`
 - `../../shared/research-validation-2026-08-26.md`
 - `references/methodology.md`
 - `references/industry-checklists.md`
+- `references/expected-irr-total-return-benchmark.md`
 - `references/execution-template.md`
 - `references/seed-watchlist-2026-08-26.md`
 - `examples/ten-stock-retirement-portfolio-2026-08-26.md`
