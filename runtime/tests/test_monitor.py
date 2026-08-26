@@ -73,7 +73,19 @@ class ActionEngineTests(unittest.TestCase):
             "NO_ACTION",
         )
 
-    def test_risk_off_blocks_new_entry(self):
+    def test_panic_blocks_new_entry(self):
+        state = DecisionInput(
+            data_complete=True,
+            has_position=False,
+            market_regime="PANIC",
+            entry_gate_pass=True,
+            score_gate_pass=True,
+            reward_risk_pass=True,
+            risk_budget_pass=True,
+        )
+        self.assertEqual(decide_short_mid_action(state), "WAIT")
+
+    def test_risk_off_is_not_automatic_veto_when_stricter_gates_pass(self):
         state = DecisionInput(
             data_complete=True,
             has_position=False,
@@ -83,7 +95,19 @@ class ActionEngineTests(unittest.TestCase):
             reward_risk_pass=True,
             risk_budget_pass=True,
         )
-        self.assertEqual(decide_short_mid_action(state), "WAIT")
+        self.assertEqual(decide_short_mid_action(state), "READY")
+
+    def test_risk_off_without_tight_entry_gate_stays_watch(self):
+        state = DecisionInput(
+            data_complete=True,
+            has_position=False,
+            market_regime="RISK_OFF",
+            entry_gate_pass=False,
+            score_gate_pass=True,
+            reward_risk_pass=True,
+            risk_budget_pass=True,
+        )
+        self.assertEqual(decide_short_mid_action(state), "WATCH")
 
     def test_ready_requires_all_entry_gates(self):
         state = DecisionInput(
