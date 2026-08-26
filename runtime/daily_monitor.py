@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import akshare as ak
 import pandas as pd
 
-from monitor import calculate_sentiment
+from monitor import calculate_sentiment, normalize_stock_code
 
 
 SH_TZ = ZoneInfo("Asia/Shanghai")
@@ -39,6 +39,25 @@ def is_trade_date(today, errors: list[str]) -> bool | None:
 
     dates = pd.to_datetime(df[candidate_cols[0]], errors="coerce").dt.date
     return today in set(dates.dropna())
+
+
+def fetch_spot_with_fallback(errors: list[str]) -> tuple[pd.DataFrame | None, str]:
+    """Fetch the full A-share spot table using independent public providers.
+
+    Eastmoney is the primary provider because its schema is already used by the
+    repository. If it fails, use AKShare's Sina full-A-share interface once.
+    The caller records the degraded provider state instead of pretending that
+    redundancy was fully healthy.
+    """
+    spot = safe_call(errors, "stock_zh_a_spot_em", ak.stock_zh_a_spot_em)
+    if spot is not None and not spot.empty:
+        return spot, "EASTMONEY_PRIMARY"
+
+    spot = safe_call(errors, "stock_zh_a_spot", ak.stock_zh_a_spot)
+    if spot is not None and not spot.empty:
+        return spot, "SINA_FALLBACK"
+
+    return None, "UNAVAILABLE"
 
 
 def numeric_series(df: pd.DataFrame, column: str) -> pd.Series:
@@ -118,7 +137,7 @@ def build_candidate_rows(watchlist: list[dict], spot: pd.DataFrame | None, regim
     if spot is None or spot.empty or "代码" not in spot.columns:
         return [
             {
-                "code": s.get("code"),
+                "code": normalize_stock_code(s.get("code")),
                 "name": s.get("name"),
                 "pre_action": "NO_ACTION_DATA_MISSING",
             }
@@ -126,12 +145,12 @@ def build_candidate_rows(watchlist: list[dict], spot: pd.DataFrame | None, regim
         ]
 
     frame = spot.copy()
-    frame["代码"] = frame["代码"].astype(str).str.zfill(6)
-    frame = frame.drop_duplicates("代码").set_index("代码")
+    frame["代码"] = frame["代码"].map(normalize_stock_code)
+    frame = frame[frame["代码"] != ""].drop_duplicates("代码").set_index("代码")
 
     rows: list[dict] = []
     for stock in watchlist:
-        code = str(stock.get("code", "")).zfill(6)
+        code = normalize_stock_code(stock.get("code"))
         row = frame.loc[code] if code in frame.index else None
 
         price = None
@@ -180,6 +199,7 @@ def render_markdown(report: dict) -> str:
         f"- as_of: `{report['as_of']}`",
         f"- runtime_mode: `{report['runtime_mode']}`",
         f"- trading_day_status: `{report['trading_day_status']}`",
+        f"- spot_provider: `{report.get('spot_provider')}`",
         f"- sentiment_score: `{s.get('sentiment_score')}`",
         f"- regime: `{s.get('regime')}`",
         f"- crowding_flag: `{s.get('crowding_flag')}`",
@@ -255,6 +275,7 @@ def main() -> int:
         trading_day_status = "TRADING_DAY"
 
     spot = None
+    spot_provider = "NOT_REQUESTED"
     up_pool = None
     down_pool = None
     broken_pool = None
@@ -262,7 +283,7 @@ def main() -> int:
     # If the calendar is unknown we may still collect observability data, but
     # the final regime is forced to DATA_INSUFFICIENT below and cannot unlock entry.
     if trade_day is not False:
-        spot = safe_call(errors, "stock_zh_a_spot_em", ak.stock_zh_a_spot_em)
+        spot, spot_provider = fetch_spot_with_fallback(errors)
         up_pool = safe_call(errors, "stock_zt_pool_em", ak.stock_zt_pool_em, date=date_key)
         down_pool = safe_call(errors, "stock_zt_pool_dtgc_em", ak.stock_zt_pool_dtgc_em, date=date_key)
         broken_pool = safe_call(errors, "stock_zt_pool_zbgc_em", ak.stock_zt_pool_zbgc_em, date=date_key)
@@ -317,6 +338,24 @@ def main() -> int:
     else:
         sentiment = {**sentiment, "calendar_gate": "PASS"}
 
+    if spot_provider == "SINA_FALLBACK" and sentiment.get("data_confidence") == "HIGH":
+        sentiment = {
+            **sentiment,
+            "data_confidence": "MEDIUM",
+            "spot_provider_gate": "DEGRADED_FALLBACK",
+        }
+    elif spot_provider == "UNAVAILABLE":
+        sentiment = {
+            **sentiment,
+            "sentiment_score": None,
+            "regime": "DATA_INSUFFICIENT",
+            "crowding_flag": False,
+            "data_confidence": "LOW",
+            "spot_provider_gate": "BLOCKED",
+        }
+    else:
+        sentiment = {**sentiment, "spot_provider_gate": "PASS"}
+
     watchlist = load_watchlist(args.watchlist)
     candidates = build_candidate_rows(
         watchlist,
@@ -326,13 +365,14 @@ def main() -> int:
     )
 
     report = {
-        "schema_version": "1.2",
+        "schema_version": "1.3",
         "date": today_str,
         "as_of": now.isoformat(),
         "runtime_mode": "MONITOR_ONLY",
         "trading_day_status": trading_day_status,
         "auto_monitor": True,
         "auto_order": False,
+        "spot_provider": spot_provider,
         "governance_refs": {
             "capital_policy": "shared/capital-allocation-and-entry-policy.md",
             "automation_governance": "shared/automation-execution-governance.md",
@@ -344,7 +384,11 @@ def main() -> int:
         "sentiment": sentiment,
         "candidates": candidates,
         "provider_errors": errors,
-        "provider": "AKShare aggregation provider; live execution requires official/broker cross-check",
+        "provider": {
+            "spot_primary": "AKShare stock_zh_a_spot_em / Eastmoney",
+            "spot_fallback": "AKShare stock_zh_a_spot / Sina",
+            "execution_note": "aggregation providers only; live execution requires official/broker cross-check",
+        },
     }
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -361,12 +405,18 @@ def main() -> int:
                 "total_turnover": total_turnover,
                 "sentiment_score": sentiment.get("sentiment_score"),
                 "regime": sentiment.get("regime"),
+                "spot_provider": spot_provider,
             },
         )
 
     print(
         json.dumps(
-            {"report": str(md_path), "regime": sentiment.get("regime"), "errors": errors},
+            {
+                "report": str(md_path),
+                "regime": sentiment.get("regime"),
+                "spot_provider": spot_provider,
+                "errors": errors,
+            },
             ensure_ascii=False,
         )
     )
