@@ -2,82 +2,129 @@
 
 ## Scope
 
-This audit checks the current `main` branch after the v3 research-governance upgrade for stale rules, contradictory parameters, Champion/Challenger leakage, and policy-precedence problems across:
+This audit checks the current `main` branch after the original-request completion upgrade. It covers:
 
-- root `README.md`
-- `shared/` capital / automation / research governance
-- long-term retirement Skill and README
-- short/mid-term trading Skill and README
-- new Challenger / Forward-Test / MFE-MAE / IRR references
-- existing methodology / execution / scoring / research references
+- root `README.md`;
+- Level 1A/1B/1C governance;
+- upstream multi-asset allocation Skill;
+- long-term retirement Skill;
+- short/mid-term production Champion and Shadow Challenger;
+- A-share Sentiment Regime Index;
+- long-vs-tactical empirical Forward Study;
+- MFE/MAE / Expected IRR / Total Return references;
+- runnable Daily Monitor Runtime and GitHub Actions schedule;
+- historical examples/snapshots.
 
-Historical dated snapshots are treated as records, not current policy.
+Historical dated snapshots remain evidence records, not current policy.
 
-## Governing hierarchy
-
-The repository now uses:
+## Governing hierarchy and scope
 
 ```text
+Upstream scope:
+Multi-Asset Allocation Skill
+→ determines Equity Account Equity
+
+Inside the stock account:
 Level 1A — shared/capital-allocation-and-entry-policy.md
 Level 1B — shared/automation-execution-governance.md
 Level 1C — shared/research-model-governance.md
   ↓
 Level 2  — skills/*/SKILL.md
   ↓
-Level 3  — skills/*/references/*.md
+Level 3  — skills/*/references/*.md + research/*.md
   ↓
-Level 4  — examples / dated snapshot / watchlist
+Level 4  — examples / dated snapshots / watchlists
 ```
 
-Level 1A controls capital/risk, 1B controls execution/automation, and 1C controls research-model evidence, bias control and promotion.
+The multi-asset Skill is upstream in scope, not higher in permission. Once money enters the stock account, Level 1A remains authoritative for capital/risk.
 
-## Migration checks completed
+---
 
-### 1. Root repository status
+## Completion checks
 
-PASS.
+### 1. Root architecture
 
-- Both Skills are listed as active.
-- Capital, automation and research governance are separately named.
-- v3 explicitly uses Champion/Challenger instead of silently replacing current scoring.
-- Long-term IRR / Total Return and short-term MFE/MAE are discoverable from the root README.
+**PASS.**
 
-### 2. Long/short capital allocation
+Root README now exposes:
 
-PASS.
+- Multi-Asset Allocation;
+- Long Retirement Investing;
+- Short/Mid Stock Selection;
+- A-share Sentiment Regime Index;
+- Long-vs-Tactical Forward Study;
+- Daily Monitor Runtime;
+- Capital/Risk, Automation/Execution and Research/Model governance.
 
-Current allocation remains governed only by Level 1A:
+No new module is described as permission to bypass Level 1.
+
+### 2. Multi-Asset Allocation upstream scope
+
+**PASS.**
+
+`skills/a-share-multi-asset-allocation/SKILL.md` manages:
+
+```text
+Total Financial Assets
+→ Emergency/Liquidity Reserve
+→ Near-term Liability Reserve
+→ Fixed Income
+→ Equity Account Equity
+```
+
+It explicitly does **not** redefine stock-account Final Short Cap, stock concentration, trade risk, strategy tranches or circuit breakers.
+
+The policy-precedence file now records this boundary explicitly.
+
+### 3. Liquidity / liability protection
+
+**PASS as governance design.**
+
+The multi-asset Skill requires emergency/liquidity and known near-term liabilities to be considered before equity allocation. The current `6–12 months` emergency-reserve range is labeled a Governance Parameter, not a universal optimum.
+
+Final personal allocation cannot be generated without the user's actual spending/liability/risk inputs; the Skill returns `INSUFFICIENT_PERSONAL_INPUT_FOR_FINAL_ALLOCATION` instead of inventing precision.
+
+### 4. Fixed-income opportunity cost
+
+**PASS.**
+
+The multi-asset and empirical-study documents use point-in-time government-bond yields as an opportunity-cost reference and explicitly prohibit permanently hard-coding the 2026-08-25 snapshot.
+
+Fixed income is treated as liability matching / liquidity / volatility buffer, not as “risk-free high return.” Duration and credit risk are acknowledged.
+
+### 5. Stock-account capital allocation
+
+**PASS.**
+
+No new upstream or sentiment module changes:
 
 ```text
 Final Short Cap = min(Size Cap, Risk Cap, Edge Cap)
-Actual Short Exposure <= Final Short Cap
 ```
 
-The v3 research upgrade does not modify capital tiers, Operating Target, Hard Ceiling or circuit breakers.
+or the current Operating Target / Hard Ceiling.
 
-### 3. Research model governance separation
+The stock-account denominator and cross-strategy symbol/cluster aggregation remain governed by Level 1A.
 
-PASS.
+### 6. Long-term valuation discipline
 
-`research-model-governance.md` does not override position sizing or broker execution.
+**PASS.**
 
-It governs only:
+Long-term still separates:
 
-- evidence classification;
-- Champion/Challenger;
-- point-in-time / survivorship / look-ahead controls;
-- Benchmark;
-- Required Return parameter discipline;
-- model promotion;
-- MFE/MAE learning.
+```text
+Price Low != Valuation Low
+```
 
-### 4. Champion remains current production model
+and uses Bear/Base/Bull Expected IRR, Required Return sensitivity and Total Return benchmarks.
 
-PASS.
+The multi-asset layer does not allow “cheap-looking stock” to override long-term Thesis / Balance / Valuation / Portfolio Gates.
 
-The short/mid-term `SKILL.md` and `scoring-system.md` remain the production Champion.
+### 7. Short/Mid Champion remains production model
 
-Current Champion:
+**PASS.**
+
+Current Champion remains:
 
 ```text
 Technical 30
@@ -86,242 +133,293 @@ Fundamentals 25
 Catalyst 15
 ```
 
-The new `causal-challenger-model.md` explicitly declares:
+No sentiment or causal-model document silently replaces it.
+
+### 8. Causal Challenger remains Shadow Only
+
+**PASS.**
+
+The Challenger remains research-only until formal Promotion Review.
+
+Model Promotion remains separate from Automation Promotion.
+
+### 9. A-Share Sentiment Regime Index
+
+**PASS as a research/monitor layer.**
+
+The new index is machine-readable and currently combines:
 
 ```text
-CHALLENGER / SHADOW ONLY
+Breadth                       25
+Limit-up vs Limit-down        20
+Board Quality / Broken Rate   15
+Strong vs Weak Tail           15
+Median Return                 10
+Turnover Expansion            15
 ```
 
-It cannot change real orders before Promotion Review.
-
-### 5. Challenger weight conflict
-
-PASS.
-
-The v3 Challenger contains experimental weights, but labels them research parameters rather than replacing Champion thresholds.
-
-No production rule claims that the new weights are proven optimal.
-
-### 6. Champion / Challenger fair-comparison protocol
-
-PASS.
-
-`champion-challenger-forward-test.md` requires:
+Regimes:
 
 ```text
-same universe
-same as_of
-same available information
-same risk budget
-same A-share execution constraints
-same cost/slippage assumptions
+PANIC / RISK_OFF / NEUTRAL / RISK_ON / EUPHORIA
 ```
 
-It also records NO_TRADE signals and prohibits look-ahead information.
+Critical boundaries are explicit:
 
-### 7. Model Promotion vs Automation Promotion
+- `EUPHORIA != ALL_IN`;
+- sentiment cannot bypass Hard Veto;
+- sentiment cannot enlarge Final Short Cap or Hard Ceiling;
+- missing data can return `DATA_INSUFFICIENT`;
+- weights/thresholds are Governance Parameters requiring Forward calibration.
 
-PASS.
+### 10. Sentiment integration into Short/Mid documentation
 
-The repository now explicitly states:
+**PASS.**
+
+The Short/Mid README now directly references `a-share-sentiment-regime-index.md`, documents its role and lists the runtime monitor path.
+
+Sentiment is a market-state input, not an autonomous buy/sell engine.
+
+### 11. Long-vs-Tactical empirical study
+
+**PASS as an experiment design; outcome intentionally NOT YET CLAIMED.**
+
+`research/a-share-long-vs-tactical-empirical-study.md` defines a fair comparison between:
 
 ```text
-Good Model != Safe Auto Execution
-Safe Executor != Positive Edge
+Long Core
+Short/Mid Champion
+Causal Challenger (Shadow)
+Broad Total Return Benchmark
+Cash / Government-Bond Opportunity Cost
 ```
 
-Model promotion is governed by Level 1C; automation promotion remains governed by Level 1B.
+It requires cost, drawdown, turnover and risk-adjusted metrics, not only return.
 
-`AUTO_ORDER=false` remains the default.
+It explicitly rejects inventing a historical 2015–2026 strategy result using current survivors/future information.
 
-### 8. Point-in-time / survivorship bias
+The exact numerical answer to “our short-term system vs our long-term system differs by how much” is therefore a **Forward empirical result that must accrue through time**, not a number that can be honestly manufactured on 2026-08-26.
 
-PASS.
+### 12. Total Return benchmark
 
-Level 1C now requires historical handling of:
+**PASS.**
 
-- listed/delisted stocks;
-- historical ST/*ST state;
-- actual filing publication dates;
-- historical index constituents;
-- suspension / limits / T+1;
-- fees / tax / slippage / impact.
+Long-term comparison uses total-return benchmarks where available; CSI300 is documented with price `000300` vs total-return `H00300`.
 
-Historical results that cannot reconstruct point-in-time inputs are marked `Biased / Non-promotable`.
+A dividend-receiving portfolio cannot silently claim excess return against price-only benchmark data.
 
-### 9. Long-term “low price” vs valuation
+### 13. Daily Monitor Runtime exists
 
-PASS.
+**PASS architecturally.**
 
-The long-term README and new IRR reference now explicitly separate:
+Runtime now includes:
 
 ```text
-Price Low
-!=
-Valuation Low
+runtime/monitor.py
+runtime/daily_monitor.py
+runtime/tests/test_monitor.py
+runtime/requirements.txt
+runtime/README.md
 ```
 
-A large drawdown from the historical high does not automatically permit ADD.
-
-### 10. Long-term Expected IRR
-
-PASS.
-
-The new framework uses Bear/Base/Bull scenarios and makes Required Risk Premium configurable.
-
-It does not hard-code `ERP = 4%-6%` as universal truth.
-
-The 4%/6%/8% values appear only as a sensitivity example / research grid.
-
-### 11. Long-term Total Return Benchmark
-
-PASS.
-
-The repository now requires long-term performance comparison on a total-return basis where available.
-
-沪深300 is explicitly documented as:
+The monitor performs:
 
 ```text
-Price Index  = 000300
-Total Return = H00300
+trade-calendar check
+→ A-share spot market
+→ limit-up / limit-down / broken-board pools
+→ sentiment calculation
+→ 43-stock watchlist price merge
+→ pre_action monitor states
+→ JSON / Markdown daily report
+→ turnover-history ledger
 ```
 
-The repository rejects comparing a dividend-receiving portfolio against a price-only benchmark without disclosing the mismatch.
+### 14. Runtime does not auto-trade
 
-### 12. Long-term entry tranches
+**PASS.**
 
-PASS.
-
-Current strategy-tranche policy remains:
+Runtime reports explicitly preserve:
 
 ```text
-Default: 40% / 30% / 30%
-Small/high-certainty exception: 60% / 40%
-Large-position/higher-uncertainty exception: 30% / 25% / 25% / 20%
+AUTO_MONITOR = true
+AUTO_ORDER   = false
 ```
 
-The v3 docs explicitly label these as governance parameters, not mathematically optimal weights.
-
-### 13. Short/mid-term entry tranches
-
-PASS.
-
-Current policy remains:
+Pre-actions such as:
 
 ```text
-Default: 50% Setup + 50% Confirmation
-Three-stage exception: 50% / 30% / 20%
+REFRESH_FULL_GATES
+REFRESH_SETUP
+WAIT_NO_CHASE
+EVENT_REVIEW
+NO_NEW_ENTRY
 ```
 
-The Challenger preserves the prohibition on averaging down merely because a trend/catalyst position is losing.
+are research states, not executable broker orders.
 
-Long-term value ADD remains separately allowed only after Thesis + Balance + Valuation + Portfolio Gates pass.
+No broker credential, account ID or order submission adapter is present.
 
-### 14. Strategy tranche vs execution slicing
+### 15. Runtime fail-closed calendar gate
 
-PASS.
+**PASS by code review.**
 
-The repository still distinguishes:
-
-- strategy tranche = new decision based on information/confirmation;
-- execution slicing = child orders for liquidity/slippage.
-
-### 15. Short/mid-term risk budget
-
-PASS.
-
-No v3 research document changes:
+If the trade calendar cannot be resolved:
 
 ```text
-Operating Target
-- per trade: 0.5%
-- aggregate open initial risk: <=2%
-- one industry/factor: <=1%
-
-Hard Ceiling
-- per trade: <=1%
-- aggregate open initial risk: <=3%
+trading_day_status = TRADE_CALENDAR_UNKNOWN
+sentiment_score = None
+regime = DATA_INSUFFICIENT
+calendar_gate = BLOCKED
 ```
 
-### 16. Profit-management parameter status
+Thus an apparently valid/stale market payload cannot unlock new risk when calendar state is unknown.
 
-PASS.
+Market-closed days are similarly blocked.
 
-+1.5R/+2R and 3–5 day time review remain usable governance starting points, but v3 removes any claim that they are universally optimal.
+### 16. Runtime missing-data handling
 
-`trade-ledger-mfe-mae-extension.md` requires MFE/MAE evidence before changing them.
+**PASS by code review.**
 
-### 17. Vendor “main force inflow” interpretation
-
-PASS.
-
-The existing short-term scoring system already warns not to equate vendor-labeled main-force inflow with institutional conviction.
-
-The Challenger strengthens this by separating:
+Sentiment components may reweight only when at least 70% of original factor weight is available. Otherwise:
 
 ```text
-Participation
-Positioning Evidence
-Price Confirmation
+DATA_INSUFFICIENT
 ```
 
-No new rule treats vendor flow as a standalone buy signal.
+Missing stock-market data produces `NO_ACTION_DATA_MISSING` / blocked monitor states instead of guessed values.
 
-### 18. Historical snapshots
+Turnover history is explicitly flagged not ready until enough observations accumulate; confidence cannot be marked HIGH before that history exists.
 
-PASS.
+### 17. Runtime deterministic action engine
 
-Dated candidate pools remain Level 4 evidence only.
+**PASS by code review.**
 
-No historical example is promoted to a permanent recommendation because of later price performance.
+The pure `decide_short_mid_action` engine prevents incomplete data from returning READY/ADD and implements conservative state transitions for risk-off, invalidation, risk breach and add confirmation.
 
-## Current Source-of-Truth map
+It still does not bypass full production Skill / broker gates.
 
-| Topic | Source of Truth |
+### 18. Runtime unit tests / compile gate
+
+**PASS as repository configuration; first hosted run still pending at audit time.**
+
+GitHub Actions runs:
+
+```text
+python -m compileall -q runtime
+python -m unittest discover -s runtime/tests -v
+python runtime/daily_monitor.py
+```
+
+The initial hosted workflow run created for this upgrade is currently **QUEUED**, so this audit does **not** claim hosted CI has passed yet.
+
+The queued run is evidence that the workflow is registered, not evidence of test success.
+
+### 19. Scheduled monitoring
+
+**PASS as configuration.**
+
+The workflow schedules weekdays at:
+
+```text
+07:40 UTC ≈ 15:40 Asia/Shanghai
+```
+
+Actual GitHub execution may have queue delay. Chinese holidays are handled by the market-calendar gate rather than cron alone.
+
+### 20. Provider provenance
+
+**PASS for MVP with explicit limitation.**
+
+AKShare is treated as an aggregation Provider for research/monitor MVP.
+
+The repository explicitly requires official disclosure / broker market and position cross-check before advancing to Live/Semi-auto/Auto execution.
+
+### 21. Automatic strategic asset reallocation
+
+**PASS — remains disabled.**
+
+Multi-asset configuration uses:
+
+```text
+AUTO_MONITOR = true
+AUTO_STRATEGIC_REALLOCATION = false
+```
+
+Short-term sentiment cannot automatically liquidate bonds into stocks or stocks into bonds.
+
+### 22. Historical snapshots
+
+**PASS.**
+
+The 2026-08-26 43-stock whitelist and long-term ten-stock portfolio remain point-in-time Level-4 baselines.
+
+Daily monitor merging with the 43-stock list does not turn that historical list into a permanent buy list: each candidate still requires fresh gates before execution.
+
+---
+
+## Current Source-of-Truth / Implementation map
+
+| Topic | Current source |
 |---|---|
-| long vs short capital allocation | `shared/capital-allocation-and-entry-policy.md` |
-| Size/Risk/Edge Cap | `shared/capital-allocation-and-entry-policy.md` |
-| Operating Target / Hard Ceiling | `shared/capital-allocation-and-entry-policy.md` |
-| default entry tranches | `shared/capital-allocation-and-entry-policy.md` |
-| automation / broker safety | `shared/automation-execution-governance.md` |
-| research-model governance | `shared/research-model-governance.md` |
-| policy precedence | `shared/policy-precedence.md` |
-| long-term production selection/valuation | `skills/a-share-retirement-investing/SKILL.md` |
-| long-term IRR / total-return method | `skills/a-share-retirement-investing/references/expected-irr-total-return-benchmark.md` |
-| short/mid-term production selection/execution | `skills/a-share-short-midterm-stock-selection/SKILL.md` |
-| current short-term Champion scoring | `skills/a-share-short-midterm-stock-selection/references/scoring-system.md` |
-| v3 short-term Challenger | `skills/a-share-short-midterm-stock-selection/references/causal-challenger-model.md` |
-| Champion/Challenger validation | `skills/a-share-short-midterm-stock-selection/references/champion-challenger-forward-test.md` |
-| MFE/MAE extension | `skills/a-share-short-midterm-stock-selection/references/trade-ledger-mfe-mae-extension.md` |
-| historical candidate pools | dated snapshot/watchlist files only |
+| Upstream cash/bond/equity allocation | `skills/a-share-multi-asset-allocation/SKILL.md` |
+| Stock-account capital/risk | `shared/capital-allocation-and-entry-policy.md` |
+| Automation/Broker safety | `shared/automation-execution-governance.md` |
+| Research/model governance | `shared/research-model-governance.md` |
+| Policy precedence/scope | `shared/policy-precedence.md` |
+| Long production Skill | `skills/a-share-retirement-investing/SKILL.md` |
+| Long Expected IRR / Total Return | `skills/a-share-retirement-investing/references/expected-irr-total-return-benchmark.md` |
+| Short/Mid production Skill | `skills/a-share-short-midterm-stock-selection/SKILL.md` |
+| Short/Mid Champion score | `skills/a-share-short-midterm-stock-selection/references/scoring-system.md` |
+| Sentiment model | `skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md` |
+| Causal Challenger | `skills/a-share-short-midterm-stock-selection/references/causal-challenger-model.md` |
+| Champion/Challenger test | `skills/a-share-short-midterm-stock-selection/references/champion-challenger-forward-test.md` |
+| Trade-learning ledger | `skills/a-share-short-midterm-stock-selection/references/trade-ledger-mfe-mae-extension.md` |
+| Long-vs-Tactical empirical protocol | `research/a-share-long-vs-tactical-empirical-study.md` |
+| Daily market/sentiment monitor | `runtime/daily_monitor.py` |
+| Deterministic monitor logic | `runtime/monitor.py` |
+| Runtime tests | `runtime/tests/test_monitor.py` |
+| Scheduled runner | `.github/workflows/a-share-daily-monitor.yml` |
 
-## Regression checks
+---
 
-Current repository passes these regression questions:
+## Regression questions
 
-1. Can the Challenger silently replace the 30/30/25/15 Champion? **No.**
-2. Can a model promote itself because backtest results improved? **No.**
-3. Can Forward-Test use later filings, later ST status or future delisting information? **No.**
-4. Can a dividend portfolio claim excess return against a price-only benchmark without disclosure? **No.**
-5. Is 4%–6% ERP treated as universal A-share truth? **No.**
-6. Are +1.5R/+2R and 3–5 days described as mathematically optimal? **No.**
-7. Can a vendor main-force-flow label independently create a buy signal? **No.**
-8. Can a short-term loser be renamed long-term to avoid realizing a loss? **No.**
-9. Does Level 1C change Level 1A risk ceilings? **No.**
-10. Does passing Model Promotion automatically permit Full Auto? **No.**
-11. Can dated snapshots override current policy or current data? **No.**
-12. If a lower-level reference conflicts with Level 1, is precedence explicit? **Yes.**
+1. Can Multi-Asset Allocation bypass stock-account Final Short Cap? **No.**
+2. Can emergency/near-term liability money be silently counted as deployable individual-stock capital? **No.**
+3. Can EUPHORIA automatically increase strategy risk? **No.**
+4. Can sentiment override an accounting/governance Hard Veto? **No.**
+5. Can an unknown trade calendar unlock READY? **No.**
+6. Can missing core market data be silently imputed into a full-confidence sentiment score? **No.**
+7. Can a monitor `pre_action` be treated as a broker order? **No.**
+8. Is `AUTO_ORDER` enabled? **No.**
+9. Can the Causal Challenger silently replace the Champion? **No.**
+10. Can a short-term loser be renamed long-term to avoid realizing a loss? **No.**
+11. Can a dividend portfolio use a price-only benchmark without disclosure? **No.**
+12. Can the repository claim its own short-vs-long CAGR before Forward observations exist? **No.**
+13. Can historical survivors/future filings be used to manufacture promotable backtest performance? **No.**
+14. Can the scheduled monitor trade on a Chinese holiday merely because cron fired? **No; calendar gate blocks it.**
+15. Can passing model research automatically enable Full Auto? **No.**
 
-## Remaining caveats
+---
 
-The repository is internally consistent at this audit point, but several numeric values remain governance parameters rather than universally optimal constants.
+## Remaining empirical caveat
 
-The most important unresolved empirical question is now explicit:
+The missing **infrastructure** identified in the original-request acceptance review is now implemented:
 
 ```text
-Does the Causal Challenger produce better net, risk-adjusted, cost-aware Forward performance than the current Champion?
+long-vs-tactical empirical protocol
++ sentiment model
++ multi-asset allocation layer
++ runnable/scheduled monitor MVP
 ```
 
-Until real Forward/Live evidence answers that question, the Champion remains unchanged and the Challenger remains Shadow Only.
+One result cannot be honestly completed instantly:
 
-Any future Level-1 change or Champion Promotion must trigger a new consistency audit across both Skills, references, examples and automation roadmaps.
+```text
+Our own realized/Forward numerical short-vs-long performance difference
+```
+
+That number requires future observations. The repository is now configured to accumulate the necessary evidence rather than fabricate it.
+
+The first hosted GitHub Actions run is still queued at this audit timestamp; hosted test success must be recorded only after GitHub actually executes it.
