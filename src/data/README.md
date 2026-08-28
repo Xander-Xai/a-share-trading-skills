@@ -19,6 +19,7 @@ Raw Source Bytes
 → NormalizedRecordCandidate
 → PITStore
 → data_snapshot_id
+→ DatasetCoverage proof
 → Feature / Strategy
 ```
 
@@ -31,6 +32,10 @@ raw_archive.py
 
 entities.py
 → canonical payload schemas and deterministic logical record IDs
+
+coverage.py
+→ DATASET_COVERAGE assertions
+→ scope/date/method-aware completeness resolution
 
 adapters.py
 → source adapter protocol
@@ -60,9 +65,10 @@ CorporateAction
 IndexMembership
 IndustryMembership
 ConsensusExpectation
+DatasetCoverage
 ```
 
-These are shared facts. They do not contain Long/Short-Mid decision states.
+Shared facts and data-quality assertions do not contain Long/Short-Mid decision states.
 
 ## Raw evidence lineage
 
@@ -90,6 +96,31 @@ raw_snapshot_id
 so identical bytes observed at different times remain distinguishable for PIT audit.
 
 See `shared/raw-evidence-archive-contract.md`.
+
+## Dataset coverage
+
+Row presence is not sufficient proof of dataset completeness.
+
+Examples:
+
+```text
+21 DAILY_BAR rows
+!= complete 21-session calendar coverage
+
+zero CORPORATE_ACTION rows
+!= proof that no corporate action occurred
+```
+
+`DATASET_COVERAGE` assertions provide explicit positive evidence for a dataset family, scope, date range, completeness state and verification method.
+
+The production-facing Short/Mid feature path resolves coverage from the same PIT snapshot rather than accepting caller-supplied booleans.
+
+See:
+
+```text
+shared/dataset-coverage-contract.md
+src/features/short_mid_verified.py
+```
 
 ## Key normalization choices
 
@@ -175,6 +206,6 @@ See `shared/official-disclosure-source-contract.md`.
 
 ## Current status
 
-The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, and official-disclosure normalization contracts. It still does not claim production-ready live adapters for official disclosure retrieval, licensed market data, corporate actions or consensus feeds.
+The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, and official-disclosure normalization contracts. It still does not claim production-ready live adapters or real coverage producers for official disclosure retrieval, licensed market data, corporate actions, benchmarks or consensus feeds.
 
-Adapters should continue to be added one source at a time with frozen raw fixtures and point-in-time tests.
+Adapters and coverage producers should continue to be added one source at a time with frozen raw fixtures and point-in-time tests.
