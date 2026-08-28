@@ -72,6 +72,27 @@ def classify_maturity(evidence_snapshot_days: int, coverage: dict[str, float | N
     return "COVERAGE_GAPS"
 
 
+def _effective_quality(row: dict[str, Any]) -> dict[str, Any]:
+    """Normalize quality semantics across collector schema revisions.
+
+    Early v1 evidence tied participation completeness to the optional vendor-flow
+    endpoint. Current governance defines base participation from primary observable
+    price/volume/turnover evidence plus exchange margin when applicable; vendor flow
+    is corroborative only. We preserve the immutable old row and normalize only the
+    maturity interpretation.
+    """
+    quality = dict(row.get("data_quality") or {})
+    participation = row.get("participation_evidence") or {}
+    if "base_complete" in participation:
+        quality["participation_complete"] = participation.get("base_complete") is True
+    else:
+        price_ok = quality.get("price_complete") is True
+        financing_ok = quality.get("financing_complete_or_not_applicable") is True
+        if price_ok and financing_ok:
+            quality["participation_complete"] = True
+    return quality
+
+
 def _latest_historical_path_days(rows: list[dict[str, Any]]) -> int | None:
     values: list[int] = []
     for row in rows:
@@ -96,7 +117,7 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
         rows = sorted(rows, key=lambda r: str(r.get("effective_date", "")))
         counts = {field: 0 for field in QUALITY_FIELDS}
         for row in rows:
-            quality = row.get("data_quality") or {}
+            quality = _effective_quality(row)
             for field in QUALITY_FIELDS:
                 if quality.get(field) is True:
                     counts[field] += 1
@@ -106,7 +127,7 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
         prospective_rows = [r for r in rows if str(r.get("sample_role")) != "RETROSPECTIVE_LIVE_MANUAL"]
         model_snapshot_true = 0
         for row in prospective_rows:
-            q = row.get("data_quality") or {}
+            q = _effective_quality(row)
             if q.get("model_snapshot_complete") is True:
                 model_snapshot_true += 1
         prospective_snapshot_pct = pct(model_snapshot_true, len(prospective_rows)) if prospective_rows else None
@@ -138,7 +159,7 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
     total_snapshots = sum(s["evidence_snapshot_days_total"] for s in sample_summaries)
     aggregate_counts = {field: 0 for field in QUALITY_FIELDS}
     for row in records:
-        quality = row.get("data_quality") or {}
+        quality = _effective_quality(row)
         for field in QUALITY_FIELDS:
             if quality.get(field) is True:
                 aggregate_counts[field] += 1
@@ -218,7 +239,7 @@ def main() -> int:
     records = read_latest_daily_records(args.state_dir)
     summary = summarize(records)
     report = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "date": now.date().isoformat(),
         "generated_at": now.isoformat(),
         "summary": summary,
