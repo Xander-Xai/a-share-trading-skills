@@ -4,7 +4,7 @@ description: Select, rank, size, and manage A-share stocks for short-to-medium-t
 compatibility: Requires fresh public market data, official A-share disclosures, and web research.
 metadata:
   author: yandexuanxuan
-  version: "1.6.0"
+  version: "1.7.0"
   market: "China A-share"
 ---
 
@@ -18,6 +18,7 @@ metadata:
 2. `../../shared/capital-allocation-and-entry-policy.md`
 3. `../../shared/research-model-governance.md`
 4. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
+5. 研究迭代、实验优先级与 Promotion 前置顺序读取 `references/iteration-roadmap.md`
 
 职责：
 
@@ -68,6 +69,18 @@ metadata:
 - 使用未来 ST/退市/指数成分。
 
 关键数据不足标记 `Insufficient`，不能成为 executable trade。
+
+事件驱动研究的 `first_tradable_timestamp` 必须按 `references/session-aware-execution-calendar.md` 解析，不得再机械使用“15:00 后公告 = 下一交易日”。至少区分：
+
+```text
+information_timestamp
+first_exchange_tradable_timestamp
+first_broker_executable_timestamp
+first_tradable_timestamp
+session_type
+```
+
+无法确认交易所时段、停牌状态、券商支持或可执行流动性时标记 `UNRESOLVED` 并 fail closed。
 
 ## 4. Capital Allocation、Risk 与统一分母
 
@@ -214,7 +227,8 @@ ERG 读取：
 
 - `references/champion-challenger-forward-test.md`；
 - `references/erg-forward-test-extension.md`；
-- `references/statistical-promotion-guard.md`。
+- `references/statistical-promotion-guard.md`；
+- `references/disagreement-ledger-and-negative-control.md`。
 
 ERG/Challenger 均为 Shadow。它们不能改变 Champion、Paper/Live 真实订单或 shared risk cap，除非完成 Level 1C Promotion。
 
@@ -225,6 +239,20 @@ State First, Rank Second
 ```
 
 Research State 先决定资格；Score 仅用于可比较状态内部排序，不能覆盖 Hard Gate 或把未确认事件机械变成交易。
+
+所有 `CONFIRMED` 状态必须同时记录：
+
+```text
+confirmation_basis =
+EVENT_REACTION |
+TREND_STRUCTURE |
+REGIME_RELATIVE_STRENGTH |
+MEAN_REVERSION_SETUP |
+MULTI_EVIDENCE |
+OTHER_EXPERIMENTAL
+```
+
+避免把“趋势已确认”与“事件预期差已确认”混成同一种语义。
 
 ## 7. Market / Sector Regime
 
@@ -352,6 +380,8 @@ Catalyst 15
 
 ## 14. A-share Execution Risk Gate
 
+读取 `references/session-aware-execution-calendar.md`。
+
 考虑：
 
 - 普通新买 A 股不能自由日内反向卖出；
@@ -359,9 +389,16 @@ Catalyst 15
 - 涨跌停；
 - 停牌/复牌；
 - 除权除息图形扭曲；
-- 流动性/滑点。
+- 流动性/滑点；
+- 当前交易所是否存在 15:05–15:30 盘后固定价格交易窗口；
+- 证券是否具备对应交易资格；
+- 15:00 停牌状态；
+- 券商/账户是否支持相应委托；
+- 信息发布时间是否仍允许形成可执行决策。
 
 Stop 是失效计划，不是保证成交价。真实 gap/limit stress 超预算时缩仓或拒绝。
+
+事件发生在 15:00 之后时，必须通过 session-aware 路由求解 `first_tradable_timestamp`；不能仅凭“收盘后”三个字自动推到次日。
 
 ## 15. Position Sizing
 
@@ -539,7 +576,10 @@ ERG Challenger 额外运行：
 - event-specific reaction vs generic momentum；
 - strategy-type drift；
 - trial-count / data-snooping；
-- ERG complexity / ablation attack。
+- ERG complexity / ablation attack；
+- disagreement/opportunity-cost audit；
+- placebo/negative-control audit；
+- session-aware `first_tradable_timestamp` audit。
 
 Hard Gate 失败就移除并重跑。
 
@@ -573,18 +613,26 @@ expectation_confidence
 1. data coverage + `as_of`；
 2. market regime；
 3. Champion ranked pool；
-4. 若 Challenger 开启，独立 Shadow score/status、`research_state`、`position_state` 和 disagreement；
+4. 若 Challenger 开启，独立 Shadow score/status、`research_state`、`position_state`、`confirmation_basis` 和 disagreement；
 5. 若存在事件驱动候选，输出/保存 ERG 的 expectation、surprise、materiality、prepricing、reaction 与 `source_tier`；
-6. executable candidates：trigger、invalidation、gap risk、tranche、risk；
-7. near misses；
-8. adversarial audit；
-9. Stock Account Equity + Final Short Cap；
-10. current short exposure / pending cash / CAP_BREACH；
-11. account-level same-symbol / cluster exposure，包括长期仓。
+6. 若事件发布时间影响可交易时点，输出 session route、`first_tradable_timestamp` 及 resolution status；
+7. executable candidates：trigger、invalidation、gap risk、tranche、risk；
+8. near misses；
+9. adversarial audit；
+10. Stock Account Equity + Final Short Cap；
+11. current short exposure / pending cash / CAP_BREACH；
+12. account-level same-symbol / cluster exposure，包括长期仓。
 
 行业覆盖任务额外报告 taxonomy/version、universe/core coverage、uncovered/absent、qualified supplements。
 
 ## 26. Learning Loop
+
+读取：
+
+- `references/iteration-roadmap.md`；
+- `references/disagreement-ledger-and-negative-control.md`；
+- `references/champion-challenger-forward-test.md`；
+- `references/erg-forward-test-extension.md`。
 
 每个闭环交易记录：
 
@@ -603,10 +651,18 @@ MFE/MAE 扩展见 `references/trade-ledger-mfe-mae-extension.md`。
 
 ERG/Challenger 还记录：
 
-- research_state / position_state / strategy_type；
+- research_state / position_state / strategy_type / confirmation_basis；
 - expectation/reaction event fields；
 - ERG ablation cohort/version；
+- Champion/Challenger disagreement type/reason；
+- no-trade opportunity cost；
+- placebo/negative-control diagnostics；
 - number_of_trials / parameter stability / model-selection risk。
+
+冻结 cohort 的原始决策字段不得因未来结果改写。2026-08-28 首个八股 Forward baseline 见：
+
+- `examples/2026-08-28-eight-stock-forward-cohort.md`；
+- `examples/2026-08-28-eight-stock-forward-cohort.json`。
 
 参数不能在少量交易后自动修改；新想法进入 Challenger。
 
@@ -615,6 +671,7 @@ ERG/Challenger 还记录：
 读取：
 
 - `../../shared/automation-execution-governance.md`；
+- `references/session-aware-execution-calendar.md`；
 - `references/validation-metrics-and-trade-ledger.md`；
 - `references/paper-live-automation-roadmap.md`。
 
@@ -641,7 +698,7 @@ skill_version
 strategy_version / model_version
 ```
 
-ERG Challenger 额外保存 `erg_version`。
+ERG Challenger 额外保存 `erg_version`；session-aware 记录保存 `session_rule_version`。
 
 不得只写一个模糊 `policy_version`。
 
@@ -649,6 +706,7 @@ ERG Challenger 额外保存 `erg_version`。
 
 ### Active references
 
+- `references/iteration-roadmap.md` — 当前短中期研究迭代顺序与实验队列；
 - `references/scoring-system.md` — 当前 Champion；
 - `references/causal-challenger-model.md` — Challenger / Shadow Only；
 - `references/expectation-reaction-gate.md` — ERG / Shadow Only；
@@ -656,6 +714,8 @@ ERG Challenger 额外保存 `erg_version`。
 - `references/erg-validation-checklist.md`；
 - `references/erg-forward-test-extension.md`；
 - `references/statistical-promotion-guard.md`；
+- `references/disagreement-ledger-and-negative-control.md`；
+- `references/session-aware-execution-calendar.md`；
 - `references/erg-promotion-criteria.md`；
 - `references/erg-adversarial-review-report.md`；
 - `references/erg-research-rationale.md`；
@@ -669,6 +729,11 @@ ERG Challenger 额外保存 `erg_version`。
 - `references/research-basis.md`；
 - `references/validation-metrics-and-trade-ledger.md`；
 - `references/paper-live-automation-roadmap.md`。
+
+### Frozen forward evidence
+
+- `examples/2026-08-28-eight-stock-forward-cohort.md` — 首个八股 ERG/Champion immutable baseline；
+- `examples/2026-08-28-eight-stock-forward-cohort.json` — machine-readable baseline。
 
 ### Historical evidence
 
