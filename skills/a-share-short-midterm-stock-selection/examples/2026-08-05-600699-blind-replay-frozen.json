@@ -1,0 +1,155 @@
+{
+  "sample_id": "20260805-600699-blind-replay-frozen-v1",
+  "sample_type": "retrospective_blind_replay_frozen",
+  "evaluation_role": "PIT_case_validation_not_forward_alpha",
+  "analysis_as_of": "2026-08-05T15:00:00+08:00",
+  "constructed_at": "2026-08-29T03:08:00+08:00",
+  "future_data_embargo": "Exclude all information first published after 2026-08-05T15:00:00+08:00 and all price action after that timestamp.",
+  "immutability_rule": "Do not rewrite this file using revealed outcomes. Future reveal/outcome analysis must be stored separately.",
+  "level_c_forward_validation_eligible": false,
+  "reason_not_level_c": "The replay was constructed retrospectively after future outcomes were already known to the researcher. It can validate PIT discipline and reasoning structure, not untouched forward alpha.",
+  "identity": {
+    "code": "600699",
+    "name": "均胜电子",
+    "market": "SSE"
+  },
+  "user_reported_trade_fact": {
+    "trade_date": "2026-08-05",
+    "average_cost": 21.525,
+    "exact_entry_timestamp": null,
+    "reported_position_weight_pct": 50.0,
+    "reported_weight_denominator": "not independently verified"
+  },
+  "replay_scope_limit": {
+    "exact_intraday_entry_reconstruction_possible": false,
+    "reason": "Exact execution timestamp is unknown; full 2026-08-05 close/volume data may not have been known at the actual purchase moment.",
+    "valid_interpretation": "Close-state and next-session decision replay at 2026-08-05 15:00 CST."
+  },
+  "pit_market_facts": {
+    "stock": {
+      "open": 21.69,
+      "high": 21.85,
+      "low": 21.21,
+      "close": 21.62,
+      "day_return_pct": 2.27,
+      "volume_shares_approx": 38490000,
+      "turnover_pct": 2.76,
+      "recent_reference_prices": {
+        "2026-07-24_close": 19.19,
+        "2026-07-31_close": 20.60,
+        "2026-08-03_low": 20.60,
+        "2026-08-04_close": 21.14,
+        "2026-07-03_close": 23.45,
+        "2026-07-03_high": 24.05,
+        "2026-07-06_high": 23.69,
+        "2026-07-10_close": 21.55,
+        "2026-07-17_close": 20.00
+      }
+    },
+    "broad_market": {
+      "shanghai_composite_return_pct": 1.47,
+      "shenzhen_component_return_pct": 1.86,
+      "chinext_return_pct": 1.32,
+      "market_turnover_rmb_approx": 2680000000000,
+      "advancing_stocks_approx": 3700,
+      "qualitative_regime": "RISK_ON_BROAD_REBOUND"
+    },
+    "sector_theme": {
+      "intelligent_driving_state": "strong_on_2026-08-05",
+      "evidence": "multiple intelligent-driving names hit limit-up / strong gains after publication of the autonomous-driving safety standard"
+    },
+    "fundamentals_last_available": {
+      "period": "2026Q1",
+      "revenue_rmb_bn": 13.815,
+      "revenue_yoy_pct": -5.22,
+      "attributable_net_profit_rmb_bn": 0.402,
+      "attributable_net_profit_yoy_pct": 18.11,
+      "adjusted_net_profit_rmb_bn": 0.362,
+      "adjusted_net_profit_yoy_pct": 13.23,
+      "operating_cash_flow_rmb_bn_approx": 0.91,
+      "new_lifecycle_orders_rmb_bn_approx": 27.5,
+      "new_lifecycle_orders_yoy_pct_approx": 75.2,
+      "interpretation": "revenue pressure but improving profitability/cash generation and strong order intake"
+    },
+    "capital_participation_last_available_before_close": {
+      "publication_timestamp": "2026-08-05T08:01:00+08:00",
+      "data_through": "2026-08-04",
+      "financing_buy_rmb": 67009500,
+      "financing_repayment_rmb": 63348100,
+      "financing_net_buy_rmb": 3661400,
+      "financing_balance_rmb": 1438580600,
+      "financing_balance_percentile_comment": "below one-year 30th percentile / low participation",
+      "pit_note": "2026-08-05 financing activity was not available by the replay timestamp and is explicitly excluded."
+    }
+  },
+  "research_state": {
+    "technical_description": "constructive recovery / reclaim after a prior decline, but not a clean breakout of the early-July 23.45-24.05 overhead zone",
+    "capital_description": "price/volume improved, but leverage participation was not strongly expanding in the last available snapshot",
+    "fundamental_description": "mixed-positive: revenue down but profit/adjusted profit and operating cash flow improved; lifecycle orders strong",
+    "catalyst_description": "intelligent-driving theme and published safety-standard backdrop supportive, but theme strength alone is insufficient for a production entry",
+    "manual_score_range": [68, 74],
+    "manual_score_status": "NON_PRODUCTION_ESTIMATE_PARTIAL_DATA",
+    "score_is_probability": false,
+    "data_completeness": "Partial",
+    "production_threshold_mapping": "65-74 = WATCH / WAIT FOR CONFIRMATION",
+    "new_position_decision_at_close": "WATCH_WAIT_FOR_CONFIRMATION"
+  },
+  "conditional_path_map": {
+    "numeric_probabilities_allowed": false,
+    "continuation": {
+      "condition": "close/reclaim above approximately 21.85-22.00 with price progress plus sector/participation confirmation",
+      "action": "rerun Champion; only consider entry if production threshold, execution gate and risk budget all pass",
+      "next_reference_zone": "22.5 then 23.45-24.05 as execution geometry, not a guaranteed target"
+    },
+    "neutral_no_follow_through": {
+      "condition": "approximately 21.0-21.85 range without convincing progress",
+      "action": "no add; use 3-5 trading-day review as a governance/Challenger window; do not treat lack of decline as proof of thesis"
+    },
+    "failure": {
+      "first_structure_level": 20.60,
+      "first_interpretation": "short setup weakens / re-underwrite",
+      "broader_structure_level": 20.00,
+      "broader_interpretation": "recovery thesis materially damaged / invalidation candidate"
+    }
+  },
+  "counterfactual_sizing": {
+    "entry_price": 21.525,
+    "case_20_60": {
+      "invalidation": 20.60,
+      "stop_distance_pct": 4.2973,
+      "exposure_for_0_5pct_planned_loss_pct_short_strategy_nav": 11.6351,
+      "exposure_for_1pct_planned_loss_pct_short_strategy_nav": 23.2703,
+      "planned_loss_if_exposure_50pct_same_nav_denominator_pct": 2.1487
+    },
+    "case_20_00": {
+      "invalidation": 20.00,
+      "stop_distance_pct": 7.0848,
+      "exposure_for_0_5pct_planned_loss_pct_short_strategy_nav": 7.0574,
+      "exposure_for_1pct_planned_loss_pct_short_strategy_nav": 14.1148,
+      "planned_loss_if_exposure_50pct_same_nav_denominator_pct": 3.5424
+    },
+    "denominator_caveat": "The user's reported 50% denominator is not independently verified; these are conditional diagnostics only."
+  },
+  "adversarial_review": {
+    "look_ahead_errors": 0,
+    "removed_uncalibrated_scenario_probabilities": true,
+    "corrected_financing_pit_leak": true,
+    "corrected_production_threshold_interpretation": true,
+    "technical_alpha_status": "NOT_PROVEN",
+    "three_to_five_day_follow_through_status": "CHALLENGER_OR_GOVERNANCE_PARAMETER",
+    "support_resistance_status": "EXECUTION_GEOMETRY_NOT_DETERMINISTIC_FORECAST",
+    "position_sizing_status": "ACTIVE_RISK_GOVERNANCE_PRINCIPLE_EXACT_THRESHOLDS_UNCALIBRATED",
+    "no_trade_considered": true,
+    "pass": true
+  },
+  "theory_audit_reference": "research/short-mid-blind-replay-theoretical-audit-v1.md",
+  "source_provenance": [
+    "https://dabanke.com/hangqing-600699.html",
+    "https://finance.eastmoney.com/a/202608053832573292.html",
+    "https://finance.eastmoney.com/a/202608053832577977.html",
+    "https://finance.sina.com.cn/7x24/2026-08-05/doc-inimfmyp5238680.shtml",
+    "https://www.joyson.com/index.php/news/info/1413.html",
+    "https://finance.sina.com.cn/stock/aiassist/lr/2026-08-05/doc-inimffsp3699411.shtml",
+    "https://stock.stockstar.com/RB2026070400008565.shtml"
+  ]
+}
