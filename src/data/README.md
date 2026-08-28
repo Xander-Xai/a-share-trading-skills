@@ -12,7 +12,8 @@ Vendor/API row
 The production path is:
 
 ```text
-Raw Evidence
+Raw Source Bytes
+→ RawEvidenceArchive / raw_snapshot_id
 → Source Adapter
 → Canonical Entity
 → NormalizedRecordCandidate
@@ -24,6 +25,10 @@ Raw Evidence
 ## Files
 
 ```text
+raw_archive.py
+→ immutable content-addressed raw evidence
+→ observation manifests / raw_snapshot_id
+
 entities.py
 → canonical payload schemas and deterministic logical record IDs
 
@@ -39,6 +44,7 @@ official_disclosures.py
 → SSE/SZSE official-disclosure normalization v0
 → strict official-host provenance
 → FIRST_OBSERVED / OFFICIAL_TIMESTAMP visibility semantics
+→ optional raw_snapshot_id lineage
 → no undocumented live endpoint
 ```
 
@@ -57,6 +63,33 @@ ConsensusExpectation
 ```
 
 These are shared facts. They do not contain Long/Short-Mid decision states.
+
+## Raw evidence lineage
+
+Preferred future live ingestion order:
+
+```text
+fetch
+→ archive raw bytes
+→ raw_snapshot_id
+→ parse / normalize
+→ PITMetadata.source_snapshot_id = raw_snapshot_id
+→ PITStore
+```
+
+The archive separates:
+
+```text
+content_hash
+= identity of source bytes
+
+raw_snapshot_id
+= identity of this source observation
+```
+
+so identical bytes observed at different times remain distinguishable for PIT audit.
+
+See `shared/raw-evidence-archive-contract.md`.
 
 ## Key normalization choices
 
@@ -113,7 +146,7 @@ The adapter must emit `NormalizedRecordCandidate` objects. Strategy code must no
 
 ## Official disclosure adapter status
 
-SSE/SZSE disclosure normalization now has a v0 implementation, but **live network acquisition remains intentionally unresolved** because no stable documented public machine API has yet been frozen in this repository.
+SSE/SZSE disclosure normalization has a v0 implementation, but **live network acquisition remains intentionally unresolved** because no stable documented public machine API has yet been frozen in this repository.
 
 Current behavior:
 
@@ -124,6 +157,8 @@ verified official row / capture
 → canonical Disclosure
 → PITStore
 ```
+
+A future promoted live transport should archive its raw response first and pass the resulting `raw_snapshot_id` into the normalized record lineage.
 
 The adapter never converts a date-only listing into an invented intra-day publication time.
 
@@ -140,6 +175,6 @@ See `shared/official-disclosure-source-contract.md`.
 
 ## Current status
 
-The data layer now contains canonical schema, PIT store/snapshot, and official-disclosure normalization contracts. It still does not claim production-ready live adapters for official disclosure retrieval, licensed market data, corporate actions or consensus feeds.
+The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, and official-disclosure normalization contracts. It still does not claim production-ready live adapters for official disclosure retrieval, licensed market data, corporate actions or consensus feeds.
 
-Adapters should continue to be added one source at a time with frozen fixtures and point-in-time tests.
+Adapters should continue to be added one source at a time with frozen raw fixtures and point-in-time tests.
