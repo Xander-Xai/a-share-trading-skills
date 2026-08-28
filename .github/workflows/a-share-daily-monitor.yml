@@ -2,6 +2,12 @@ name: A-share Daily Monitor
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "runtime/**"
+      - "src/core/**"
+      - ".github/workflows/a-share-daily-monitor.yml"
   push:
     branches: [main]
     paths:
@@ -17,7 +23,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: a-share-daily-monitor
+  group: a-share-daily-monitor-${{ github.ref }}
   # During runtime development, keep evidence only for the newest revision.
   # Scheduled daily runs normally do not overlap.
   cancel-in-progress: true
@@ -55,6 +61,7 @@ jobs:
         run: python runtime/daily_monitor.py
 
       - name: Commit report and market history
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
