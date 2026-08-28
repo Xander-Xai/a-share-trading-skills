@@ -1,4 +1,4 @@
-# Official Disclosure Source Contract v0
+# Official Disclosure Source Contract v0.1
 
 > Status: `ACTIVE SOURCE-ADAPTER CONTRACT / LIVE TRANSPORT UNRESOLVED`
 >
@@ -122,7 +122,32 @@ until actual website/vendor/exchange permitted-use terms for the intended produc
 
 Tier describes evidence authority. `permitted_use` describes operational permission. They are separate axes.
 
-## 6. Document-host validation
+## 6. Raw evidence lineage
+
+The Raw Evidence Archive is now available:
+
+```text
+src/data/raw_archive.py
+shared/raw-evidence-archive-contract.md
+```
+
+Preferred future live path:
+
+```text
+official response bytes
+→ RawEvidenceArchive
+→ raw_snapshot_id
+→ parse official index row
+→ OfficialDisclosureRow.source_snapshot_id = raw_snapshot_id
+→ canonical Disclosure
+→ PITStore
+```
+
+If a row contains `source_snapshot_id`, the normalizer preserves it directly as `PITMetadata.source_snapshot_id`.
+
+Static/manual fixtures may omit it and use the deterministic observation fallback, but a future promoted live transport should archive raw source evidence first.
+
+## 7. Document-host validation
 
 The adapter rejects document locators outside the configured official host family.
 
@@ -130,7 +155,7 @@ This reduces accidental normalization of scraped mirrors or third-party copies a
 
 Host validation is provenance hygiene, not a cryptographic proof of document authenticity.
 
-## 7. No content inference at the data layer
+## 8. No content inference at the data layer
 
 The source adapter normalizes index metadata only:
 
@@ -143,19 +168,20 @@ document_url
 period_end when known
 published_at when exact
 observed_at
+source_snapshot_id when archived
 ```
 
 It does not use an LLM to infer business impact, Surprise, Materiality, ERG state or long-term thesis implications.
 
 Those belong to strategy/research layers after the disclosure is stored as canonical evidence.
 
-## 8. Next promotion step
+## 9. Next promotion step
 
 Before enabling a live official-disclosure transport:
 
 ```text
 verify acquisition mechanism
-freeze raw-response fixtures
+archive raw-response fixtures
 verify timestamp meaning
 verify pagination / query behavior
 verify duplicate/revision behavior
