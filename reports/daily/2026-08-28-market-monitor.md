@@ -1,6 +1,6 @@
 # A-share Short/Mid Daily Monitor — 2026-08-28
 
-- as_of: `2026-08-28T21:22:31.515054+08:00`
+- as_of: `2026-08-28T21:32:29.438002+08:00`
 - strategy_id: `a_share_short_mid`
 - sleeve: `short_mid`
 - runtime_mode: `SHORT_MID_MONITOR_ONLY`
