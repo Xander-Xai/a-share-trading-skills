@@ -72,6 +72,12 @@ class OfficialCorporateActionRow:
     record_date: str | None = None
     pay_date: str | None = None
     cash_per_share: float | None = None
+    reference_cash_per_share: float | None = None
+    bonus_ratio: float | None = None
+    transfer_ratio: float | None = None
+    rights_ratio: float | None = None
+    rights_price: float | None = None
+    reference_total_share_change_ratio: float | None = None
     ratio: float | None = None
     currency: str = "CNY"
     source_locator: str | None = None
@@ -98,7 +104,6 @@ class OfficialCorporateActionRow:
             raise ValueError("published_at cannot occur after ex_date")
         _require_text(self.revision_id, "revision_id")
 
-        # Canonical entity validation owns the remaining field-level checks.
         CorporateAction(
             security_id=self.security_id,
             action_id=self.action_id,
@@ -108,6 +113,12 @@ class OfficialCorporateActionRow:
             ex_date=self.ex_date,
             pay_date=self.pay_date,
             cash_per_share=self.cash_per_share,
+            reference_cash_per_share=self.reference_cash_per_share,
+            bonus_ratio=self.bonus_ratio,
+            transfer_ratio=self.transfer_ratio,
+            rights_ratio=self.rights_ratio,
+            rights_price=self.rights_price,
+            reference_total_share_change_ratio=self.reference_total_share_change_ratio,
             ratio=self.ratio,
             currency=self.currency,
         ).validate()
@@ -117,7 +128,7 @@ class OfficialCorporateActionRow:
 class OfficialCorporateActionBatch:
     """A verified snapshot of an official implemented-corporate-action enumeration.
 
-    Completeness is defined over *implemented actions keyed by ex_date* inside an
+    Completeness is defined over implemented actions keyed by ex_date inside an
     explicit scope/date range. `CONFIRMED_COMPLETE` requires a RawEvidenceArchive
     SHA-256 snapshot id and an exact source-row count match.
     """
@@ -212,6 +223,12 @@ class OfficialCorporateActionBatch:
                 ex_date=row.ex_date,
                 pay_date=row.pay_date,
                 cash_per_share=row.cash_per_share,
+                reference_cash_per_share=row.reference_cash_per_share,
+                bonus_ratio=row.bonus_ratio,
+                transfer_ratio=row.transfer_ratio,
+                rights_ratio=row.rights_ratio,
+                rights_price=row.rights_price,
+                reference_total_share_change_ratio=row.reference_total_share_change_ratio,
                 ratio=row.ratio,
                 currency=row.currency,
             )
