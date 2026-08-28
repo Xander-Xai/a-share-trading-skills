@@ -139,6 +139,46 @@ Gate First
 - `research/short-mid-risk-resilience-integration-v1.md`
 - `research/short-mid-risk-resilience-experiment-v1.md`
 
+## Short/Mid sample evidence pipeline
+
+真实交易样本采用：
+
+```text
+User supplies private execution truth
+        ↓
+Sample Registry + Manual Trade Events
+        ↓
+Daily Market Monitor
+        ↓
+Sample Evidence Collector
+        ├─ daily unadjusted OHLCV / turnover
+        ├─ broad benchmark / relative strength
+        ├─ market regime
+        ├─ vendor-flow corroboration
+        ├─ exchange margin detail when available
+        ├─ disclosure scan
+        └─ MFE / MAE + D1/D3/D5/D10/D15 checkpoints
+        ↓
+Sample Data Maturity Report
+        ↓
+Forward / retrospective research according to evidence class
+```
+
+用户不需要每天手工抄行情。默认只报告机器无法知道的真实成交/账户事实，例如：
+
+```text
+600699，2026-08-05买入，均价21.525，占股票账户50%。
+600699，2026-09-02减仓1/3，均价19.82。
+```
+
+公开行情、成交、市场宽度、融资、公告和派生特征由系统按合同采集。数据覆盖率不等于 Alpha；成熟度报告只回答“证据是否完整、可审计”。
+
+详见：
+
+- `skills/a-share-short-midterm-stock-selection/references/sample-data-acquisition-contract.md`
+- `runtime/config/sample_registry.json`
+- `runtime/state/sample_evidence/manual_events/trade_events.jsonl`
+
 ## Shared account risk
 
 ```text
@@ -202,12 +242,16 @@ strategy_visibility
 
 ## Current runtime
 
-当前可运行代码是 **Short/Mid Monitor MVP**，不是完整生产交易系统，也不是长期 Runtime。
+当前可运行代码是 **Short/Mid Monitor + Sample Evidence MVP**，不是完整生产交易系统，也不是长期 Runtime。
 
 ```text
 runtime/daily_monitor.py
+runtime/sample_collector.py
+runtime/sample_maturity.py
 runtime/monitor.py
 runtime/config/short_mid_universe.json
+runtime/config/sample_registry.json
+runtime/state/sample_evidence/
 runtime/tests/
 src/core/strategy_boundary.py
 src/core/pit.py
@@ -228,6 +272,10 @@ AUTO_ORDER   = false
 
 `runtime/config/short_mid_universe.json`
 
+真实/研究样本注册表独立维护于：
+
+`runtime/config/sample_registry.json`
+
 `examples/` 继续作为 Level-4 历史 / Forward / Replay evidence，不是未来 production-current universe 真相源。
 
 ### Local checks
@@ -238,6 +286,8 @@ python -m pip check
 python -m compileall -q runtime src
 python -m unittest discover -s runtime/tests -v
 python runtime/daily_monitor.py
+python runtime/sample_collector.py
+python runtime/sample_maturity.py
 ```
 
 当前测试包括：
@@ -248,7 +298,11 @@ python runtime/daily_monitor.py
 - PIT `available_at` 不得早于 `published_at`；
 - replay 时间早于 `available_at` 时记录不可见；
 - runtime universe 必须声明正确 `strategy_id / sleeve`；
-- 默认 runtime universe 不再指向 Level-4 example。
+- 默认 runtime universe 不再指向 Level-4 example；
+- 买入日具体成交时刻未知时，不把买入日前/盘中未知高低点冒充成交后 MFE/MAE；
+- 样本每日证据重复运行保持幂等，证据变化产生 revision；
+- D1/D3/D5/D10/D15 checkpoint 使用固定交易会话窗口；
+- 数据成熟度与 Alpha 验证语义分离。
 
 ## Production evolution
 
@@ -278,6 +332,19 @@ Strategy Boundary + PIT Data Contract
 ```
 
 Risk Resilience 的当前实现首先是方法论/审计层；其 Follow-through、Volume/Price Efficiency、Stress-aware Sizing、Holding Inertia、Conditional Path Calibration 等新增假设必须留在 Shadow 研究协议，未经验证不得直接改生产引擎。
+
+Sample Evidence Pipeline 当前首先解决：
+
+```text
+consistent user-input contract
++ automatic public-data accumulation
++ PIT-aware timestamps
++ immutable/revisioned evidence
++ checkpoint features
++ data-completeness reporting
+```
+
+它不等于完整历史数据库，也不等于已验证的交易 Alpha。
 
 Long 单独演进：
 
@@ -314,6 +381,7 @@ skills/
   a-share-retirement-investing/
   a-share-short-midterm-stock-selection/
     references/risk-resilience-layer.md
+    references/sample-data-acquisition-contract.md
 
 src/core/
   strategy_boundary.py
@@ -321,8 +389,12 @@ src/core/
 
 runtime/
   daily_monitor.py
+  sample_collector.py
+  sample_maturity.py
   monitor.py
   config/short_mid_universe.json
+  config/sample_registry.json
+  state/sample_evidence/
   tests/
 
 reports/
