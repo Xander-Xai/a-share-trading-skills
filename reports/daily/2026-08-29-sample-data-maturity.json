@@ -1,7 +1,7 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "date": "2026-08-29",
-  "generated_at": "2026-08-29T04:13:04.698525+08:00",
+  "generated_at": "2026-08-29T04:14:10.322040+08:00",
   "summary": {
     "sample_count": 1,
     "evidence_snapshot_days_total": 1,
@@ -9,7 +9,7 @@
       "price_complete_pct": 100.0,
       "market_complete_pct": 100.0,
       "benchmark_complete_pct": 100.0,
-      "participation_complete_pct": 0.0,
+      "participation_complete_pct": 100.0,
       "financing_complete_or_not_applicable_pct": 100.0,
       "disclosure_scan_complete_pct": 100.0,
       "manual_execution_complete_pct": 100.0
@@ -28,7 +28,7 @@
           "price_complete_pct": 100.0,
           "market_complete_pct": 100.0,
           "benchmark_complete_pct": 100.0,
-          "participation_complete_pct": 0.0,
+          "participation_complete_pct": 100.0,
           "financing_complete_or_not_applicable_pct": 100.0,
           "disclosure_scan_complete_pct": 100.0,
           "manual_execution_complete_pct": 100.0
