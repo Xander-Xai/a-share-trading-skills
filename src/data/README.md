@@ -41,6 +41,11 @@ official_trading_calendar.py
 → conservative date-only visibility
 → exchange-level TRADING_SESSION coverage
 
+official_corporate_actions.py
+→ official implemented corporate-action batch normalization
+→ RawEvidenceArchive-backed completeness requirements
+→ SECURITY / EXCHANGE CORPORATE_ACTION coverage
+
 coverage.py
 → DATASET_COVERAGE assertions
 → scope/date/method-aware completeness resolution
@@ -157,6 +162,32 @@ This is a reviewed official-source plan, not an undocumented live API. Emergency
 
 See `shared/official-trading-calendar-source-contract.md`.
 
+## Official corporate actions
+
+Implemented corporate-action completeness now has a source-batch contract:
+
+```text
+RawEvidenceArchive snapshot
+→ OfficialCorporateActionBatch
+→ canonical CORPORATE_ACTION rows
+→ DATASET_COVERAGE(CORPORATE_ACTION)
+```
+
+A `CONFIRMED_COMPLETE` official enumeration requires:
+
+```text
+source_snapshot_id = 64-char SHA-256 raw snapshot id
+source_row_count    = normalized row count
+```
+
+Coverage is defined over implemented actions keyed by `ex_date` inside an explicit SECURITY or EXCHANGE scope/date range.
+
+If the source snapshot is not complete, or the source row count does not match normalization output, the system cannot claim complete corporate-action coverage.
+
+No live SSE/SZSE transport is promoted yet. The current module is the normalization/coverage boundary that future lawful official-source capture must feed.
+
+See `shared/official-corporate-action-source-contract.md`.
+
 ## Key normalization choices
 
 ### Prices
@@ -241,8 +272,8 @@ See `shared/official-disclosure-source-contract.md`.
 
 ## Current status
 
-The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, official-disclosure normalization, a reviewed 2026 official trading-calendar plan, and DAILY_BAR/calendar reconciliation.
+The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, official-disclosure normalization, a reviewed 2026 official trading-calendar plan, DAILY_BAR/calendar reconciliation, and a RawEvidenceArchive-backed official corporate-action coverage boundary.
 
-It still does not claim production-ready live adapters or complete real coverage producers for licensed market data, corporate actions, benchmarks or consensus feeds.
+It still does not claim production-ready live adapters or complete real coverage producers for licensed market data, live corporate-action capture, benchmarks or consensus feeds.
 
 Adapters and coverage producers should continue to be added one source at a time with frozen raw fixtures and point-in-time tests.
