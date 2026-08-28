@@ -9,13 +9,17 @@ from zoneinfo import ZoneInfo
 import akshare as ak
 import pandas as pd
 
-from monitor import calculate_sentiment, normalize_stock_code
+from monitor import (
+    SHORT_MID_SLEEVE,
+    SHORT_MID_STRATEGY_ID,
+    calculate_sentiment,
+    normalize_stock_code,
+)
+from src.core.strategy_boundary import require_strategy_context
 
 
 SH_TZ = ZoneInfo("Asia/Shanghai")
-DEFAULT_WATCHLIST = Path(
-    "skills/a-share-short-midterm-stock-selection/examples/2026-08-26-final-watchlist.json"
-)
+DEFAULT_UNIVERSE = Path("runtime/config/short_mid_universe.json")
 DEFAULT_HISTORY = Path("runtime/state/market_history.csv")
 DEFAULT_OUTPUT_DIR = Path("reports/daily")
 
@@ -99,24 +103,44 @@ def count_rows(df: pd.DataFrame | None) -> int | None:
     return None if df is None else int(len(df))
 
 
-def load_watchlist(path: Path) -> list[dict]:
+def load_universe(path: Path) -> tuple[list[dict], dict]:
+    """Load a runtime universe and enforce short/mid strategy identity.
+
+    Level-4 dated examples are no longer the default runtime source. A caller
+    may still pass another file explicitly for replay/research, but the payload
+    must declare the short/mid strategy context before tactical rules run.
+    """
     if not path.exists():
-        return []
+        raise FileNotFoundError(path)
+
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
-    return list(data.get("stocks", []))
+
+    require_strategy_context(
+        strategy_id=str(data.get("strategy_id", "")),
+        sleeve=str(data.get("sleeve", "")),
+        expected_strategy_id=SHORT_MID_STRATEGY_ID,
+        expected_sleeve=SHORT_MID_SLEEVE,
+    )
+
+    stocks = list(data.get("stocks", []))
+    metadata = {
+        "runtime_universe_version": data.get("runtime_universe_version"),
+        "as_of": data.get("as_of"),
+        "source_type": data.get("source_type"),
+        "source_note": data.get("source_note"),
+        "path": str(path),
+    }
+    return stocks, metadata
 
 
 def candidate_pre_action(stock: dict, regime: str, crowding: bool, current_day_pct: float | None) -> str:
-    """Return a monitor/research state, never an executable order.
-
-    PANIC and DATA_INSUFFICIENT are fail-closed for new trend entries. RISK_OFF
-    is not an absolute production veto: it routes to RISK_REVIEW so the full
-    Skill can apply tighter entry thresholds and lower-end risk sizing.
-    """
+    """Return a monitor/research state, never an executable order."""
     status = stock.get("status", "")
 
     if regime in {"PANIC", "DATA_INSUFFICIENT"}:
+        return "NO_NEW_ENTRY"
+    if status == "no_new_position":
         return "NO_NEW_ENTRY"
     if status == "event_isolation":
         return "EVENT_REVIEW"
@@ -185,7 +209,7 @@ def build_candidate_rows(watchlist: list[dict], spot: pd.DataFrame | None, regim
                 "snapshot_status": stock.get("status"),
                 "dominant_factor": stock.get("dominant_factor"),
                 "pre_action": candidate_pre_action(stock, regime, crowding, day_pct),
-                "note": "pre_action is monitor/research output only; current fundamentals/catalyst/Champion-or-approved-model score/invalidation/risk/account caps must be refreshed before execution.",
+                "note": "pre_action is short/mid monitor output only; it cannot mutate the long sleeve and cannot become BUY without fresh full gates.",
             }
         )
     return rows
@@ -194,9 +218,11 @@ def build_candidate_rows(watchlist: list[dict], spot: pd.DataFrame | None, regim
 def render_markdown(report: dict) -> str:
     s = report.get("sentiment", {})
     lines = [
-        f"# A-share Daily Monitor — {report['date']}",
+        f"# A-share Short/Mid Daily Monitor — {report['date']}",
         "",
         f"- as_of: `{report['as_of']}`",
+        f"- strategy_id: `{report['strategy_id']}`",
+        f"- sleeve: `{report['sleeve']}`",
         f"- runtime_mode: `{report['runtime_mode']}`",
         f"- trading_day_status: `{report['trading_day_status']}`",
         f"- spot_provider: `{report.get('spot_provider')}`",
@@ -204,6 +230,12 @@ def render_markdown(report: dict) -> str:
         f"- regime: `{s.get('regime')}`",
         f"- crowding_flag: `{s.get('crowding_flag')}`",
         f"- data_confidence: `{s.get('data_confidence')}`",
+        "",
+        "## Runtime universe",
+        "",
+        "```json",
+        json.dumps(report.get("universe", {}), ensure_ascii=False, indent=2),
+        "```",
         "",
         "## Governance references",
         "",
@@ -236,7 +268,7 @@ def render_markdown(report: dict) -> str:
             )
         )
 
-    lines.extend(["", "## Provider errors", ""])
+    lines.extend(["", "## Provider / configuration errors", ""])
     errors = report.get("provider_errors", [])
     if errors:
         lines.extend([f"- {e}" for e in errors])
@@ -246,7 +278,7 @@ def render_markdown(report: dict) -> str:
     lines.extend(
         [
             "",
-            "> `pre_action` is research/monitor output only. `AUTO_ORDER=false`; no report row is an executable order.",
+            "> `pre_action` belongs only to `short_mid`. `AUTO_ORDER=false`; no report row is an executable order and no state may mutate the long sleeve.",
             "",
         ]
     )
@@ -255,7 +287,9 @@ def render_markdown(report: dict) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--watchlist", type=Path, default=DEFAULT_WATCHLIST)
+    # Keep --watchlist as a compatibility name while the payload is now a
+    # strategy-tagged runtime universe config rather than a Level-4 example.
+    parser.add_argument("--watchlist", type=Path, default=DEFAULT_UNIVERSE)
     parser.add_argument("--history", type=Path, default=DEFAULT_HISTORY)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     args = parser.parse_args()
@@ -280,8 +314,6 @@ def main() -> int:
     down_pool = None
     broken_pool = None
 
-    # If the calendar is unknown we may still collect observability data, but
-    # the final regime is forced to DATA_INSUFFICIENT below and cannot unlock entry.
     if trade_day is not False:
         spot, spot_provider = fetch_spot_with_fallback(errors)
         up_pool = safe_call(errors, "stock_zt_pool_em", ak.stock_zt_pool_em, date=date_key)
@@ -356,7 +388,26 @@ def main() -> int:
     else:
         sentiment = {**sentiment, "spot_provider_gate": "PASS"}
 
-    watchlist = load_watchlist(args.watchlist)
+    loaded_universe = safe_call(errors, "load_universe", load_universe, args.watchlist)
+    if loaded_universe is None:
+        watchlist: list[dict] = []
+        universe_meta: dict = {
+            "path": str(args.watchlist),
+            "status": "UNRESOLVED",
+        }
+        sentiment = {
+            **sentiment,
+            "sentiment_score": None,
+            "regime": "DATA_INSUFFICIENT",
+            "crowding_flag": False,
+            "data_confidence": "LOW",
+            "strategy_context_gate": "BLOCKED",
+        }
+    else:
+        watchlist, universe_meta = loaded_universe
+        universe_meta = {**universe_meta, "status": "LOADED"}
+        sentiment = {**sentiment, "strategy_context_gate": "PASS"}
+
     candidates = build_candidate_rows(
         watchlist,
         spot,
@@ -365,18 +416,23 @@ def main() -> int:
     )
 
     report = {
-        "schema_version": "1.3",
+        "schema_version": "1.4",
         "date": today_str,
         "as_of": now.isoformat(),
-        "runtime_mode": "MONITOR_ONLY",
+        "strategy_id": SHORT_MID_STRATEGY_ID,
+        "sleeve": SHORT_MID_SLEEVE,
+        "runtime_mode": "SHORT_MID_MONITOR_ONLY",
         "trading_day_status": trading_day_status,
         "auto_monitor": True,
         "auto_order": False,
         "spot_provider": spot_provider,
+        "universe": universe_meta,
         "governance_refs": {
             "capital_policy": "shared/capital-allocation-and-entry-policy.md",
             "automation_governance": "shared/automation-execution-governance.md",
             "research_model_governance": "shared/research-model-governance.md",
+            "strategy_boundary": "shared/strategy-boundary-contract.md",
+            "pit_data_contract": "shared/canonical-pit-data-contract.md",
             "short_mid_skill": "skills/a-share-short-midterm-stock-selection/SKILL.md",
             "sentiment_model": "skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md",
         },
@@ -387,7 +443,7 @@ def main() -> int:
         "provider": {
             "spot_primary": "AKShare stock_zh_a_spot_em / Eastmoney",
             "spot_fallback": "AKShare stock_zh_a_spot / Sina",
-            "execution_note": "aggregation providers only; live execution requires official/broker cross-check",
+            "execution_note": "aggregation providers only; live execution requires official/broker cross-check and permitted-use review",
         },
     }
 
@@ -413,6 +469,8 @@ def main() -> int:
         json.dumps(
             {
                 "report": str(md_path),
+                "strategy_id": SHORT_MID_STRATEGY_ID,
+                "sleeve": SHORT_MID_SLEEVE,
                 "regime": sentiment.get("regime"),
                 "spot_provider": spot_provider,
                 "errors": errors,
