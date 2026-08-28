@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "runtime_universe_version": "2026-08-28-v1",
+  "strategy_id": "a_share_short_mid",
+  "sleeve": "short_mid",
+  "as_of": "2026-08-28T18:10:00+08:00",
+  "source_type": "RUNTIME_CONFIG",
+  "source_note": "Bootstrapped from the approved 2026-08-28 short/mid research set. This is runtime configuration, not a mutable rewrite of the frozen Forward cohort.",
+  "stocks": [
+    {
+      "code": "601600",
+      "name": "中国铝业",
+      "baseline_price": 9.82,
+      "status": "priority_scan"
+    },
+    {
+      "code": "002602",
+      "name": "世纪华通",
+      "baseline_price": 13.97,
+      "status": "wait_technical_confirmation"
+    },
+    {
+      "code": "600096",
+      "name": "云天化",
+      "baseline_price": 31.58,
+      "status": "wait_technical_confirmation"
+    },
+    {
+      "code": "600392",
+      "name": "盛和资源",
+      "baseline_price": 22.93,
+      "status": "event_isolation"
+    },
+    {
+      "code": "600415",
+      "name": "小商品城",
+      "baseline_price": 12.46,
+      "status": "wait_technical_confirmation"
+    },
+    {
+      "code": "601808",
+      "name": "中海油服",
+      "baseline_price": 12.85,
+      "status": "wait_technical_confirmation"
+    },
+    {
+      "code": "002831",
+      "name": "裕同科技",
+      "baseline_price": 26.40,
+      "status": "watch_only"
+    },
+    {
+      "code": "002273",
+      "name": "水晶光电",
+      "baseline_price": 26.12,
+      "status": "no_new_position"
+    }
+  ]
+}
