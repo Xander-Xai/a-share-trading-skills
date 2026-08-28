@@ -113,10 +113,16 @@ class DatasetCoverage(EntityMixin):
     def record_id(self) -> str:
         self.validate()
         scope = self.security_id or self.exchange or "GLOBAL"
-        key = self.dataset_key or "ALL"
+        if self.dataset_key is None:
+            # Preserve the v1 identity for all pre-existing coverage assertions.
+            return (
+                f"DATASET_COVERAGE:{self.dataset_family}:{self.scope_type}:"
+                f"{scope}:{self.coverage_id}:{self.start_date}:{self.end_date}"
+            )
         return (
-            f"DATASET_COVERAGE:{self.dataset_family}:{key}:{self.scope_type}:"
-            f"{scope}:{self.coverage_id}:{self.start_date}:{self.end_date}"
+            f"DATASET_COVERAGE:{self.dataset_family}:{self.dataset_key}:"
+            f"{self.scope_type}:{scope}:{self.coverage_id}:"
+            f"{self.start_date}:{self.end_date}"
         )
 
 
