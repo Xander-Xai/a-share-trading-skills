@@ -4,7 +4,7 @@ description: Select, rank, size, and manage A-share stocks for short-to-medium-t
 compatibility: Requires fresh public market data, official A-share disclosures, and web research.
 metadata:
   author: yandexuanxuan
-  version: "1.5.0"
+  version: "1.6.0"
   market: "China A-share"
 ---
 
@@ -185,20 +185,46 @@ Catalyst: 15
 
 ### Challenger — Shadow Only
 
-`references/causal-challenger-model.md` 只做 Shadow：
+`references/causal-challenger-model.md` 只做 Shadow，并在 v1.1 接入 ERG：
 
 ```text
-Business / Survival Quality
-→ Valuation / Expectation Gap
-→ Catalyst / Expectation Change
+Eligibility
+→ Business / Survival Quality
+→ Expectation–Reaction Gate
+   ├─ Expectation Baseline
+   ├─ Surprise
+   ├─ Economic Materiality
+   ├─ Prepricing
+   └─ Post-event Reaction
 → Market / Sector Regime
 → Participation / Relative Strength
+→ Research State
 → Price Structure / Execution
+→ Risk
+→ Position State
 ```
 
-公平对照见 `references/champion-challenger-forward-test.md`。
+ERG 读取：
 
-在 Level 1C Promotion 完成前，Challenger 不得改变真实订单或静默覆盖 Champion。
+- `references/expectation-reaction-gate.md`；
+- `references/erg-output-schema.md`；
+- `references/erg-validation-checklist.md`。
+
+公平对照与增量验证读取：
+
+- `references/champion-challenger-forward-test.md`；
+- `references/erg-forward-test-extension.md`；
+- `references/statistical-promotion-guard.md`。
+
+ERG/Challenger 均为 Shadow。它们不能改变 Champion、Paper/Live 真实订单或 shared risk cap，除非完成 Level 1C Promotion。
+
+对 Challenger 采用：
+
+```text
+State First, Rank Second
+```
+
+Research State 先决定资格；Score 仅用于可比较状态内部排序，不能覆盖 Hard Gate 或把未确认事件机械变成交易。
 
 ## 7. Market / Sector Regime
 
@@ -400,6 +426,15 @@ invalidated
 - 约3–5日明显不工作且相对强度恶化，可考虑 time stop/reduction；
 - 超15日必须重新写 thesis、score、stop、risk。
 
+ERG Challenger 另外维护两个独立字段：
+
+```text
+research_state = REJECT / WATCH / CANDIDATE / CONFIRMED / INVALIDATED
+position_state = FLAT / READY / ENTRY / HOLD / ADD / TRIM / EXIT / COOLDOWN
+```
+
+因此 `CONFIRMED` 不等于必须立即买入。
+
 ## 18. Stop Rules
 
 ```text
@@ -418,6 +453,8 @@ define invalidation
 ```
 
 不得入场后才发明 stop，不得向更亏方向放宽。
+
+对于 Challenger，每个交易在入场前还必须声明 `strategy_type`。EVENT_MOMENTUM / TREND 亏损后不得静默改名为 MEAN_REVERSION 或长期持有。
 
 ## 19. Profit Management
 
@@ -495,6 +532,15 @@ Portfolio heat 是计划失效点亏损，不是投入金额。
 - cross-sleeve symbol/cluster；
 - Champion/Challenger contamination auditor。
 
+ERG Challenger 额外运行：
+
+- expectation baseline quality / consensus dispersion；
+- positive-news prepricing / chase attack；
+- event-specific reaction vs generic momentum；
+- strategy-type drift；
+- trial-count / data-snooping；
+- ERG complexity / ablation attack。
+
 Hard Gate 失败就移除并重跑。
 
 ## 24. Source Policy
@@ -508,6 +554,18 @@ Hard Gate 失败就移除并重跑。
 - vendor “主力流入”仅辅助；
 - 正式行业分类来自声明 taxonomy。
 
+ERG 事件记录必须额外保留：
+
+```text
+information_timestamp
+first_tradable_timestamp
+source_tier
+expectation_baseline_type
+expectation_confidence
+```
+
+低置信 expectation 不得伪装为 verified surprise。
+
 ## 25. Required Output
 
 筛选 universe 时报告：
@@ -515,13 +573,14 @@ Hard Gate 失败就移除并重跑。
 1. data coverage + `as_of`；
 2. market regime；
 3. Champion ranked pool；
-4. 若 Challenger 开启，独立 Shadow score/status 和 disagreement；
-5. executable candidates：trigger、invalidation、gap risk、tranche、risk；
-6. near misses；
-7. adversarial audit；
-8. Stock Account Equity + Final Short Cap；
-9. current short exposure / pending cash / CAP_BREACH；
-10. account-level same-symbol / cluster exposure，包括长期仓。
+4. 若 Challenger 开启，独立 Shadow score/status、`research_state`、`position_state` 和 disagreement；
+5. 若存在事件驱动候选，输出/保存 ERG 的 expectation、surprise、materiality、prepricing、reaction 与 `source_tier`；
+6. executable candidates：trigger、invalidation、gap risk、tranche、risk；
+7. near misses；
+8. adversarial audit；
+9. Stock Account Equity + Final Short Cap；
+10. current short exposure / pending cash / CAP_BREACH；
+11. account-level same-symbol / cluster exposure，包括长期仓。
 
 行业覆盖任务额外报告 taxonomy/version、universe/core coverage、uncovered/absent、qualified supplements。
 
@@ -542,6 +601,13 @@ Hard Gate 失败就移除并重跑。
 
 MFE/MAE 扩展见 `references/trade-ledger-mfe-mae-extension.md`。
 
+ERG/Challenger 还记录：
+
+- research_state / position_state / strategy_type；
+- expectation/reaction event fields；
+- ERG ablation cohort/version；
+- number_of_trials / parameter stability / model-selection risk。
+
 参数不能在少量交易后自动修改；新想法进入 Challenger。
 
 ## 27. Paper / Live / Automation
@@ -561,6 +627,8 @@ AUTO_ORDER   = false
 
 Paper/Live 必须可审计、可对账，broker/data/policy 状态未知时 fail closed。
 
+ERG 处于 Shadow 时不得改变真实报单。
+
 ## 28. Governance Version Fields
 
 研究/执行记录至少分开保存：
@@ -573,6 +641,8 @@ skill_version
 strategy_version / model_version
 ```
 
+ERG Challenger 额外保存 `erg_version`。
+
 不得只写一个模糊 `policy_version`。
 
 ## 29. Reference / Historical Files
@@ -581,6 +651,14 @@ strategy_version / model_version
 
 - `references/scoring-system.md` — 当前 Champion；
 - `references/causal-challenger-model.md` — Challenger / Shadow Only；
+- `references/expectation-reaction-gate.md` — ERG / Shadow Only；
+- `references/erg-output-schema.md`；
+- `references/erg-validation-checklist.md`；
+- `references/erg-forward-test-extension.md`；
+- `references/statistical-promotion-guard.md`；
+- `references/erg-promotion-criteria.md`；
+- `references/erg-adversarial-review-report.md`；
+- `references/erg-research-rationale.md`；
 - `references/champion-challenger-forward-test.md`；
 - `references/trade-ledger-mfe-mae-extension.md`；
 - `references/holding-risk-management.md`；

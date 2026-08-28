@@ -1,4 +1,4 @@
-# Causal Challenger Model v1
+# Causal Challenger Model v1.1
 
 > 状态：`CHALLENGER / SHADOW ONLY`
 >
@@ -10,19 +10,28 @@
 
 ```text
 Eligibility
-→ Expectation Change
+→ Business / Survival Quality
+→ Expectation–Reaction Gate (ERG)
+   ├─ Expectation Baseline
+   ├─ Surprise
+   ├─ Economic Materiality
+   ├─ Prepricing
+   └─ Post-event Reaction
 → Regime
-→ Participation
-→ Price Confirmation
-→ Execution
+→ Participation / Relative Strength
+→ Research State
+→ Price Structure / Execution
 → Risk
+→ Position State
 ```
 
-核心假设：短中期可交易机会更可能来自“预期变化 + 市场参与 + 合适 Regime + 可执行价格结构”的组合，而不是单一技术指标或单一所谓主力资金指标。
+ERG 详细规则见 `expectation-reaction-gate.md`。它是 Challenger 的**子模块**，不是第五套平行端到端模型。
+
+核心假设：短中期可交易机会更可能来自“预期变化 + 未充分定价 + 市场参与/反应 + 合适 Regime + 可执行价格结构”的组合，而不是单一技术指标、单一财报同比或单一所谓主力资金指标。
 
 ## 2. Hard Gates
 
-任一项失败，Challenger 状态为 `REJECT`：
+任一项失败，Challenger research state 为 `REJECT`：
 
 - ST/*ST、重大退市/会计/治理风险；
 - 身份或代码无法确认；
@@ -35,6 +44,8 @@ Eligibility
 ## 3. Challenger Score
 
 > 以下权重是研究参数，不是生产规则，也不是“学术最优权重”。
+>
+> ERG 引入后采用 **State First, Rank Second**：Research State 先决定是否具备交易资格；Score 只用于相同/可比较 State 内部排序，不能让高分 `CANDIDATE` 自动越过低分 `CONFIRMED` 成为可执行交易。
 
 ```text
 Business / Survival Quality     25
@@ -69,6 +80,8 @@ Total                           100
 
 ### 3.3 Catalyst / Expectation Change — 20
 
+该维度必须调用 `expectation-reaction-gate.md`，不能只看“消息是否利好”。
+
 优先可验证、能影响未来 5–60 个交易日预期的事件：
 
 - 盈利/订单/产品价格变化；
@@ -76,6 +89,25 @@ Total                           100
 - 已发布政策；
 - 回购/分红/资本运作；
 - 行业供需变化。
+
+对事件至少检查：
+
+```text
+Expectation Baseline
+→ Surprise
+→ Economic Materiality
+→ Prepricing
+→ Post-event Reaction
+```
+
+要求：
+
+- 没有可靠预期基线时，不能把高同比直接写成“超预期”；
+- 订单必须检查订单额/收入、利润率、确认周期和履约风险；
+- 商品/产品价格必须写明价格→成本→margin→profit 的传导路径；
+- 政策必须落到需求、价格、成本、产能、竞争或利润；
+- 正面信息若已经高度 Prepriced 或公告后出现负向相对反应，不得仅靠 headline 维持高催化判断；
+- `source_tier`、`information_timestamp`、`first_tradable_timestamp` 必须保留。
 
 降低：
 
@@ -127,6 +159,8 @@ Price Confirmation
 - 相对直接同业
 ```
 
+对于事件驱动候选，优先使用 ERG 的**事件特定相对反应**，不要把 generic momentum 直接当成事件确认。
+
 vendor “主力净流入”只能是补充证据，不得单独给满分。
 
 ### 3.6 Price Structure / Execution — 10
@@ -143,25 +177,43 @@ vendor “主力净流入”只能是补充证据，不得单独给满分。
 
 不因为技术只有 10 分，就降低对执行风险的重视；严重 execution risk 仍是 Hard Veto。
 
-## 4. 状态机
+## 4. 双状态机
+
+ERG 后将“研究状态”与“持仓/执行生命周期”拆开，避免 `CONFIRMED = 必须买` 或 `READY = 研究已确认` 的混淆。
+
+### 4.1 Research State
 
 ```text
 REJECT
-  ↓
 WATCH
-  ↓
+CANDIDATE
+CONFIRMED
+INVALIDATED
+```
+
+规则见 `expectation-reaction-gate.md`。
+
+### 4.2 Position State
+
+```text
+FLAT
 READY
-  ↓
 ENTRY
-  ↓
 HOLD
-  ↓
-ADD / HOLD / TRIM
-  ↓
+ADD
+TRIM
 EXIT
-  ↓
 COOLDOWN
 ```
+
+允许：
+
+```text
+research_state = CONFIRMED
+position_state = FLAT
+```
+
+例如逻辑已确认，但价格过度延伸、事件 gap 风险过高或 Reward/Risk 不合格。
 
 ### READY
 
@@ -169,15 +221,16 @@ COOLDOWN
 
 ```text
 Hard Gates = PASS
+research_state = CONFIRMED
 Challenger Score >= research_threshold
 Regime != RISK_OFF (unless strategy explicitly supports it)
 Reward/Risk >= strategy_minimum
 Risk Budget = PASS
 ```
 
-`research_threshold` 是前测参数，不得静默替换 Champion 的 80/75/65 阈值。
+`research_threshold` 是前测参数，不得静默替换 Champion 的 80/75/65 阈值；Score 不得覆盖 research state 或 Hard Gate。
 
-## 5. 建仓与加仓
+## 5. 建仓、加仓与 Strategy-type Lock
 
 仍受 shared policy：
 
@@ -200,7 +253,18 @@ Risk Budget = PASS
 - sector/catalyst continues；
 - 新事实强化 thesis。
 
-注意：此规则只属于趋势/催化策略，不推广到长期价值分批建仓。
+每个交易 Thesis 在入场前声明：
+
+```text
+EVENT_MOMENTUM
+TREND
+MEAN_REVERSION
+OTHER_EXPERIMENTAL
+```
+
+亏损中的 EVENT_MOMENTUM / TREND 不得静默改成 MEAN_REVERSION 或长期投资。变更 strategy type 必须结束/重新承保原 Thesis，并生成新记录。
+
+注意：趋势/催化加仓规则不推广到长期价值分批建仓。
 
 ## 6. 退出
 
@@ -224,6 +288,9 @@ champion_score
 champion_status
 challenger_score
 challenger_status
+research_state
+position_state
+strategy_type
 regime
 catalyst_type
 participation_state
@@ -234,6 +301,22 @@ expected_RR
 risk_budget_status
 key_disagreement
 ```
+
+事件驱动候选还必须按 `expectation-reaction-gate.md` / `erg-output-schema.md` 保存 ERG 字段，至少包括：
+
+```text
+information_timestamp
+first_tradable_timestamp
+source_tier
+expectation_baseline_type
+expectation_confidence
+surprise_direction
+materiality_state
+prepricing_state
+reaction_state
+```
+
+缺失值必须显式 `null / UNRESOLVED`，不能凭空补齐。
 
 `key_disagreement` 解释 Champion 与 Challenger 为什么不同。
 
@@ -248,6 +331,17 @@ key_disagreement
 
 只允许使用 `as_of` 当时公开信息。
 
-## 9. 晋级
+## 9. 验证与晋级
 
-本模型只有在 `champion-challenger-forward-test.md` 定义的对照实验中通过 shared Promotion Gate，才允许提出替换 Champion 的 PR/规则变更。
+公平对照仍由 `champion-challenger-forward-test.md` 定义。
+
+ERG 增量验证读取：
+
+- `erg-forward-test-extension.md`；
+- `statistical-promotion-guard.md`；
+- `erg-validation-checklist.md`；
+- `erg-promotion-criteria.md`。
+
+必须做 ERG 模块消融，验证 Expectation/Surprise、Materiality、Prepricing、Reaction 分别是否增加样本外/Forward 的有效区分或改善风险，而不是把整套叙事一次性视为有效。
+
+本模型只有在 shared Promotion Gate 通过后，才允许提出替换 Champion 或部分模块晋级的 PR/规则变更。
