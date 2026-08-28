@@ -116,32 +116,37 @@ class ShortMidMarketFeatureTests(unittest.TestCase):
             security_ids=[self.security_id],
         )
 
-    def test_build_is_deterministic_for_same_data_snapshot(self):
+    def build_features(
+        self,
+        store: PITStore,
+        snapshot: dict,
+        *,
+        daily_bar_coverage_confirmed=True,
+        corporate_action_coverage_confirmed=True,
+    ):
+        return ShortMidMarketFeatureBuilder().build_from_store(
+            store,
+            data_snapshot_id=snapshot["snapshot_id"],
+            security_id=self.security_id,
+            daily_bar_coverage_confirmed=daily_bar_coverage_confirmed,
+            corporate_action_coverage_confirmed=corporate_action_coverage_confirmed,
+        )
+
+    def test_build_is_deterministic_for_same_data_snapshot_and_coverage(self):
         store = self.build_store()
         snapshot = self.make_snapshot(store)
-        builder = ShortMidMarketFeatureBuilder()
-        first = builder.build_from_store(
-            store,
-            data_snapshot_id=snapshot["snapshot_id"],
-            security_id=self.security_id,
-        )
-        second = builder.build_from_store(
-            store,
-            data_snapshot_id=snapshot["snapshot_id"],
-            security_id=self.security_id,
-        )
+        first = self.build_features(store, snapshot)
+        second = self.build_features(store, snapshot)
         self.assertEqual(first.feature_snapshot_id, second.feature_snapshot_id)
 
-    def test_complete_history_produces_available_low_subjectivity_features(self):
+    def test_complete_confirmed_history_produces_available_low_subjectivity_features(self):
         store = self.build_store()
         snapshot = self.make_snapshot(store)
-        result = ShortMidMarketFeatureBuilder().build_from_store(
-            store,
-            data_snapshot_id=snapshot["snapshot_id"],
-            security_id=self.security_id,
-        )
+        result = self.build_features(store, snapshot)
         features = result.feature_map()
 
+        self.assertTrue(features["market.daily_bar_coverage_confirmed"].value)
+        self.assertTrue(features["market.corporate_action_coverage_confirmed"].value)
         self.assertEqual(features["market.bar_count"].value, 21)
         self.assertEqual(features["market.return_5d_pct"].status, "AVAILABLE")
         self.assertEqual(features["market.return_10d_pct"].status, "AVAILABLE")
@@ -152,16 +157,30 @@ class ShortMidMarketFeatureTests(unittest.TestCase):
         self.assertEqual(features["market.turnover_ratio_1_vs_20"].status, "AVAILABLE")
         self.assertGreater(features["market.rvol_1_vs_20"].value, 1.0)
         self.assertGreater(features["market.turnover_ratio_1_vs_20"].value, 1.0)
-        self.assertFalse(features["market.corporate_action_in_20d_window"].value)
+        self.assertFalse(features["market.observed_corporate_action_in_20d_window"].value)
+
+    def test_unconfirmed_coverage_fails_trailing_features_closed(self):
+        store = self.build_store()
+        snapshot = self.make_snapshot(store)
+        result = self.build_features(
+            store,
+            snapshot,
+            daily_bar_coverage_confirmed=False,
+            corporate_action_coverage_confirmed=False,
+        )
+        features = result.feature_map()
+        self.assertFalse(features["market.daily_bar_coverage_confirmed"].value)
+        self.assertFalse(features["market.corporate_action_coverage_confirmed"].value)
+        self.assertEqual(features["market.return_20d_pct"].status, "UNRESOLVED")
+        self.assertEqual(features["market.ma20"].status, "UNRESOLVED")
+        self.assertEqual(features["market.rvol_1_vs_20"].status, "UNRESOLVED")
+        self.assertEqual(features["market.return_1d_pct"].status, "UNRESOLVED")
+        self.assertEqual(features["market.close_vs_open_pct"].status, "AVAILABLE")
 
     def test_insufficient_history_is_missing_not_fabricated(self):
         store = self.build_store(bar_count=4)
         snapshot = self.make_snapshot(store)
-        result = ShortMidMarketFeatureBuilder().build_from_store(
-            store,
-            data_snapshot_id=snapshot["snapshot_id"],
-            security_id=self.security_id,
-        )
+        result = self.build_features(store, snapshot)
         features = result.feature_map()
         self.assertEqual(features["market.return_5d_pct"].status, "MISSING")
         self.assertEqual(features["market.ma5"].status, "MISSING")
@@ -172,13 +191,9 @@ class ShortMidMarketFeatureTests(unittest.TestCase):
         ex_date = business_days_ending(date(2026, 8, 28), 21)[-5]
         store = self.build_store(action_ex_date=ex_date)
         snapshot = self.make_snapshot(store)
-        result = ShortMidMarketFeatureBuilder().build_from_store(
-            store,
-            data_snapshot_id=snapshot["snapshot_id"],
-            security_id=self.security_id,
-        )
+        result = self.build_features(store, snapshot)
         features = result.feature_map()
-        self.assertTrue(features["market.corporate_action_in_20d_window"].value)
+        self.assertTrue(features["market.observed_corporate_action_in_20d_window"].value)
         self.assertEqual(features["market.return_20d_pct"].status, "UNRESOLVED")
         self.assertEqual(features["market.ma20"].status, "UNRESOLVED")
         self.assertEqual(features["market.distance_to_20d_high_pct"].status, "UNRESOLVED")
@@ -189,13 +204,9 @@ class ShortMidMarketFeatureTests(unittest.TestCase):
         ex_date = date(2026, 8, 28)
         store = self.build_store(action_ex_date=ex_date)
         snapshot = self.make_snapshot(store)
-        result = ShortMidMarketFeatureBuilder().build_from_store(
-            store,
-            data_snapshot_id=snapshot["snapshot_id"],
-            security_id=self.security_id,
-        )
+        result = self.build_features(store, snapshot)
         features = result.feature_map()
-        self.assertTrue(features["market.latest_ex_date_action"].value)
+        self.assertTrue(features["market.observed_latest_ex_date_action"].value)
         self.assertEqual(features["market.return_1d_pct"].status, "UNRESOLVED")
         self.assertEqual(features["market.gap_pct"].status, "UNRESOLVED")
         self.assertEqual(features["market.range_pct"].status, "UNRESOLVED")
@@ -205,11 +216,7 @@ class ShortMidMarketFeatureTests(unittest.TestCase):
         store = self.build_store()
         snapshot = self.make_snapshot(store, long=True)
         with self.assertRaises(ValueError):
-            ShortMidMarketFeatureBuilder().build_from_store(
-                store,
-                data_snapshot_id=snapshot["snapshot_id"],
-                security_id=self.security_id,
-            )
+            self.build_features(store, snapshot)
 
 
 if __name__ == "__main__":
