@@ -45,13 +45,13 @@ Exact Champion point scores are intentionally not fabricated where capital-parti
 | 1 | 中国铝业 | ~80 / high-priority research | CONFIRMED | MULTI_EVIDENCE | FLAT | EVENT_MOMENTUM |
 | 2 | 世纪华通 | 75–79 / trigger candidate | CANDIDATE | EVENT_REACTION | FLAT | EVENT_MOMENTUM |
 | 3 | 云天化 | 75–79 / trigger candidate | CONFIRMED | TREND_STRUCTURE | FLAT | TREND |
-| 4* | 盛和资源 | 75–79 / event candidate | CANDIDATE | EVENT_REACTION_PENDING | FLAT | EVENT_MOMENTUM |
+| 4* | 盛和资源 | 75–79 / event candidate | CANDIDATE | — (pending EVENT_REACTION) | FLAT | EVENT_MOMENTUM |
 | 5 | 小商品城 | 65–74 / watch-trigger | CANDIDATE | MULTI_EVIDENCE | FLAT | EVENT_MOMENTUM |
 | 6 | 中海油服 | 65–74 / watch-trigger | CONFIRMED | TREND_STRUCTURE | FLAT | TREND |
 | 7 | 裕同科技 | ~60–67 / watch | WATCH | MULTI_EVIDENCE | FLAT | EVENT_MOMENTUM |
 | 8 | 水晶光电 | <65 / no new position | INVALIDATED | EVENT_REACTION | FLAT | EVENT_MOMENTUM |
 
-`*` 盛和资源 is isolated from ordinary ordinal comparison until the first tradable post-report reaction is observed.
+`*` 盛和资源 is isolated from ordinary ordinal comparison until the first tradable post-report reaction is observed. Its `confirmation_basis` is not populated because the research state is still `CANDIDATE`; the pending basis is `EVENT_REACTION`.
 
 ## 4. Frozen execution plans
 
@@ -70,7 +70,7 @@ These are Setup / Confirmation / Thesis Invalidation references, not determinist
 
 ## 5. Event/PIT lock: 盛和资源
 
-At this cohort timestamp the formal H1 report had become public after the normal 15:00 close, around the late-afternoon disclosure window used in research.
+At this cohort timestamp the formal H1 report had become public after the normal 15:00 close, around `2026-08-28T16:23:00+08:00` in the research snapshot.
 
 Frozen rule:
 
@@ -79,7 +79,20 @@ Frozen rule:
 != post-H1-report reaction
 ```
 
-Because the event occurred after the usable same-day post-close execution window, the event reaction is anchored to the next valid trading session, subject to the session-aware execution contract and exchange/broker status.
+The information timestamp was later than the current 15:05–15:30 post-close fixed-price trading window. Therefore same-day reaction is unavailable. The event must be anchored to the next valid exchange session, while the exact executable timestamp remains subject to the session-aware execution contract and broker/account resolution.
+
+Frozen session fields:
+
+```text
+exchange = SSE
+post_close_eligible = true
+same_day_post_close_window_status = CLOSED_BEFORE_INFORMATION
+session_type = NEXT_SESSION
+first_exchange_tradable_timestamp = null
+first_broker_executable_timestamp = null
+first_tradable_timestamp = null
+resolution_status = OUTSIDE_SESSION
+```
 
 Do not later rewrite the 2026-08-28 close as evidence that the market accepted or rejected that H1 report.
 
