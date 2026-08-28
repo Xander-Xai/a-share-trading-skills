@@ -13,6 +13,7 @@ from monitor import (
     decide_short_mid_action,
     normalize_stock_code,
 )
+from src.core.strategy_boundary import LONG_SLEEVE, LONG_STRATEGY_ID
 
 
 class CodeNormalizationTests(unittest.TestCase):
@@ -86,6 +87,21 @@ class SentimentTests(unittest.TestCase):
 
 
 class ActionEngineTests(unittest.TestCase):
+    def test_long_sleeve_cannot_enter_short_mid_engine(self):
+        state = DecisionInput(
+            strategy_id=LONG_STRATEGY_ID,
+            sleeve=LONG_SLEEVE,
+            data_complete=True,
+            entry_gate_pass=True,
+            score_gate_pass=True,
+            reward_risk_pass=True,
+            risk_budget_pass=True,
+        )
+        self.assertEqual(
+            decide_short_mid_action(state),
+            "NO_ACTION_STRATEGY_MISMATCH",
+        )
+
     def test_incomplete_data_never_trades(self):
         self.assertEqual(
             decide_short_mid_action(DecisionInput(data_complete=False)),
