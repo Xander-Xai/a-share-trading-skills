@@ -1,6 +1,6 @@
 # Short/Mid Sample Data Maturity — 2026-08-29
 
-- generated_at: `2026-08-29T04:11:41.786871+08:00`
+- generated_at: `2026-08-29T04:13:04.698525+08:00`
 - sample_count: `1`
 - evidence_snapshot_days_total: `1`
 - alpha interpretation: `NOT_INFERRED_FROM_DATA_COMPLETENESS`
