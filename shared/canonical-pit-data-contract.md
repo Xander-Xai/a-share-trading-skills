@@ -1,8 +1,10 @@
-# Canonical Point-in-Time Data Contract v1.1
+# Canonical Point-in-Time Data Contract v1.2
 
 > Status: `ACTIVE DATA / REPLAY CONTRACT`
 >
 > Scope: data adapters, historical replay, Forward cohorts, Champion/Challenger research, long-term valuation research and future Paper/Live decision records.
+>
+> Normalized payload shapes are governed by `canonical-entity-schema-contract.md`; this file governs time, revision, provenance, visibility and snapshot semantics.
 
 ## 1. First principle
 
@@ -159,6 +161,8 @@ ORDER
 FILL
 ```
 
+The first active normalized schema subset is defined in `canonical-entity-schema-contract.md` and `src/data/entities.py`.
+
 Not every source requires every timestamp, but absence must be explicit rather than filled with invented values.
 
 ## 8. Raw → normalized → feature → decision lineage
@@ -167,6 +171,10 @@ Target lineage:
 
 ```text
 Immutable Raw Evidence
+        ↓
+Source Adapter
+        ↓
+Canonical Entity
         ↓
 Normalized PIT Record
         ↓
@@ -209,25 +217,32 @@ unresolved revision ambiguity
 missing critical source timestamp
 unresolved broker/account truth
 unresolved license / permitted-use state required for production
+invalid canonical entity payload
 ```
 
 Research may continue with an explicit `UNRESOLVED` label when governance permits, but it cannot be silently promoted to executable evidence.
 
 ## 11. Active machine implementation
 
-The first executable implementation is now active under:
+The executable implementation is now active under:
 
 ```text
 src/core/pit.py
 src/core/pit_store.py
+src/data/entities.py
+src/data/adapters.py
+src/data/ingest.py
 runtime/pit_snapshot.py
 runtime/tests/test_pit_store.py
+runtime/tests/test_canonical_entities.py
 ```
 
 Current capabilities:
 
 ```text
 PIT metadata validation
+canonical entity validation
+source-adapter normalization contract
 append-only record/revision storage
 payload SHA-256 integrity
 immutable record_id + revision_id identity
