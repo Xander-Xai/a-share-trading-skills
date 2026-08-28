@@ -1,4 +1,4 @@
-# Canonical Point-in-Time Data Contract v1
+# Canonical Point-in-Time Data Contract v1.1
 
 > Status: `ACTIVE DATA / REPLAY CONTRACT`
 >
@@ -93,6 +93,8 @@ published_at
 available_at
 payload_hash
 ```
+
+A stable `record_id` represents the same logical fact across revisions. A new revision uses a new `revision_id` and should link to the prior revision through `supersedes_revision_id` where lineage is known.
 
 When historical revision lineage cannot be reconstructed, mark the affected test:
 
@@ -210,3 +212,121 @@ unresolved license / permitted-use state required for production
 ```
 
 Research may continue with an explicit `UNRESOLVED` label when governance permits, but it cannot be silently promoted to executable evidence.
+
+## 11. Active machine implementation
+
+The first executable implementation is now active under:
+
+```text
+src/core/pit.py
+src/core/pit_store.py
+runtime/pit_snapshot.py
+runtime/tests/test_pit_store.py
+```
+
+Current capabilities:
+
+```text
+PIT metadata validation
+append-only record/revision storage
+payload SHA-256 integrity
+immutable record_id + revision_id identity
+revision lineage checks
+strategy visibility
+latest observable revision selection
+intended-use / permitted-use gate
+deterministic data_snapshot_id
+snapshot manifest persistence
+snapshot materialization integrity verification
+```
+
+This implementation does not yet mean the complete historical A-share dataset exists.
+
+## 12. Reference store backend
+
+The first backend is deliberately simple:
+
+```text
+records.jsonl
+snapshots/<snapshot_id>.json
+```
+
+It is a **reference/research MVP**, selected to make replay semantics auditable before introducing a larger storage dependency.
+
+It is not the final scaling decision for multi-year full-market price/financial history.
+
+Expected evolution after contracts stabilize:
+
+```text
+append-only raw evidence
+→ normalized columnar store (for example Parquet)
+→ analytical query layer (for example DuckDB)
+```
+
+A backend migration must preserve snapshot/replay semantics and must not change strategy outputs merely because storage technology changed.
+
+## 13. Deterministic snapshot contract
+
+A snapshot identity is derived from:
+
+```text
+snapshot schema version
+strategy_id
+sleeve
+as_of
+intended_use
+ordered selected record references
+```
+
+Each reference contains at least:
+
+```text
+record_id
+revision_id
+entity_type
+security_id
+available_at
+source_snapshot_id
+payload_hash
+```
+
+`created_at` is metadata and is not part of the identity hash.
+
+Therefore:
+
+```text
+same store contents
++ same strategy context
++ same as_of
++ same filters
++ same intended_use
+→ same snapshot_id
+```
+
+A completed snapshot manifest is not overwritten by a later run with the same identity.
+
+## 14. Intended-use gate
+
+Snapshot creation distinguishes:
+
+```text
+RESEARCH
+INTERNAL_PRODUCTION
+REDISTRIBUTION
+```
+
+Machine policy:
+
+```text
+RESEARCH
+→ may consume research-labelled records subject to governance/law
+
+INTERNAL_PRODUCTION
+→ every selected required record must be explicitly
+  INTERNAL_PRODUCTION_ALLOWED or REDISTRIBUTION_ALLOWED
+
+REDISTRIBUTION
+→ every selected required record must be REDISTRIBUTION_ALLOWED
+```
+
+This gate is a technical enforcement of repository metadata, not legal advice and not a substitute for reviewing exchange/vendor contracts.
