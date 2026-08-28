@@ -21,6 +21,18 @@ AdjustmentFactorBuilder
 RelativePerformanceBuilder
 ↓
 EventReactionMeasurementBuilder
+
+PIT GUIDANCE / CONSENSUS_EXPECTATION
++ PIT FINANCIAL_STATEMENT
++ frozen source/classification contract
+↓
+PITExpectationSurpriseAdapter
+↓
+ExpectationEvidence + SurpriseEvidence
+
+Expectation / Surprise
++ Materiality
++ Prepricing / Reaction
 ↓
 ERG Evidence Bundle
 ↓
@@ -47,6 +59,13 @@ event_reaction.py
 → PIT event clock + explicit prepricing/reaction windows
 → first-full-session daily-bar measurement
 
+erg_expectation_surprise.py
+→ exact-record source-backed expectation baseline
+→ PIT clock enforcement for pre-event expectation vs post-event actual
+→ guidance RANGE_BREAK / point or consensus POINT_DELTA surprise evidence
+→ content-addressed source/classification contract
+→ monetary v1 only; unsupported units fail closed
+
 erg_shadow.py
 → structured Eligibility / Expectation / Surprise / Materiality / Prepricing / Reaction evidence
 → content-addressed ERG evidence bundle
@@ -68,11 +87,14 @@ Shared upstream facts such as:
 DailyBar
 CorporateAction
 TradingSession
+FinancialStatement
+Guidance
+ConsensusExpectation
 Benchmark data
 Adjustment factors
 ```
 
-may be used by both stock sleeves.
+may be used by both stock sleeves as facts.
 
 But current tactical measurements such as:
 
@@ -82,6 +104,7 @@ MA / RVOL
 relative-performance windows
 prepricing CAR
 post-event reaction windows
+short/mid expectation-surprise classification
 ERG evidence/state transitions
 ```
 
@@ -101,6 +124,9 @@ feature available
 
 positive abnormal return
 != market confirmation
+
+source-backed positive surprise
+!= economic materiality
 
 strong reaction
 != entry permission
