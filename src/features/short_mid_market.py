@@ -16,7 +16,7 @@ from src.features.snapshot import FeatureSnapshot, FeatureValue
 
 
 FEATURE_SET_VERSION = "short-mid-market-v0"
-IMPLEMENTATION_VERSION = "short-mid-market-v0.1"
+IMPLEMENTATION_VERSION = "short-mid-market-v0.2"
 CONFIG_VERSION = "short-mid-market-v0"
 CALC_PREFIX = "short-mid-market-v0"
 
@@ -66,10 +66,13 @@ class _ActionRecord:
 class ShortMidMarketFeatureBuilder:
     """Build a conservative deterministic market-feature slice for Short/Mid.
 
-    Canonical DAILY_BAR values are unadjusted. Multi-session calculations therefore
-    fail closed to UNRESOLVED when an ex-date corporate action occurs inside the
-    relevant lookback window. This avoids silently treating raw unadjusted prices
-    as a continuous adjusted series.
+    Canonical DAILY_BAR values are unadjusted. Multi-session calculations are
+    therefore available only when both daily-bar coverage and corporate-action
+    coverage have been explicitly confirmed by an upstream data-quality process.
+
+    An empty action set is not treated as proof that no corporate action occurred.
+    Missing coverage confirmation fails adjustment-sensitive features closed to
+    `UNRESOLVED` rather than silently assuming a continuous price series.
     """
 
     def build_from_store(
@@ -78,6 +81,8 @@ class ShortMidMarketFeatureBuilder:
         *,
         data_snapshot_id: str,
         security_id: str,
+        daily_bar_coverage_confirmed: bool = False,
+        corporate_action_coverage_confirmed: bool = False,
     ) -> FeatureSnapshot:
         manifest = store.load_snapshot(data_snapshot_id)
         require_strategy_context(
@@ -92,6 +97,8 @@ class ShortMidMarketFeatureBuilder:
             data_snapshot_id=data_snapshot_id,
             as_of=str(manifest["as_of"]),
             security_id=security_id,
+            daily_bar_coverage_confirmed=daily_bar_coverage_confirmed,
+            corporate_action_coverage_confirmed=corporate_action_coverage_confirmed,
         )
 
     def build(
@@ -101,9 +108,17 @@ class ShortMidMarketFeatureBuilder:
         data_snapshot_id: str,
         as_of: str,
         security_id: str,
+        daily_bar_coverage_confirmed: bool = False,
+        corporate_action_coverage_confirmed: bool = False,
     ) -> FeatureSnapshot:
-        bars = self._bars(records, security_id)
-        actions = self._actions(records, security_id)
+        if type(daily_bar_coverage_confirmed) is not bool:
+            raise ValueError("daily_bar_coverage_confirmed must be boolean")
+        if type(corporate_action_coverage_confirmed) is not bool:
+            raise ValueError("corporate_action_coverage_confirmed must be boolean")
+
+        materialized = tuple(records)
+        bars = self._bars(materialized, security_id)
+        actions = self._actions(materialized, security_id)
         if not bars:
             raise ValueError(f"no DAILY_BAR records for security_id={security_id}")
 
@@ -114,6 +129,16 @@ class ShortMidMarketFeatureBuilder:
 
         features.extend(
             [
+                _feature(
+                    "market.daily_bar_coverage_confirmed",
+                    status="AVAILABLE",
+                    value=daily_bar_coverage_confirmed,
+                ),
+                _feature(
+                    "market.corporate_action_coverage_confirmed",
+                    status="AVAILABLE",
+                    value=corporate_action_coverage_confirmed,
+                ),
                 _feature(
                     "market.latest_trade_date",
                     status="AVAILABLE",
@@ -167,19 +192,19 @@ class ShortMidMarketFeatureBuilder:
         features.extend(
             [
                 _feature(
-                    "market.corporate_action_in_20d_window",
+                    "market.observed_corporate_action_in_20d_window",
                     status="AVAILABLE",
                     value=bool(actions_20),
                     records=tuple(item.record for item in actions_20),
                 ),
                 _feature(
-                    "market.latest_ex_date_action",
+                    "market.observed_latest_ex_date_action",
                     status="AVAILABLE",
                     value=bool(actions_latest),
                     records=tuple(item.record for item in actions_latest),
                 ),
                 _feature(
-                    "market.suspension_count_20d",
+                    "market.observed_suspension_count_20d",
                     status="AVAILABLE",
                     value=sum(1 for item in last20 if item.bar.suspended),
                     records=tuple(item.record for item in last20),
@@ -197,6 +222,10 @@ class ShortMidMarketFeatureBuilder:
         if latest_bar.prev_close is None:
             for name in ("market.return_1d_pct", "market.gap_pct", "market.range_pct"):
                 features.append(_feature(name, status="MISSING", records=latest_records))
+        elif not corporate_action_coverage_confirmed:
+            affected = latest_records + tuple(item.record for item in actions_latest)
+            for name in ("market.return_1d_pct", "market.gap_pct", "market.range_pct"):
+                features.append(_feature(name, status="UNRESOLVED", records=affected))
         elif actions_latest:
             affected = latest_records + tuple(item.record for item in actions_latest)
             for name in ("market.return_1d_pct", "market.gap_pct", "market.range_pct"):
@@ -232,19 +261,30 @@ class ShortMidMarketFeatureBuilder:
                 ]
             )
 
-        self._append_return_feature(features, bars, actions, sessions=5)
-        self._append_return_feature(features, bars, actions, sessions=10)
-        self._append_return_feature(features, bars, actions, sessions=20)
-        self._append_ma_feature(features, bars, actions, window=5)
-        self._append_ma_feature(features, bars, actions, window=10)
-        self._append_ma_feature(features, bars, actions, window=20)
-        self._append_distance_to_high_feature(features, bars, actions, window=20)
+        common_coverage = (
+            daily_bar_coverage_confirmed,
+            corporate_action_coverage_confirmed,
+        )
+        self._append_return_feature(features, bars, actions, sessions=5, coverage=common_coverage)
+        self._append_return_feature(features, bars, actions, sessions=10, coverage=common_coverage)
+        self._append_return_feature(features, bars, actions, sessions=20, coverage=common_coverage)
+        self._append_ma_feature(features, bars, actions, window=5, coverage=common_coverage)
+        self._append_ma_feature(features, bars, actions, window=10, coverage=common_coverage)
+        self._append_ma_feature(features, bars, actions, window=20, coverage=common_coverage)
+        self._append_distance_to_high_feature(
+            features,
+            bars,
+            actions,
+            window=20,
+            coverage=common_coverage,
+        )
         self._append_activity_ratio_feature(
             features,
             bars,
             actions,
             field="volume",
             name="market.rvol_1_vs_20",
+            coverage=common_coverage,
         )
         self._append_activity_ratio_feature(
             features,
@@ -252,6 +292,7 @@ class ShortMidMarketFeatureBuilder:
             actions,
             field="turnover",
             name="market.turnover_ratio_1_vs_20",
+            coverage=common_coverage,
         )
 
         return FeatureSnapshot.build(
@@ -320,6 +361,11 @@ class ShortMidMarketFeatureBuilder:
                 result.append(item)
         return result
 
+    @staticmethod
+    def _coverage_confirmed(coverage: tuple[bool, bool]) -> bool:
+        daily_bar_coverage_confirmed, corporate_action_coverage_confirmed = coverage
+        return daily_bar_coverage_confirmed and corporate_action_coverage_confirmed
+
     def _append_return_feature(
         self,
         features: list[FeatureValue],
@@ -327,6 +373,7 @@ class ShortMidMarketFeatureBuilder:
         actions: list[_ActionRecord],
         *,
         sessions: int,
+        coverage: tuple[bool, bool],
     ) -> None:
         name = f"market.return_{sessions}d_pct"
         required = sessions + 1
@@ -343,7 +390,7 @@ class ShortMidMarketFeatureBuilder:
         lineage = tuple(item.record for item in window) + tuple(
             item.record for item in action_rows
         )
-        if action_rows:
+        if not self._coverage_confirmed(coverage) or action_rows:
             features.append(_feature(name, status="UNRESOLVED", records=lineage))
             return
 
@@ -364,6 +411,7 @@ class ShortMidMarketFeatureBuilder:
         actions: list[_ActionRecord],
         *,
         window: int,
+        coverage: tuple[bool, bool],
     ) -> None:
         ma_name = f"market.ma{window}"
         distance_name = f"market.close_to_ma{window}_pct"
@@ -380,7 +428,7 @@ class ShortMidMarketFeatureBuilder:
         lineage = tuple(item.record for item in selected) + tuple(
             item.record for item in action_rows
         )
-        if action_rows:
+        if not self._coverage_confirmed(coverage) or action_rows:
             features.append(_feature(ma_name, status="UNRESOLVED", records=lineage))
             features.append(_feature(distance_name, status="UNRESOLVED", records=lineage))
             return
@@ -412,6 +460,7 @@ class ShortMidMarketFeatureBuilder:
         actions: list[_ActionRecord],
         *,
         window: int,
+        coverage: tuple[bool, bool],
     ) -> None:
         name = f"market.distance_to_{window}d_high_pct"
         if len(bars) < window:
@@ -427,7 +476,7 @@ class ShortMidMarketFeatureBuilder:
         lineage = tuple(item.record for item in selected) + tuple(
             item.record for item in action_rows
         )
-        if action_rows:
+        if not self._coverage_confirmed(coverage) or action_rows:
             features.append(_feature(name, status="UNRESOLVED", records=lineage))
             return
 
@@ -450,6 +499,7 @@ class ShortMidMarketFeatureBuilder:
         *,
         field: str,
         name: str,
+        coverage: tuple[bool, bool],
     ) -> None:
         # Latest session versus the prior 20 sessions, so 21 bars are required.
         if len(bars) < 21:
@@ -465,7 +515,7 @@ class ShortMidMarketFeatureBuilder:
         lineage = tuple(item.record for item in selected) + tuple(
             item.record for item in action_rows
         )
-        if action_rows:
+        if not self._coverage_confirmed(coverage) or action_rows:
             features.append(_feature(name, status="UNRESOLVED", records=lineage))
             return
 
