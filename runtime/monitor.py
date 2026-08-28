@@ -2,8 +2,21 @@ from __future__ import annotations
 
 import math
 import re
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from src.core.strategy_boundary import (
+    SHORT_MID_SLEEVE,
+    SHORT_MID_STRATEGY_ID,
+    require_strategy_context,
+)
 
 
 # Research / monitor parameters. They mirror the current sentiment reference,
@@ -167,6 +180,8 @@ def calculate_sentiment(metrics: Dict[str, Optional[float]]) -> Dict[str, Any]:
 class DecisionInput:
     """Normalized inputs for a deterministic short/mid-term action state."""
 
+    strategy_id: str = SHORT_MID_STRATEGY_ID
+    sleeve: str = SHORT_MID_SLEEVE
     data_complete: bool = True
     hard_veto: bool = False
     has_position: bool = False
@@ -187,16 +202,30 @@ class DecisionInput:
 
 
 def decide_short_mid_action(s: DecisionInput) -> str:
-    """Return a deterministic research/action state.
+    """Return a deterministic short/mid research/action state.
 
     This engine never bypasses broker or capital-policy gates. It is deliberately
     conservative: incomplete data always produces NO_ACTION.
+
+    A long-term context is rejected before any tactical rule is evaluated. This
+    prevents market-regime, planned-R, tactical time-stop or short/mid state from
+    silently mutating the long-term sleeve.
 
     RISK_OFF is not itself a hard veto in the production Skill. Upstream callers
     must tighten entry quality and risk sizing; if those stricter gates still
     pass, this state machine may return READY. PANIC and DATA_INSUFFICIENT remain
     fail-closed for new trend entries.
     """
+    try:
+        require_strategy_context(
+            strategy_id=s.strategy_id,
+            sleeve=s.sleeve,
+            expected_strategy_id=SHORT_MID_STRATEGY_ID,
+            expected_sleeve=SHORT_MID_SLEEVE,
+        )
+    except ValueError:
+        return "NO_ACTION_STRATEGY_MISMATCH"
+
     if not s.data_complete:
         return "NO_ACTION"
 
