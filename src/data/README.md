@@ -33,9 +33,21 @@ raw_archive.py
 entities.py
 → canonical payload schemas and deterministic logical record IDs
 
+trading_calendar.py
+→ canonical TRADING_SESSION facts
+
+official_trading_calendar.py
+→ official SSE/SZSE annual calendar-plan normalization
+→ conservative date-only visibility
+→ exchange-level TRADING_SESSION coverage
+
 coverage.py
 → DATASET_COVERAGE assertions
 → scope/date/method-aware completeness resolution
+
+coverage_producers.py
+→ deterministic dataset reconciliation producers
+→ trading-calendar vs DAILY_BAR completeness checks
 
 adapters.py
 → source adapter protocol
@@ -65,6 +77,7 @@ CorporateAction
 IndexMembership
 IndustryMembership
 ConsensusExpectation
+TradingSession
 DatasetCoverage
 ```
 
@@ -121,6 +134,28 @@ See:
 shared/dataset-coverage-contract.md
 src/features/short_mid_verified.py
 ```
+
+## Official trading calendar
+
+The 2026 SSE/SZSE annual trading calendar now has a source-backed reviewed plan:
+
+```text
+configs/data/trading_calendar/cn-a-share-2026-official.json
+```
+
+The adapter enumerates canonical `TRADING_SESSION` rows and an exchange-level `DATASET_COVERAGE` assertion using:
+
+```text
+verification_method = EXCHANGE_CALENDAR_ENUMERATION
+```
+
+The source is based on official annual closure notices plus the exchange rule that ordinary trading days are Monday-Friday excluding statutory holidays/exchange-announced closures.
+
+The annual notices expose dates but this repository has not frozen a reliable exact publication time. v1 therefore uses a conservative next-day `available_at` rather than inventing an intra-day timestamp.
+
+This is a reviewed official-source plan, not an undocumented live API. Emergency/ad-hoc exchange closures must appear as later PIT revisions.
+
+See `shared/official-trading-calendar-source-contract.md`.
 
 ## Key normalization choices
 
@@ -206,6 +241,8 @@ See `shared/official-disclosure-source-contract.md`.
 
 ## Current status
 
-The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, and official-disclosure normalization contracts. It still does not claim production-ready live adapters or real coverage producers for official disclosure retrieval, licensed market data, corporate actions, benchmarks or consensus feeds.
+The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, official-disclosure normalization, a reviewed 2026 official trading-calendar plan, and DAILY_BAR/calendar reconciliation.
+
+It still does not claim production-ready live adapters or complete real coverage producers for licensed market data, corporate actions, benchmarks or consensus feeds.
 
 Adapters and coverage producers should continue to be added one source at a time with frozen raw fixtures and point-in-time tests.
