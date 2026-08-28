@@ -53,12 +53,12 @@ def pct(numerator: int, denominator: int) -> float | None:
     return round(numerator / denominator * 100.0, 2)
 
 
-def classify_maturity(sample_days: int, coverage: dict[str, float | None]) -> str:
-    if sample_days == 0:
+def classify_maturity(evidence_snapshot_days: int, coverage: dict[str, float | None]) -> str:
+    if evidence_snapshot_days == 0:
         return "NO_DATA"
-    if sample_days < 5:
+    if evidence_snapshot_days < 5:
         return "EARLY_ACCUMULATION"
-    if sample_days < 15:
+    if evidence_snapshot_days < 15:
         return "ACCUMULATING"
 
     core = [
@@ -70,6 +70,18 @@ def classify_maturity(sample_days: int, coverage: dict[str, float | None]) -> st
     if all(v is not None and v >= 90.0 for v in core):
         return "OPERATIONALLY_MATURE_FOR_FEATURE_RESEARCH"
     return "COVERAGE_GAPS"
+
+
+def _latest_historical_path_days(rows: list[dict[str, Any]]) -> int | None:
+    values: list[int] = []
+    for row in rows:
+        path = ((row.get("price_and_path") or {}).get("sample_path") or {})
+        value = path.get("holding_trading_days_inclusive")
+        if isinstance(value, int):
+            values.append(value)
+        elif isinstance(value, float) and value.is_integer():
+            values.append(int(value))
+    return max(values) if values else None
 
 
 def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -89,8 +101,8 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
                 if quality.get(field) is True:
                     counts[field] += 1
 
-        days = len(rows)
-        coverage = {f"{field}_pct": pct(counts[field], days) for field in QUALITY_FIELDS}
+        evidence_days = len(rows)
+        coverage = {f"{field}_pct": pct(counts[field], evidence_days) for field in QUALITY_FIELDS}
         prospective_rows = [r for r in rows if str(r.get("sample_role")) != "RETROSPECTIVE_LIVE_MANUAL"]
         model_snapshot_true = 0
         for row in prospective_rows:
@@ -99,23 +111,31 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
                 model_snapshot_true += 1
         prospective_snapshot_pct = pct(model_snapshot_true, len(prospective_rows)) if prospective_rows else None
 
+        historical_path_days = _latest_historical_path_days(rows)
+        role = rows[-1].get("sample_role")
         sample_summaries.append(
             {
                 "sample_id": sample_id,
                 "code": rows[-1].get("code"),
                 "name": rows[-1].get("name"),
-                "sample_role": rows[-1].get("sample_role"),
-                "sample_days_total": days,
+                "sample_role": role,
+                "evidence_snapshot_days_total": evidence_days,
+                "historical_path_trading_days_available": historical_path_days,
                 "first_effective_date": rows[0].get("effective_date"),
                 "last_effective_date": rows[-1].get("effective_date"),
                 "coverage": coverage,
                 "prospective_model_snapshot_complete_pct": prospective_snapshot_pct,
-                "data_maturity": classify_maturity(days, coverage),
+                "data_maturity": classify_maturity(evidence_days, coverage),
+                "forward_alpha_eligibility_note": (
+                    "RETROSPECTIVE_PATH_NOT_FORWARD_EVIDENCE"
+                    if str(role) == "RETROSPECTIVE_LIVE_MANUAL"
+                    else "CHECK_FORWARD_CONTRACT"
+                ),
                 "alpha_validation_status": "NOT_INFERRED_FROM_DATA_COMPLETENESS",
             }
         )
 
-    total_days = sum(s["sample_days_total"] for s in sample_summaries)
+    total_snapshots = sum(s["evidence_snapshot_days_total"] for s in sample_summaries)
     aggregate_counts = {field: 0 for field in QUALITY_FIELDS}
     for row in records:
         quality = row.get("data_quality") or {}
@@ -124,15 +144,18 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
                 aggregate_counts[field] += 1
 
     aggregate_coverage = {
-        f"{field}_pct": pct(aggregate_counts[field], total_days) for field in QUALITY_FIELDS
+        f"{field}_pct": pct(aggregate_counts[field], total_snapshots) for field in QUALITY_FIELDS
     }
 
     return {
         "sample_count": len(sample_summaries),
-        "sample_days_total": total_days,
+        "evidence_snapshot_days_total": total_snapshots,
         "aggregate_coverage": aggregate_coverage,
         "samples": sample_summaries,
-        "interpretation": "Operational data maturity measures evidence completeness only; it does not prove positive expectancy or model alpha.",
+        "interpretation": (
+            "Evidence-snapshot maturity measures automated PIT/audit coverage. Historical path days may be larger for retrospective samples, "
+            "but retrospective availability does not turn them into untouched forward evidence. Data completeness does not prove alpha."
+        ),
     }
 
 
@@ -142,7 +165,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         f"- generated_at: `{report['generated_at']}`",
         f"- sample_count: `{report['summary']['sample_count']}`",
-        f"- sample_days_total: `{report['summary']['sample_days_total']}`",
+        f"- evidence_snapshot_days_total: `{report['summary']['evidence_snapshot_days_total']}`",
         "- alpha interpretation: `NOT_INFERRED_FROM_DATA_COMPLETENESS`",
         "",
         "## Aggregate coverage",
@@ -153,17 +176,19 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Samples",
         "",
-        "| Sample | Code | Days | Maturity | Price % | Market % | Benchmark % | Participation % | Financing % | Disclosure % |",
-        "|---|---|---:|---|---:|---:|---:|---:|---:|---:|",
+        "| Sample | Code | Evidence snapshots | Historical path days | Maturity | Price % | Market % | Benchmark % | Participation % | Financing % | Disclosure % |",
+        "|---|---|---:|---:|---|---:|---:|---:|---:|---:|---:|",
     ]
     for sample in report["summary"]["samples"]:
         c = sample["coverage"]
         fmt = lambda value: "" if value is None else f"{value:.2f}"
+        path_days = sample.get("historical_path_trading_days_available")
         lines.append(
-            "| {sample} | {code} | {days} | {maturity} | {price} | {market} | {benchmark} | {part} | {fin} | {disc} |".format(
+            "| {sample} | {code} | {snapshots} | {path_days} | {maturity} | {price} | {market} | {benchmark} | {part} | {fin} | {disc} |".format(
                 sample=sample["sample_id"],
                 code=sample.get("code", ""),
-                days=sample["sample_days_total"],
+                snapshots=sample["evidence_snapshot_days_total"],
+                path_days="" if path_days is None else path_days,
                 maturity=sample["data_maturity"],
                 price=fmt(c.get("price_complete_pct")),
                 market=fmt(c.get("market_complete_pct")),
@@ -176,7 +201,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "> Data maturity is a completeness/auditability measure. It does not establish alpha, expectancy or permission to increase risk.",
+            "> `Historical path days` can be reconstructed for retrospective research. `Evidence snapshots` measure automated PIT/audit accumulation. Neither by itself establishes Alpha.",
             "",
         ]
     )
@@ -193,7 +218,7 @@ def main() -> int:
     records = read_latest_daily_records(args.state_dir)
     summary = summarize(records)
     report = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "date": now.date().isoformat(),
         "generated_at": now.isoformat(),
         "summary": summary,
