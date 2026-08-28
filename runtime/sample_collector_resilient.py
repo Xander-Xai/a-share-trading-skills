@@ -76,11 +76,9 @@ def fetch_stock_history_resilient(
     out["收盘"] = pd.to_numeric(fallback["close"], errors="coerce")
     out["最高"] = pd.to_numeric(fallback["high"], errors="coerce")
     out["最低"] = pd.to_numeric(fallback["low"], errors="coerce")
-    # Core collector expects the Eastmoney convention of lots for 成交量.
     out["成交量"] = pd.to_numeric(fallback["volume"], errors="coerce") / 100.0
     out["成交额"] = pd.to_numeric(fallback["amount"], errors="coerce")
     if "turnover" in fallback.columns:
-        # Tencent returns decimal turnover (e.g. 0.0021); canonical monitor field is percent.
         out["换手率"] = pd.to_numeric(fallback["turnover"], errors="coerce") * 100.0
     else:
         out["换手率"] = pd.NA
@@ -126,8 +124,6 @@ def build_sample_record_resilient(sample, as_of, ingested_at, state_dir, report_
         sample, as_of, ingested_at, state_dir, report_dir
     )
 
-    # If every price adapter fails, anchor the failed collection attempt to the
-    # latest known trading session rather than inventing a weekend/holiday sample day.
     if record.get("price_and_path") is None:
         calendar_errors: list[str] = []
         trade_dates = core.recent_trade_dates(as_of, calendar_errors, limit=1)
@@ -147,6 +143,22 @@ def build_sample_record_resilient(sample, as_of, ingested_at, state_dir, report_
                 record["data_quality"]["market_complete"] = True
         if calendar_errors:
             record.setdefault("provider_errors", []).extend(calendar_errors)
+
+    vendor_available = (record.get("vendor_flow") or {}).get("status") == "AVAILABLE"
+    margin_available = (record.get("margin") or {}).get("status") in {"AVAILABLE", "NOT_APPLICABLE"}
+    price_available = bool((record.get("data_quality") or {}).get("price_complete"))
+
+    # Participation is a multi-source concept. Volume/turnover/price progress are
+    # primary observable evidence; financing adds leverage participation. A vendor
+    # "main force" endpoint is corroborative only and must not decide completeness.
+    record["data_quality"]["vendor_flow_complete"] = vendor_available
+    record["data_quality"]["participation_complete"] = price_available and margin_available
+    record["participation_evidence"] = {
+        "base_complete": price_available and margin_available,
+        "base_components": ["OHLCV/turnover/price-progress", "exchange margin when applicable"],
+        "vendor_flow_available": vendor_available,
+        "vendor_flow_role": "CORROBORATIVE_ONLY_NOT_REQUIRED_FOR_BASE_COMPLETENESS",
+    }
 
     record["provider_provenance"] = {
         "stock_history": None if hist is None else hist.attrs.get("sample_source"),
@@ -186,8 +198,6 @@ def append_revisioned_daily_resilient(path: Path, record: dict) -> bool:
 
 
 def main() -> int:
-    # Patch only adapter/orchestration behavior. Core PIT, checkpoint, margin,
-    # disclosure and sample-governance semantics remain unchanged.
     core.fetch_stock_history = fetch_stock_history_resilient
     core.fetch_benchmark_history = fetch_benchmark_history_resilient
     core.build_sample_record = build_sample_record_resilient
