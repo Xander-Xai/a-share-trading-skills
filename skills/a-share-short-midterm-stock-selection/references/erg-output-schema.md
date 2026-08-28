@@ -108,10 +108,18 @@ MULTI_EVIDENCE
 OTHER_EXPERIMENTAL
 ```
 
-Allowed reaction-sensitivity labels include:
+Allowed `benchmark_sensitivity` labels:
 
 ```text
+BENCHMARK_STABLE
 BENCHMARK_SENSITIVE
+INSUFFICIENT_DATA
+UNRESOLVED
+```
+
+Allowed `window_sensitivity` labels:
+
+```text
 WINDOW_STABLE
 WINDOW_SENSITIVE
 INSUFFICIENT_DATA
