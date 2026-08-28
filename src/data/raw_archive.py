@@ -8,11 +8,38 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
+from urllib.parse import parse_qsl, urlparse
 
 from src.core.pit import VALID_PERMITTED_USE
 
 
 RAW_ARCHIVE_SCHEMA_VERSION = "1.0"
+
+SENSITIVE_HEADER_NAMES = {
+    "authorization",
+    "proxy-authorization",
+    "cookie",
+    "set-cookie",
+    "x-api-key",
+    "x-auth-token",
+    "x-access-token",
+}
+
+SENSITIVE_QUERY_KEYS = {
+    "access_token",
+    "api_key",
+    "apikey",
+    "auth",
+    "authorization",
+    "password",
+    "passwd",
+    "secret",
+    "session",
+    "sessionid",
+    "sig",
+    "signature",
+    "token",
+}
 
 
 def _canonical_json(value: Any) -> str:
@@ -44,6 +71,43 @@ def _require_text(value: str, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field_name} is required")
     return value.strip()
+
+
+def _validate_locator(locator: str) -> str:
+    locator = _require_text(locator, "locator")
+    parsed = urlparse(locator)
+
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("locator must not contain embedded credentials")
+
+    sensitive_keys = {
+        key.lower()
+        for key, _ in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() in SENSITIVE_QUERY_KEYS
+    }
+    if sensitive_keys:
+        raise ValueError(
+            f"locator must not persist sensitive query parameters: {sorted(sensitive_keys)}"
+        )
+    return locator
+
+
+def _normalize_headers(headers: Mapping[str, str] | None) -> dict[str, str] | None:
+    if headers is None:
+        return None
+
+    normalized: dict[str, str] = {}
+    for raw_key, raw_value in headers.items():
+        key = _require_text(str(raw_key), "header name").lower()
+        if key in SENSITIVE_HEADER_NAMES:
+            raise ValueError(f"sensitive header must not be archived: {key}")
+        if not isinstance(raw_value, str):
+            raise ValueError("header values must be strings")
+        value = raw_value.strip()
+        if key in normalized and normalized[key] != value:
+            raise ValueError(f"conflicting duplicate HTTP header after normalization: {key}")
+        normalized[key] = value
+    return dict(sorted(normalized.items()))
 
 
 def _atomic_write_bytes(path: Path, content: bytes) -> None:
@@ -83,12 +147,12 @@ class RawEvidenceManifest:
         for field_name, value in (
             ("raw_snapshot_id", self.raw_snapshot_id),
             ("source", self.source),
-            ("locator", self.locator),
             ("observed_at", self.observed_at),
             ("content_hash", self.content_hash),
             ("content_type", self.content_type),
         ):
             _require_text(value, field_name)
+        _validate_locator(self.locator)
         _parse_aware(self.observed_at, "observed_at")
         if len(self.content_hash) != 64:
             raise ValueError("content_hash must be SHA-256 hex")
@@ -103,11 +167,9 @@ class RawEvidenceManifest:
         if self.status_code is not None:
             if not isinstance(self.status_code, int) or not 100 <= self.status_code <= 599:
                 raise ValueError("status_code must be a valid HTTP status when present")
-        if self.headers is not None:
-            for key, value in self.headers.items():
-                _require_text(str(key), "header name")
-                if not isinstance(value, str):
-                    raise ValueError("header values must be strings")
+        normalized_headers = _normalize_headers(self.headers)
+        if self.headers is not None and dict(self.headers) != normalized_headers:
+            raise ValueError("headers must be canonical lowercase, sorted and secret-free")
 
     def identity_payload(self) -> dict[str, Any]:
         self.validate()
@@ -123,7 +185,7 @@ class RawEvidenceManifest:
             "source_tier": self.source_tier,
             "encoding": self.encoding,
             "status_code": self.status_code,
-            "headers": None if self.headers is None else dict(sorted(self.headers.items())),
+            "headers": None if self.headers is None else dict(self.headers),
         }
 
     def to_dict(self) -> dict[str, Any]:
@@ -163,14 +225,15 @@ class RawEvidenceArchive:
         status_code: int | None = None,
         headers: Mapping[str, str] | None = None,
     ) -> RawEvidenceManifest:
-        _require_text(source, "source")
-        _require_text(locator, "locator")
+        source = _require_text(source, "source")
+        locator = _validate_locator(locator)
         _parse_aware(observed_at, "observed_at")
-        _require_text(content_type, "content_type")
+        content_type = _require_text(content_type, "content_type")
         if not isinstance(content, bytes) or not content:
             raise ValueError("content must be non-empty bytes")
         if permitted_use not in VALID_PERMITTED_USE:
             raise ValueError(f"invalid permitted_use: {permitted_use}")
+        normalized_headers = _normalize_headers(headers)
 
         content_hash = _sha256_bytes(content)
         provisional = RawEvidenceManifest(
@@ -185,7 +248,7 @@ class RawEvidenceArchive:
             source_tier=source_tier,
             encoding=encoding,
             status_code=status_code,
-            headers=None if headers is None else dict(headers),
+            headers=normalized_headers,
         )
         identity = provisional.identity_payload()
         raw_snapshot_id = _sha256_text(_canonical_json(identity))
@@ -201,7 +264,7 @@ class RawEvidenceArchive:
             source_tier=source_tier,
             encoding=encoding,
             status_code=status_code,
-            headers=None if headers is None else dict(headers),
+            headers=normalized_headers,
         )
         manifest.validate()
 
@@ -231,6 +294,8 @@ class RawEvidenceArchive:
         row = json.loads(path.read_text(encoding="utf-8"))
         if row.pop("schema_version", None) != RAW_ARCHIVE_SCHEMA_VERSION:
             raise ValueError("unsupported raw archive schema")
+        if row.get("headers") is not None:
+            row["headers"] = _normalize_headers(row["headers"])
         manifest = RawEvidenceManifest(**row)
         manifest.validate()
         expected_id = _sha256_text(_canonical_json(manifest.identity_payload()))
