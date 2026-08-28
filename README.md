@@ -101,7 +101,10 @@ Eligibility
 → Reaction / Participation
 → Regime
 → Execution Geometry
-→ Tactical Risk
+→ Risk Resilience Layer
+→ Tactical Risk / Sizing
+→ Position State / Re-underwriting
+→ Outcome Validation
 ```
 
 当前 Champion：
@@ -114,6 +117,27 @@ Catalyst 15
 ```
 
 ERG / Causal Challenger 仍为 `SHADOW ONLY`，Alpha 未证明。
+
+短中期新增横向 `Risk Resilience Layer`，用于把 PIT、条件路径、执行压力、仓位集中、持仓状态漂移和验证分类串成统一抗错误流程。它可以使决策更保守，但不能增加生产仓位、风险额度或订单权限。
+
+当前短中期风险韧性原则：
+
+```text
+Gate First
+→ State Second
+→ Geometry Third
+→ Stress Fourth
+→ Size Fifth
+→ Confirm Sixth
+→ Re-underwrite While Holding
+→ Validate After Outcome
+```
+
+详见：
+
+- `skills/a-share-short-midterm-stock-selection/references/risk-resilience-layer.md`
+- `research/short-mid-risk-resilience-integration-v1.md`
+- `research/short-mid-risk-resilience-experiment-v1.md`
 
 ## Shared account risk
 
@@ -253,6 +277,8 @@ Strategy Boundary + PIT Data Contract
 → Optional Semi-auto
 ```
 
+Risk Resilience 的当前实现首先是方法论/审计层；其 Follow-through、Volume/Price Efficiency、Stress-aware Sizing、Holding Inertia、Conditional Path Calibration 等新增假设必须留在 Shadow 研究协议，未经验证不得直接改生产引擎。
+
 Long 单独演进：
 
 ```text
@@ -279,11 +305,15 @@ shared/
 research/
   a-share-long-vs-tactical-empirical-study.md
   production-system-evolution-report-2026-08-28.md
+  short-mid-blind-replay-theoretical-audit-v1.md
+  short-mid-risk-resilience-integration-v1.md
+  short-mid-risk-resilience-experiment-v1.md
 
 skills/
   a-share-multi-asset-allocation/
   a-share-retirement-investing/
   a-share-short-midterm-stock-selection/
+    references/risk-resilience-layer.md
 
 src/core/
   strategy_boundary.py
