@@ -1,8 +1,8 @@
 # Short/Mid Sample Data Maturity — 2026-08-29
 
-- generated_at: `2026-08-29T04:08:32.607866+08:00`
+- generated_at: `2026-08-29T04:11:41.786871+08:00`
 - sample_count: `1`
-- sample_days_total: `1`
+- evidence_snapshot_days_total: `1`
 - alpha interpretation: `NOT_INFERRED_FROM_DATA_COMPLETENESS`
 
 ## Aggregate coverage
@@ -21,8 +21,8 @@
 
 ## Samples
 
-| Sample | Code | Days | Maturity | Price % | Market % | Benchmark % | Participation % | Financing % | Disclosure % |
-|---|---|---:|---|---:|---:|---:|---:|---:|---:|
-| 20260805-600699-retro-live-01 | 600699 | 1 | EARLY_ACCUMULATION | 100.00 | 100.00 | 100.00 | 0.00 | 100.00 | 100.00 |
+| Sample | Code | Evidence snapshots | Historical path days | Maturity | Price % | Market % | Benchmark % | Participation % | Financing % | Disclosure % |
+|---|---|---:|---:|---|---:|---:|---:|---:|---:|---:|
+| 20260805-600699-retro-live-01 | 600699 | 1 | 18 | EARLY_ACCUMULATION | 100.00 | 100.00 | 100.00 | 0.00 | 100.00 | 100.00 |
 
-> Data maturity is a completeness/auditability measure. It does not establish alpha, expectancy or permission to increase risk.
+> `Historical path days` can be reconstructed for retrospective research. `Evidence snapshots` measure automated PIT/audit accumulation. Neither by itself establishes Alpha.

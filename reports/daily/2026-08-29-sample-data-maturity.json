@@ -1,10 +1,10 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "date": "2026-08-29",
-  "generated_at": "2026-08-29T04:08:32.607866+08:00",
+  "generated_at": "2026-08-29T04:11:41.786871+08:00",
   "summary": {
     "sample_count": 1,
-    "sample_days_total": 1,
+    "evidence_snapshot_days_total": 1,
     "aggregate_coverage": {
       "price_complete_pct": 100.0,
       "market_complete_pct": 100.0,
@@ -20,7 +20,8 @@
         "code": "600699",
         "name": "均胜电子",
         "sample_role": "RETROSPECTIVE_LIVE_MANUAL",
-        "sample_days_total": 1,
+        "evidence_snapshot_days_total": 1,
+        "historical_path_trading_days_available": 18,
         "first_effective_date": "2026-08-28",
         "last_effective_date": "2026-08-28",
         "coverage": {
@@ -34,9 +35,10 @@
         },
         "prospective_model_snapshot_complete_pct": null,
         "data_maturity": "EARLY_ACCUMULATION",
+        "forward_alpha_eligibility_note": "RETROSPECTIVE_PATH_NOT_FORWARD_EVIDENCE",
         "alpha_validation_status": "NOT_INFERRED_FROM_DATA_COMPLETENESS"
       }
     ],
-    "interpretation": "Operational data maturity measures evidence completeness only; it does not prove positive expectancy or model alpha."
+    "interpretation": "Evidence-snapshot maturity measures automated PIT/audit coverage. Historical path days may be larger for retrospective samples, but retrospective availability does not turn them into untouched forward evidence. Data completeness does not prove alpha."
   }
 }
