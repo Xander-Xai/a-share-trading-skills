@@ -1,0 +1,146 @@
+{
+  "registry_version": "1.0",
+  "as_of": "2026-08-28",
+  "baseline": {
+    "skill_version": "1.7.0",
+    "champion": "technical30-capital30-fundamentals25-catalyst15",
+    "challenger": "causal-challenger-v1.1-erg-v1",
+    "forward_baseline": "examples/2026-08-28-eight-stock-forward-cohort.json"
+  },
+  "common_contract": {
+    "same_universe": true,
+    "same_point_in_time_inputs": true,
+    "same_session_aware_execution": true,
+    "same_cost_model": true,
+    "same_position_sizing": true,
+    "same_risk_budget": true,
+    "same_evaluation_horizons": true
+  },
+  "stage1_screening": {
+    "return_oriented": {
+      "delta_expectancy_r_gt": 0.0,
+      "coverage_gte": 0.70,
+      "delta_cost_drag_r_per_trade_lte": 0.05,
+      "maxdd_ratio_to_baseline_lte": 1.10,
+      "cvar95_ratio_to_baseline_lte": 1.05
+    },
+    "risk_reduction": {
+      "cvar95_must_decline": true,
+      "maxdd_must_not_increase": true
+    },
+    "filtering_claim": {
+      "relative_false_positive_reduction_gte": 0.15,
+      "false_negative_change_percentage_points_lte": 10.0,
+      "must_report_median_blocked_mfe": true,
+      "must_report_p90_blocked_mfe": true,
+      "must_report_confirmation_delay_cost": true
+    },
+    "classification": "GOVERNANCE_PARAMETER_NOT_ACADEMIC_OPTIMUM"
+  },
+  "complexity_metric": {
+    "formula": "AddedFields + 2*AddedExternalDataSources + AddedTunableParameters",
+    "incremental_edge_per_complexity": "DeltaExpectancyR / max(1, AddedComplexity)"
+  },
+  "tracks": [
+    {
+      "id": "A",
+      "name": "ERG_PRECISION",
+      "status": "PROPOSED",
+      "lane": "ALPHA_DISCRIMINATION",
+      "hypothesis": "Frozen benchmark, reaction-window and expectation-confidence contracts provide incremental event discrimination relative to current ERG.",
+      "primary_metrics": [
+        "Delta_Expectancy_R",
+        "Event_Increment_vs_Placebo",
+        "False_Positive_Delta",
+        "False_Negative_Delta",
+        "Expectation_Coverage"
+      ],
+      "estimated_new_fields": [8, 12],
+      "estimated_external_sources": [1, 3],
+      "pit_burden": "MEDIUM_HIGH",
+      "parameter_selection_risk": "MEDIUM_HIGH",
+      "subexperiments": ["A0", "A1", "A2", "A3", "A4"]
+    },
+    {
+      "id": "B",
+      "name": "CONDITIONAL_PARTICIPATION",
+      "status": "PROPOSED",
+      "lane": "ALPHA_DISCRIMINATION",
+      "hypothesis": "Relative strength and participation have different expectancy conditional on positioning evidence and market regime.",
+      "primary_metrics": [
+        "Conditional_Momentum_Increment",
+        "Expectancy_by_Regime",
+        "Expectancy_by_Positioning_Tier",
+        "Coverage",
+        "Positioning_Data_Missing_Rate"
+      ],
+      "estimated_new_fields": [10, 15],
+      "estimated_external_sources": [2, 4],
+      "pit_burden": "HIGH",
+      "parameter_selection_risk": "HIGH",
+      "subexperiments": ["B0", "B1", "B2", "B3"]
+    },
+    {
+      "id": "C",
+      "name": "EXECUTION_OVERREACTION_SHIELD",
+      "status": "PROPOSED",
+      "lane": "TAIL_RISK_EXECUTION",
+      "hypothesis": "Extension, limit-hit, price-efficiency and gap-stress diagnostics reduce tail loss and drawdown without excessive blocked-upside cost.",
+      "primary_metrics": [
+        "Delta_CVaR95",
+        "Delta_Max_Drawdown",
+        "p95_single_trade_loss_R",
+        "gap_through_stop_rate",
+        "Median_Blocked_MFE",
+        "P90_Blocked_MFE"
+      ],
+      "estimated_new_fields": [8, 12],
+      "estimated_external_sources": [0, 1],
+      "pit_burden": "MEDIUM",
+      "parameter_selection_risk": "MEDIUM",
+      "subexperiments": ["C0", "C1", "C2", "C3", "C4"]
+    },
+    {
+      "id": "D",
+      "name": "DISAGREEMENT_ARBITRATION",
+      "status": "STARTED",
+      "lane": "ALPHA_DISCRIMINATION",
+      "hypothesis": "Specific Champion/ERG disagreement types contain incremental information about false positives, missed opportunities, timing errors or strategy-family mismatch.",
+      "primary_metrics": [
+        "Disagreement_Rate",
+        "Challenger_Correction_Rate",
+        "Challenger_Miss_Rate",
+        "Net_Disagreement_Expectancy_Delta",
+        "Tail_Loss_Delta"
+      ],
+      "estimated_new_raw_market_fields": 0,
+      "estimated_external_sources": 0,
+      "pit_burden": "LOW_INCREMENTAL",
+      "sample_acquisition_burden": "HIGH",
+      "parameter_selection_risk": "LOW_MEDIUM_FOR_D0_D1",
+      "subexperiments": ["D0", "D1", "D2"]
+    },
+    {
+      "id": "E",
+      "name": "CHAMPION_SIMPLIFICATION",
+      "status": "PROPOSED",
+      "lane": "COMPLEXITY_MAINTENANCE",
+      "hypothesis": "Removing or consolidating non-incremental Champion components preserves or improves sample-out expectancy/risk while reducing data dependence and tunable complexity.",
+      "primary_metrics": [
+        "Delta_Expectancy_R",
+        "Delta_MaxDD",
+        "Delta_CVaR95",
+        "Coverage",
+        "Data_Missing_Rate",
+        "IncrementalEdgePerComplexity"
+      ],
+      "estimated_new_fields": [0, 3],
+      "estimated_external_sources_change": "UNCHANGED_OR_REDUCED",
+      "pit_burden": "LOW_MEDIUM",
+      "parameter_selection_risk": "LOW_RELATIVE_BUT_TRIAL_COUNT_REQUIRED",
+      "subexperiments": ["E0", "E1", "E2", "E3", "E4", "E5", "E6"]
+    }
+  ],
+  "implementation_order_by_repository_readiness": ["D0", "C", "A", "E", "B"],
+  "promotion_rule": "No track changes production decisions until the existing Champion/Challenger promotion process passes."
+}

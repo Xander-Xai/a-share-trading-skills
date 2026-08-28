@@ -1,4 +1,4 @@
-# Short/Mid-term Research Iteration Roadmap v1
+# Short/Mid-term Research Iteration Roadmap v1.1
 
 > Status: `ACTIVE GOVERNANCE ROADMAP`
 >
@@ -52,6 +52,8 @@ Every future iteration must obey these rules:
 8. Complexity must earn its keep through forward/ablation evidence.
 9. A parameter that looks intuitive but has no sample-out robustness remains a governance parameter, not an alpha claim.
 10. Model promotion and automation promotion are separate decisions.
+11. Independent experiment tracks remain attributable until their separate contribution has been measured.
+12. Do not combine multiple new research tracks into one model before one-at-a-time or staged attribution is available.
 
 ## 3. Iteration ladder
 
@@ -68,7 +70,8 @@ Required work:
 - respect T+1, price limits, suspensions and gap-through-stop behavior;
 - define benchmark history point-in-time;
 - preserve event publication timestamps, including after-close disclosures;
-- separate unavailable data from zero/neutral data.
+- separate unavailable data from zero/neutral data;
+- resolve event execution through the session-aware exchange/broker contract.
 
 Exit criteria:
 
@@ -85,7 +88,7 @@ If Phase 0 fails, do not interpret any backtest as promotion evidence.
 
 ### Phase 1 — ERG Shadow baseline
 
-**Goal:** accumulate untouched real-time/forward records for the newly integrated Expectation–Reaction Gate.
+**Goal:** accumulate untouched real-time/forward records for the integrated Expectation–Reaction Gate.
 
 Freeze:
 
@@ -98,7 +101,9 @@ prepricing windows
 reaction windows
 benchmark selection
 research-state rules
+confirmation-basis rules
 strategy-type rules
+session-rule version
 ```
 
 For every event-driven candidate record at minimum:
@@ -110,6 +115,7 @@ Materiality
 Prepricing
 Post-event Reaction
 Research State
+Confirmation Basis
 Position State
 Strategy Type
 Entry Trigger
@@ -129,7 +135,9 @@ Diagnostics:
 - priced-in false-positive rate;
 - invalidated-after-entry rate;
 - no-trade rate;
-- expectancy by expectation-confidence bucket.
+- expectancy by expectation-confidence bucket;
+- blocked-opportunity MFE;
+- session-resolution rate.
 
 No production promotion in this phase.
 
@@ -157,19 +165,20 @@ For each increment compare:
 - Profit Factor;
 - Max Drawdown;
 - Calmar;
-- tail loss;
+- CVaR / tail loss;
 - turnover and cost drag;
 - MFE / MAE distributions;
 - no-trade rate;
+- blocked-opportunity cost;
 - rule-violation rate.
 
 Decision logic:
 
 ```text
-adds robust value → retain
-no material value → simplify/remove
-helps only one regime → condition explicitly
-hurts execution/cost → reject or redesign
+measurable sample-out increment → retain for further review
+no measurable increment → simplify/remove
+increment only in one regime → condition explicitly
+execution/cost deterioration dominates increment → reject or redesign
 ```
 
 Do not keep a component merely because it sounds economically reasonable.
@@ -255,7 +264,7 @@ RISK_OFF
 Research questions:
 
 - Does breakout confirmation work only in trend-friendly regimes?
-- Does strong ERG surprise still require different execution in risk-off regimes?
+- Does ERG surprise require different execution in risk-off regimes?
 - Does prepricing have different thresholds in high-beta sectors?
 - Does relative strength matter more during rotation?
 - Does the system need a separate mean-reversion Challenger rather than forcing trend rules to handle it?
@@ -278,7 +287,10 @@ Candidate parameters to study:
 - time-review windows;
 - partial-profit rules;
 - minimum realistic Reward/Risk;
-- tranche logic.
+- tranche logic;
+- limit-hit density;
+- price-progress-per-RVOL;
+- stress loss under gap/price-limit scenarios.
 
 Rules:
 
@@ -324,7 +336,7 @@ correlation_stress_state
 factor_contribution_to_risk
 ```
 
-A high-quality single-stock setup may still be rejected if it worsens portfolio concentration.
+A single-stock setup may still be rejected if it worsens portfolio concentration beyond current policy.
 
 ---
 
@@ -360,19 +372,20 @@ Warning signs:
 - features are repeatedly added against the same validation period;
 - a small number of outliers create most of the excess return;
 - performance disappears after realistic costs;
-- a model looks good only after many undisclosed trials.
+- a model appears only after many undisclosed trials.
 
 ---
 
 ### Phase 8 — Partial promotion before full-model replacement
 
-**Goal:** promote only components that demonstrably add value.
+**Goal:** promote only components that demonstrate incremental contribution under the frozen contract.
 
 Allowed decisions:
 
 ```text
 PROMOTE_SELECTED_COMPONENTS
-KEEP_SHADOW
+KEEP_SHADOW_WITHOUT_EXPANSION
+CONDITION
 REMOVE_COMPONENT
 REVISE_AND_RESTART
 REJECT
@@ -381,7 +394,7 @@ REJECT
 Examples:
 
 - Prepricing may be promoted while a noisy consensus source remains Shadow.
-- Research-state/position-state separation may be promoted for governance even if it adds no return, if it materially reduces rule violations.
+- Research-state/position-state separation may be promoted for governance if it materially reduces rule violations even without return increment.
 - A new execution filter may be retained only for one regime.
 
 Do not require an all-or-nothing replacement of the existing Champion.
@@ -407,11 +420,11 @@ In that design, a numerical score becomes a **ranker**, not an engine that can c
 A proposed Champion redesign must answer:
 
 - What exact failure of the current Champion does it fix?
-- Which forward evidence shows improvement?
-- Which components were removed as non-value?
-- Does complexity increase?
+- Which forward evidence shows measurable change?
+- Which components were removed as non-incremental?
+- How many fields/sources/parameters were added or removed?
 - Does drawdown/tail risk worsen?
-- Is the advantage robust across regimes and event families?
+- Is the effect stable across regimes and event families?
 
 ---
 
@@ -437,39 +450,134 @@ Before increasing automation autonomy, separately validate:
 
 No research edge justifies unsafe execution infrastructure.
 
-## 4. Recommended next experiment queue
+## 4. Parallel VNext experiment tracks
 
-Priority order:
+The detailed experiment catalog and machine-readable registry are:
 
-### P0 — Start now
+- `vnext-experiment-directions.md`
+- `vnext-experiment-directions.json`
 
-1. Freeze ERG v1 Forward cohort.
-2. Record the current 8-stock case as an initial ERG/Champion comparison sample.
-3. Build event-timestamp + first-tradable-timestamp coverage.
-4. Record expectation baseline confidence instead of forcing consensus.
-5. Capture MFE/MAE and realized R for every executable Shadow/Champion signal.
+Five tracks remain independent until attribution is available:
 
-### P1 — After enough forward observations
+```text
+A — ERG Precision
+B — Conditional Participation
+C — Execution / Overreaction Shield
+D — Disagreement Arbitration
+E — Champion Simplification
+```
 
-6. Run ERG ablation A→F.
-7. Compare Prepricing + Reaction versus generic Catalyst scoring.
-8. Compare `State First, Rank Second` against pure total-score ranking.
-9. Analyze no-trade decisions as first-class outcomes.
-10. Split earnings, order, commodity and policy events.
+Research lanes:
 
-### P2 — After multi-regime data
+```text
+Alpha / discrimination: A, B, D
+Tail-risk / execution: C
+Complexity / maintenance: E
+```
 
-11. Test regime-conditioned execution rules.
-12. Calibrate time stops and partial-profit behavior using MFE/MAE.
-13. Study portfolio cluster heat and hidden correlation.
-14. Run parameter-stability surfaces and model-selection diagnostics.
+Current implementation order is based on repository readiness rather than expected return:
+
+```text
+D0 → C → A → E → B
+```
+
+Do not merge A+B+C+D+E into one VNext model before independent or staged attribution is available.
+
+## 5. Common VNext measurement contract
+
+Every track reports the same shared metrics when compared under the same baseline:
+
+```text
+Delta_Expectancy_R
+Delta_Excess_Return
+Delta_Profit_Factor
+Delta_Max_Drawdown
+Delta_CVaR95
+Delta_Cost_Drag
+False_Positive_Delta
+False_Negative_Delta
+Coverage
+Data_Missing_Rate
+Turnover_Delta
+Rule_Violation_Delta
+Added_Fields
+Added_External_Data_Sources
+Added_Tunable_Parameters
+Number_of_Trials
+```
+
+Engineering complexity diagnostic:
+
+```text
+AddedComplexity
+= Added_Fields
++ 2 * Added_External_Data_Sources
++ Added_Tunable_Parameters
+
+IncrementalEdgePerComplexity
+= Delta_Expectancy_R / max(1, AddedComplexity)
+```
+
+Final comparison uses hard data/risk gates first and Pareto comparison second. Do not convert all dimensions into another arbitrary 100-point enhancement score.
+
+## 6. Stage-1 screening parameters
+
+The detailed values live in `vnext-experiment-directions.md/json`.
+
+Current first-cycle governance candidates include:
+
+```text
+return-oriented:
+Delta_Expectancy_R > 0
+Coverage >= 70%
+Delta_Cost_Drag <= +0.05R/trade
+MaxDD_new <= 1.10 * MaxDD_baseline
+CVaR95_new <= 1.05 * CVaR95_baseline
+
+risk-oriented Track C:
+CVaR95_new < baseline
+MaxDD_new <= baseline
+
+filtering claim diagnostics:
+relative false-positive reduction >= 15%
+false-negative change <= +10 percentage points
+```
+
+These are project governance parameters for experiment screening, not claims of market-optimal thresholds. Freeze before formal evaluation and version any change.
+
+## 7. Recommended next experiment queue
+
+### P0 — Already started / active infrastructure
+
+1. First ERG/Champion Forward cohort is frozen at `2026-08-28T18:10:00+08:00`.
+2. Session-aware `first_tradable_timestamp` contract is active.
+3. Disagreement Ledger is active.
+4. Negative-control/placebo protocol is active.
+5. D0 disagreement measurement has started.
+
+### P1 — Next implementation candidates
+
+6. Build Track C price/execution stress fields and frozen C0→C4 tests.
+7. Build Track A benchmark contract, event-family reaction-window contract and expectation-coverage calibration.
+8. Start one-at-a-time Track E Champion ablations once baseline replay is reproducible.
+9. Continue ERG A→F ablation and no-trade opportunity-cost collection.
+
+### P2 — Data-dependent track
+
+10. Audit PIT positioning/ownership data coverage before implementing Track B.
+11. Start B only if the intended universe has explicit coverage/staleness reporting.
+12. Continue event-family specialization and regime conditioning.
+13. Calibrate time stops and partial-profit behavior using MFE/MAE.
+14. Study portfolio cluster heat and hidden correlation.
 
 ### P3 — Promotion review
 
-15. Promote only components that improve robustness/expectancy or materially reduce rule violations.
-16. Keep the current Champion if the Challenger cannot demonstrate a cost-aware sample-out advantage.
+15. Compare A/B/C/D/E within their lane and on common metrics.
+16. Remove Pareto-dominated variants.
+17. Run statistical selection-bias controls before component promotion.
+18. Promote only components that pass the existing Champion/Challenger governance.
 
-## 5. Required experiment memo
+## 8. Required experiment memo
 
 Every meaningful iteration should create a short memo with:
 
@@ -495,9 +603,36 @@ failure modes
 next action
 ```
 
+VNext track experiments additionally record:
+
+```text
+track_id
+lane
+Added_Fields
+Added_External_Data_Sources
+Added_Tunable_Parameters
+AddedComplexity
+IncrementalEdgePerComplexity
+Coverage
+Data_Missing_Rate
+```
+
 This prevents repository evolution from becoming undocumented intuition.
 
-## 6. Stop conditions for iteration
+## 9. Experiment artifact layout
+
+For A/B/C/D/E versions use:
+
+```text
+references/experiments/<track>/<version>/hypothesis.md
+references/experiments/<track>/<version>/data-contract.md
+references/experiments/<track>/<version>/frozen-config.json
+references/experiments/<track>/<version>/result.md
+```
+
+A completed frozen config is immutable. A material parameter/feature change starts a new version.
+
+## 10. Stop conditions for iteration
 
 Pause feature expansion and return to data/governance review if any occurs:
 
@@ -508,23 +643,23 @@ Pause feature expansion and return to data/governance review if any occurs:
 - increasing rule-violation rate;
 - apparent edge driven by a few names/events;
 - costs/slippage erase the gross edge;
-- too many unresolved data fields to reproduce results.
+- too many unresolved data fields to reproduce results;
+- independent tracks are combined before attribution is established.
 
-## 7. Definition of a successful iteration
+## 11. Definition of an accepted iteration outcome
 
-A successful iteration does **not** have to increase gross return.
+An iteration does not have to increase gross return.
 
-It can succeed by:
+Evidence may support retention when it measurably:
 
-- improving net expectancy;
-- reducing drawdown/tail loss;
-- reducing false positives;
-- reducing rule violations;
-- reducing turnover/cost drag;
-- improving interpretability;
-- improving point-in-time reproducibility;
-- removing a useless feature;
-- identifying that a strategy only works in a specific regime.
+- increases net expectancy;
+- reduces drawdown/tail loss;
+- reduces false positives while disclosing false negatives;
+- reduces rule violations;
+- reduces turnover/cost drag;
+- improves point-in-time reproducibility;
+- removes a non-incremental feature;
+- identifies a regime-limited effect and conditions it explicitly.
 
 The guiding principle is:
 
@@ -534,16 +669,21 @@ More robustness, fewer parameters.
 More auditability, less hindsight.
 ```
 
-## 8. Current status
+## 12. Current status
 
 As of `2026-08-28`:
 
 ```text
+Skill = v1.7.0
 Champion = ACTIVE
 Causal Challenger v1.1 = SHADOW ONLY
 ERG v1 = SHADOW ONLY
+Session-aware execution contract = ACTIVE
 Statistical Promotion Guard = ACTIVE GOVERNANCE SUPPORT
-Next valid step = frozen Forward cohort + ERG ablation data collection
+2026-08-28 eight-stock Forward cohort = FROZEN
+Disagreement Ledger / Negative Control = ACTIVE
+Track D0 = STARTED
+Tracks A/B/C/E = PROPOSED
 ```
 
 No repository-specific alpha claim is considered proven until the forward/promotion process says so.
