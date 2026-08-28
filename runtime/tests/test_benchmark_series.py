@@ -162,15 +162,11 @@ class BenchmarkSeriesTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "benchmark coverage not confirmed"):
             BenchmarkSeriesBuilder().build(records, benchmark_id="CSI300")
 
-    def test_duplicate_benchmark_date_is_rejected(self):
-        candidates = self.standard_candidates()
-        candidates.insert(
-            3,
-            self.candidate(self.bar("CSI300", "2026-08-27", 4041.0), revision_id="dup"),
-        )
-        records = self.materialize(candidates)
-        with self.assertRaisesRegex(ValueError, "duplicate benchmark trade_date"):
-            BenchmarkSeriesBuilder().build(records, benchmark_id="CSI300")
+    def test_same_benchmark_date_has_one_canonical_logical_record_id(self):
+        first = self.bar("CSI300", "2026-08-27", 4040.0, 4000.0)
+        revised = self.bar("CSI300", "2026-08-27", 4041.0, 4000.0)
+        self.assertEqual(first.record_id(), revised.record_id())
+        self.assertEqual(first.record_id(), "BENCHMARK_DAILY_BAR:CSI300:2026-08-27")
 
 
 if __name__ == "__main__":
