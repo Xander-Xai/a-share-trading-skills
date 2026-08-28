@@ -1,8 +1,10 @@
-# A-share Monitor Runtime MVP
+# A-share Short/Mid Monitor Runtime MVP
 
-`runtime/` 是仓库规则的**实现层**，不是新的 Policy、Skill 或交易模型 Source of Truth。
+`runtime/` 是当前仓库规则的**实现层**，不是新的 Policy、Skill 或交易模型 Source of Truth。
 
-它目前只负责市场监控和研究状态生成：
+本目录当前实现的是 **short_mid Monitor MVP**，不是长期养老策略 Runtime，也不是全仓库通用交易引擎。
+
+当前职责：
 
 ```text
 交易日识别
@@ -10,7 +12,7 @@
 → 涨停 / 跌停 / 炸板统计
 → A-Share Sentiment Score 0–100
 → Regime
-→ 43股历史 whitelist 当日状态合并
+→ short_mid runtime universe 当日状态合并
 → 每日日报 JSON + Markdown
 → 市场成交额历史积累
 ```
@@ -18,11 +20,45 @@
 默认：
 
 ```text
+strategy_id = a_share_short_mid
+sleeve      = short_mid
 AUTO_MONITOR = true
 AUTO_ORDER   = false
 ```
 
-它不是券商交易机器人，也没有权限修改 shared policy、Skill 或 Champion。
+它不是券商交易机器人，也没有权限修改 shared policy、长期 Skill、短中期 Skill 或 Champion。
+
+## Strategy Boundary
+
+读取：
+
+- `../shared/strategy-boundary-contract.md`
+- `../shared/canonical-pit-data-contract.md`
+
+当前 Runtime 中的：
+
+```text
+Regime
+crowding
+Reward/Risk
+short tactical state
+```
+
+只属于 `short_mid`。
+
+如果 short/mid engine 收到：
+
+```text
+sleeve = long
+```
+
+必须 fail closed：
+
+```text
+NO_ACTION_STRATEGY_MISMATCH
+```
+
+长期系统未来将拥有独立的 Quality / Cash Flow / Expected IRR / Valuation Engine，不由本 Monitor 直接改变长期 ADD/HOLD/TRIM/EXIT。
 
 ## 上位治理
 
@@ -32,7 +68,9 @@ AUTO_ORDER   = false
 2. `../shared/capital-allocation-and-entry-policy.md`
 3. `../shared/research-model-governance.md`
 4. `../shared/automation-execution-governance.md`
-5. `../skills/a-share-short-midterm-stock-selection/SKILL.md`
+5. `../shared/strategy-boundary-contract.md`
+6. `../shared/canonical-pit-data-contract.md`
+7. `../skills/a-share-short-midterm-stock-selection/SKILL.md`
 
 情绪指数定义：
 
@@ -45,6 +83,37 @@ RESEARCH / MONITOR INPUT
 ```
 
 权重、阈值和 Regime 映射属于 Governance Parameter，不是已经验证的交易 Alpha。
+
+## Runtime Universe
+
+默认配置：
+
+```text
+runtime/config/short_mid_universe.json
+```
+
+不再默认读取：
+
+```text
+skills/.../examples/<dated-watchlist>.json
+```
+
+原因：`examples/` 是 Level-4 历史证据，不能作为未来 production-current universe 的默认真相源。
+
+Runtime universe 必须显式声明：
+
+```text
+strategy_id
+sleeve
+runtime_universe_version
+as_of
+source_type
+stocks
+```
+
+当前配置是 2026-08-28 approved short/mid research set 的 runtime bootstrap。未来 Production Research 应由 current universe service/config/database 生成并版本化，而不是人工永久维护某个历史 snapshot。
+
+仍保留 `--watchlist` CLI 参数名以兼容现有调用，但其输入现在应是 strategy-tagged runtime universe payload。
 
 ## 数据 Provider
 
@@ -78,7 +147,7 @@ spot_provider = SINA_FALLBACK
 data_confidence <= MEDIUM
 ```
 
-不同 Provider 的股票代码会统一规范为 6 位数字代码，例如：
+不同 Provider 股票代码统一为 6 位数字代码，例如：
 
 ```text
 sh600000 → 600000
@@ -93,9 +162,9 @@ spot_provider = UNAVAILABLE
 regime = DATA_INSUFFICIENT
 ```
 
-因此 fallback 用于提高**监控可用性**，不是把聚合数据源升级为 Live 真相源。
+Fallback 用于提高**监控可用性**，不是把聚合数据源升级为 Live 真相源。
 
-AKShare 是聚合数据接口，不是交易所/Broker 真相源。进入 Manual Live / Semi-auto / Auto 前必须增加官方披露、券商行情和真实持仓交叉验证。
+AKShare 是聚合数据接口，不是交易所/Broker 真相源。进入 Manual Live / Semi-auto / Auto 前必须增加官方披露、券商行情和真实持仓交叉验证，并检查数据 permitted-use / license metadata。
 
 文档：
 https://akshare.akfamily.xyz/data/stock/stock.html
@@ -105,7 +174,7 @@ https://akshare.akfamily.xyz/data/stock/stock.html
 ```bash
 python -m pip install -r runtime/requirements.txt
 python -m pip check
-python -m compileall -q runtime
+python -m compileall -q runtime src
 python -m unittest discover -s runtime/tests -v
 python runtime/daily_monitor.py
 ```
@@ -121,6 +190,20 @@ runtime/state/market_history.csv
 `market_history.csv` 只有在有效交易日且成功取得全市场成交额时才创建/更新。即使 history 文件不存在，fail-closed 日报也必须独立保留。
 
 这些输出属于 **Generated Evidence / Runtime State**，不是 Policy，也不是可直接执行的订单。
+
+## Machine Contracts
+
+生产实现开始从文档向机器契约迁移：
+
+```text
+src/core/strategy_boundary.py
+→ strategy_id / sleeve 校验
+
+src/core/pit.py
+→ PIT metadata / replay visibility 校验
+```
+
+这两个模块只是第一批 Core Contract，不代表完整 Data Platform 已经完成。
 
 ## 情绪指数
 
@@ -145,11 +228,9 @@ Regime：
 80–100 EUPHORIA
 ```
 
-### RISK_OFF 的统一语义
+`RISK_OFF` 不是仓库级绝对禁止交易状态。
 
-`RISK_OFF` **不是仓库级绝对禁止交易状态**。
-
-生产 Skill 的语义：
+生产 Short/Mid Skill 语义：
 
 ```text
 RISK_OFF
@@ -159,7 +240,7 @@ RISK_OFF
 → 仍需完整 Champion/approved-model + Reward/Risk + Risk Budget Gate
 ```
 
-因此 Monitor 对 RISK_OFF 候选输出：
+Monitor 对 RISK_OFF 候选输出：
 
 ```text
 RISK_REVIEW
@@ -183,9 +264,7 @@ RISK_REVIEW
 NO_ACTION_DATA_MISSING
 ```
 
-全部只是研究/监控状态。
-
-`REFRESH_FULL_GATES` 只表示值得重新获取当前财报、催化、技术、风险和账户状态并运行完整 Skill。
+全部只是 `short_mid` 研究/监控状态。
 
 在以下信息没有全部刷新前，日报不能直接变成 BUY：
 
@@ -204,25 +283,33 @@ Broker state (when live)
 
 ## Report Governance References
 
-日报保存：
+日报现在保存：
 
 ```text
-runtime_mode = MONITOR_ONLY
+strategy_id
+sleeve
+runtime_mode = SHORT_MID_MONITOR_ONLY
+universe metadata
+
 governance_refs:
   capital_policy
   automation_governance
   research_model_governance
+  strategy_boundary
+  pit_data_contract
   short_mid_skill
   sentiment_model
 ```
 
-这里只记录引用路径，不冒充真实 Broker 决策的完整 Governance Bundle。未来进入 Paper/Live cohort 时按 Level 1B 保存具体版本：
+这里只记录引用路径，不冒充真实 Broker 决策的完整 Governance Bundle。进入 Paper/Live cohort 后必须保存具体版本：
 
 ```text
 capital_policy_version
 automation_governance_version
 research_model_governance_version
 skill_version
+strategy_id
+sleeve
 strategy_version
 model_version
 ```
@@ -235,7 +322,9 @@ model_version
 - Primary/Fallback Spot 均失败；
 - 关键涨跌停数据严重缺失；
 - 可用权重低于情绪指数最低要求；
-- 股票当前行情缺失。
+- 股票当前行情缺失；
+- runtime universe 缺失；
+- `strategy_id / sleeve` 不匹配。
 
 系统记录：
 
@@ -246,9 +335,8 @@ DATA_INSUFFICIENT
 NO_ACTION_DATA_MISSING
 calendar_gate
 spot_provider_gate
+strategy_context_gate
 ```
-
-即使为可观测性抓到部分行情，交易日历未知时最终 Regime 仍强制降级为 `DATA_INSUFFICIENT`。
 
 ## GitHub Actions
 
@@ -256,7 +344,7 @@ spot_provider_gate
 
 `.github/workflows/a-share-daily-monitor.yml`
 
-工作日北京时间15:40左右计划触发；GitHub cron 使用 UTC，实际可能有队列延迟。
+工作日北京时间15:40左右计划触发；GitHub cron 使用 UTC，实际可能存在队列延迟，因此该机制适合 EOD research monitor，不应被理解为精确盘中 execution scheduler。
 
 当前流程：
 
@@ -271,43 +359,52 @@ checkout
 → commit generated report/history if changed
 ```
 
-日报目录与可选的 `market_history.csv` **分别 staging**，避免 history 因 Provider 失败而不存在时把当天 fail-closed 日报一起丢弃。
-
-如果执行期间 main 上的 Runtime/Workflow 已更新，旧运行会跳过日报提交；由最新 revision 重新生成，避免旧代码结果污染新版本证据。
-
-开发阶段使用：
-
-```text
-concurrency.cancel-in-progress = true
-```
-
-只保留最新 Runtime revision 的验证任务。正常每日定时运行通常不存在重叠。
-
 `contents: write` 只用于提交生成的报告/历史状态；当前 runtime 不包含 Broker 下单模块。
 
 ## Runtime 测试
 
-`runtime/tests/test_monitor.py` 至少回归：
+`runtime/tests/` 当前至少回归：
 
 - Eastmoney/Sina 代码标准化；
 - 缺核心数据 → `DATA_INSUFFICIENT`；
 - PANIC 新仓 fail closed；
 - RISK_OFF 不是自动硬否决；
 - RISK_OFF 只有在更严格的 entry/risk gates 通过后才可能进入 READY；
-- position thesis invalidated → EXIT。
+- position thesis invalidated → EXIT；
+- long sleeve 不能进入 short/mid engine；
+- PIT `available_at` 不能早于 `published_at`；
+- replay 时间早于 `available_at` 时记录不可见；
+- strategy visibility 必须被执行。
 
 ## 下一阶段
 
-Monitor MVP 之后才逐层研究：
+当前批准的 Production 演进基础见：
+
+`../research/production-system-evolution-report-2026-08-28.md`
+
+Short/Mid 优先顺序：
 
 ```text
-official disclosure adapter
-current Champion scorer
-Causal Challenger shadow scorer
-account / strategy position ledger
-paper broker
-Broker read-only reconciliation
-human-confirmed execution
+Canonical PIT Data Store
+→ current universe generation
+→ current Champion engine
+→ ERG engine
+→ historical replay
+→ Forward/Ablation/Placebo
+→ Paper ledger / broker simulator
+→ Broker read-only reconciliation
+→ human-confirmed execution
+→ optional semi-auto
 ```
 
-每一步都必须重新通过 shared governance 和 consistency audit，不能从 Monitor 直接跳到 `AUTO_ORDER=true`。
+长期系统单独演进：
+
+```text
+Long Quality Engine
+→ Cash Flow / Dividend Engine
+→ Expected IRR / Valuation Engine
+→ Long Paper Portfolio
+→ automated research / manual order as a valid end state
+```
+
+不能从 Monitor 直接跳到 `AUTO_ORDER=true`，也不能因为短中期系统代码化而把其时间尺度和验证标准强加给长期策略。
