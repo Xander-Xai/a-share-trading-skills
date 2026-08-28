@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "date": "2026-08-29",
+  "generated_at": "2026-08-29T04:04:15.801661+08:00",
+  "summary": {
+    "sample_count": 1,
+    "sample_days_total": 1,
+    "aggregate_coverage": {
+      "price_complete_pct": 0.0,
+      "market_complete_pct": 0.0,
+      "benchmark_complete_pct": 0.0,
+      "participation_complete_pct": 0.0,
+      "financing_complete_or_not_applicable_pct": 100.0,
+      "disclosure_scan_complete_pct": 100.0,
+      "manual_execution_complete_pct": 100.0
+    },
+    "samples": [
+      {
+        "sample_id": "20260805-600699-retro-live-01",
+        "code": "600699",
+        "name": "均胜电子",
+        "sample_role": "RETROSPECTIVE_LIVE_MANUAL",
+        "sample_days_total": 1,
+        "first_effective_date": "2026-08-29",
+        "last_effective_date": "2026-08-29",
+        "coverage": {
+          "price_complete_pct": 0.0,
+          "market_complete_pct": 0.0,
+          "benchmark_complete_pct": 0.0,
+          "participation_complete_pct": 0.0,
+          "financing_complete_or_not_applicable_pct": 100.0,
+          "disclosure_scan_complete_pct": 100.0,
+          "manual_execution_complete_pct": 100.0
+        },
+        "prospective_model_snapshot_complete_pct": null,
+        "data_maturity": "EARLY_ACCUMULATION",
+        "alpha_validation_status": "NOT_INFERRED_FROM_DATA_COMPLETENESS"
+      }
+    ],
+    "interpretation": "Operational data maturity measures evidence completeness only; it does not prove positive expectancy or model alpha."
+  }
+}

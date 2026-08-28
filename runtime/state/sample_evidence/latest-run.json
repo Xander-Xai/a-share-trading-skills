@@ -1,0 +1,10 @@
+{
+  "as_of_date": "2026-08-29",
+  "ingested_at": "2026-08-29T04:04:00.617464+08:00",
+  "registry_version": "2026-08-29-v1",
+  "sample_count_registered": 1,
+  "daily_records_appended": 1,
+  "new_disclosures_appended": 7,
+  "state_dir": "runtime/state/sample_evidence",
+  "auto_order": false
+}
