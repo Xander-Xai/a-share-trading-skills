@@ -4,7 +4,7 @@ from runtime.sample_maturity import classify_maturity, summarize
 
 
 class SampleMaturityTests(unittest.TestCase):
-    def test_early_accumulation(self):
+    def test_early_accumulation_distinguishes_historical_path(self):
         records = [
             {
                 "record_key": f"s1:2026-08-0{i}",
@@ -13,6 +13,9 @@ class SampleMaturityTests(unittest.TestCase):
                 "code": "600699",
                 "name": "均胜电子",
                 "effective_date": f"2026-08-0{i}",
+                "price_and_path": {
+                    "sample_path": {"holding_trading_days_inclusive": 15 + i}
+                },
                 "data_quality": {
                     "price_complete": True,
                     "market_complete": True,
@@ -27,7 +30,11 @@ class SampleMaturityTests(unittest.TestCase):
         ]
         result = summarize(records)
         self.assertEqual(result["sample_count"], 1)
-        self.assertEqual(result["samples"][0]["data_maturity"], "EARLY_ACCUMULATION")
+        sample = result["samples"][0]
+        self.assertEqual(sample["data_maturity"], "EARLY_ACCUMULATION")
+        self.assertEqual(sample["evidence_snapshot_days_total"], 3)
+        self.assertEqual(sample["historical_path_trading_days_available"], 18)
+        self.assertEqual(sample["forward_alpha_eligibility_note"], "RETROSPECTIVE_PATH_NOT_FORWARD_EVIDENCE")
 
     def test_mature_requires_core_coverage(self):
         coverage = {
