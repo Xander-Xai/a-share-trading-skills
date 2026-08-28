@@ -33,7 +33,9 @@ class NormalizedRecordCandidate:
         published_at: str | None = None,
         effective_at: str | None = None,
         exchange: str | None = None,
+        source_locator: str | None = None,
         supersedes_revision_id: str | None = None,
+        is_current_revision: bool | None = None,
         redistribution_allowed: bool | None = None,
         retention_rule: str | None = None,
     ) -> "NormalizedRecordCandidate":
@@ -55,7 +57,9 @@ class NormalizedRecordCandidate:
             published_at=published_at,
             security_id=security_id,
             exchange=exchange,
+            source_locator=source_locator,
             supersedes_revision_id=supersedes_revision_id,
+            is_current_revision=is_current_revision,
             redistribution_allowed=redistribution_allowed,
             retention_rule=retention_rule,
         )
