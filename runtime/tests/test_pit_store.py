@@ -1,6 +1,6 @@
+import json
 import tempfile
 import unittest
-from dataclasses import replace
 from pathlib import Path
 
 from src.core.pit import PITMetadata
@@ -146,6 +146,30 @@ class PITStoreTests(unittest.TestCase):
             )
             self.assertEqual(snapshot["record_count"], 1)
 
+    def test_old_research_only_revision_does_not_block_new_permitted_revision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = PITStore(tmp)
+            store.append(self.build_metadata(), {"net_profit": 118.71})
+            rev2 = self.build_metadata(
+                revision_id="rev-2",
+                supersedes_revision_id="rev-1",
+                source_snapshot_id="source-snap-2",
+                published_at="2026-08-29T09:00:00+08:00",
+                available_at="2026-08-29T09:00:05+08:00",
+                ingested_at="2026-08-29T09:01:00+08:00",
+                permitted_use="INTERNAL_PRODUCTION_ALLOWED",
+            )
+            store.append(rev2, {"net_profit": 119.00})
+
+            snapshot = store.create_snapshot(
+                strategy_id=SHORT_MID_STRATEGY_ID,
+                sleeve="short_mid",
+                as_of="2026-08-29T10:00:00+08:00",
+                intended_use="INTERNAL_PRODUCTION",
+            )
+            self.assertEqual(snapshot["record_count"], 1)
+            self.assertEqual(snapshot["records"][0]["revision_id"], "rev-2")
+
     def test_materialize_snapshot_detects_missing_record(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = PITStore(tmp)
@@ -159,6 +183,23 @@ class PITStoreTests(unittest.TestCase):
             Path(store.records_path).write_text("", encoding="utf-8")
             with self.assertRaises(ValueError):
                 store.materialize_snapshot(snapshot["snapshot_id"])
+
+    def test_load_snapshot_detects_manifest_tampering(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = PITStore(tmp)
+            store.append(self.build_metadata(), {"net_profit": 118.71})
+            snapshot = store.create_snapshot(
+                strategy_id=SHORT_MID_STRATEGY_ID,
+                sleeve="short_mid",
+                as_of="2026-08-28T18:00:00+08:00",
+            )
+            path = store.snapshots_dir / f"{snapshot['snapshot_id']}.json"
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            manifest["as_of"] = "2026-08-28T19:00:00+08:00"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            with self.assertRaises(ValueError):
+                store.load_snapshot(snapshot["snapshot_id"])
 
 
 if __name__ == "__main__":
