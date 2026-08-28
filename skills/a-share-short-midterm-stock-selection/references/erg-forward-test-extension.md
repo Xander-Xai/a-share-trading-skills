@@ -30,6 +30,7 @@ For event-driven candidates preserve:
 ```text
 information_timestamp
 first_tradable_timestamp
+source_tier
 expectation_baseline_type
 expectation_confidence
 expectation_center
