@@ -1,4 +1,4 @@
-# ERG Output Schema v1
+# ERG Output Schema v1.1
 
 This is the minimum structured contract for Shadow research records using the Expectation–Reaction Gate.
 
@@ -6,9 +6,21 @@ This is the minimum structured contract for Shadow research records using the Ex
 as_of: null
 stock_code: null
 stock_name: null
+exchange: null
+board: null
 information_timestamp: null
-first_tradable_timestamp: null
 source_tier: null
+
+execution_session:
+  session_rule_version: null
+  session_type: UNRESOLVED
+  post_close_eligible: null
+  suspension_state_at_1500: null
+  broker_post_close_support: null
+  first_exchange_tradable_timestamp: null
+  first_broker_executable_timestamp: null
+  first_tradable_timestamp: null
+  resolution_status: UNRESOLVED
 
 expectation:
   baseline_type: NONE
@@ -48,6 +60,7 @@ reaction:
 
 research_state: WATCH
 research_state_reason: null
+confirmation_basis: null
 strategy_type: null
 position_state: FLAT
 entry_trigger: null
@@ -56,9 +69,22 @@ planned_RR: null
 risk_budget_status: null
 ```
 
+Allowed `confirmation_basis` values:
+
+```text
+EVENT_REACTION
+TREND_STRUCTURE
+REGIME_RELATIVE_STRENGTH
+MEAN_REVERSION_SETUP
+MULTI_EVIDENCE
+OTHER_EXPERIMENTAL
+```
+
 Rules:
 
 - Missing data remains `null/UNRESOLVED`.
-- `CONFIRMED` requires a documented reason; it is not inferred from a numerical score alone.
+- `CONFIRMED` requires a documented reason and `confirmation_basis`; it is not inferred from a numerical score alone.
 - `position_state` cannot move to `ENTRY` if shared risk/execution gates fail.
 - `strategy_type` is locked for the life of the trade thesis unless the original record is closed and re-underwritten.
+- Event timing must be resolved with `session-aware-execution-calendar.md`; an after-15:00 disclosure is not automatically mapped to the next trading day.
+- If exchange/broker/session state is unresolved, `first_tradable_timestamp` remains unresolved and no executable event trade is generated.
