@@ -38,14 +38,22 @@ class FeatureSnapshotChampionTests(unittest.TestCase):
         self,
         *,
         regime="NEUTRAL",
+        data_confidence="HIGH",
         penalty_overrides=None,
         score_overrides=None,
         veto_reasons=(),
         include_hard_veto_checked=True,
+        omit_veto_flags=(),
     ):
         penalty_overrides = penalty_overrides or {}
         score_overrides = score_overrides or {}
+        veto_reasons = set(veto_reasons)
+        omit_veto_flags = set(omit_veto_flags)
         features = []
+
+        unknown_vetoes = veto_reasons - set(self.config.hard_veto_flags)
+        if unknown_vetoes:
+            raise ValueError(f"unknown test veto flags: {sorted(unknown_vetoes)}")
 
         for section, criteria in self.config.base_sections.items():
             for criterion, cap in criteria.items():
@@ -65,12 +73,18 @@ class FeatureSnapshotChampionTests(unittest.TestCase):
 
         if include_hard_veto_checked:
             features.append(self.available("champion.hard_veto_checked", True))
-        for reason in veto_reasons:
-            features.append(self.available(f"champion.hard_veto.{reason}", True))
+        for flag in self.config.hard_veto_flags:
+            if flag not in omit_veto_flags:
+                features.append(
+                    self.available(
+                        f"champion.hard_veto.{flag}",
+                        flag in veto_reasons,
+                    )
+                )
 
         features.extend(
             [
-                self.available("champion.data_confidence", "HIGH"),
+                self.available("champion.data_confidence", data_confidence),
                 self.available("market.regime", regime),
             ]
         )
@@ -83,10 +97,12 @@ class FeatureSnapshotChampionTests(unittest.TestCase):
         sleeve=SHORT_MID_SLEEVE,
         data_snapshot_id="data-snapshot-001",
         regime="NEUTRAL",
+        data_confidence="HIGH",
         penalty_overrides=None,
         score_overrides=None,
         veto_reasons=(),
         include_hard_veto_checked=True,
+        omit_veto_flags=(),
     ):
         return FeatureSnapshot.build(
             strategy_id=strategy_id,
@@ -98,11 +114,24 @@ class FeatureSnapshotChampionTests(unittest.TestCase):
             config_version=self.config.config_version,
             features=self.build_features(
                 regime=regime,
+                data_confidence=data_confidence,
                 penalty_overrides=penalty_overrides,
                 score_overrides=score_overrides,
                 veto_reasons=veto_reasons,
                 include_hard_veto_checked=include_hard_veto_checked,
+                omit_veto_flags=omit_veto_flags,
             ),
+        )
+
+    def test_config_freezes_expected_section_caps(self):
+        self.assertEqual(
+            self.config.section_caps,
+            {
+                "technical": 30.0,
+                "capital": 30.0,
+                "fundamentals": 25.0,
+                "catalyst": 15.0,
+            },
         )
 
     def test_feature_snapshot_is_deterministic_independent_of_feature_order(self):
@@ -150,7 +179,8 @@ class FeatureSnapshotChampionTests(unittest.TestCase):
         self.assertEqual(result.base_score, 100.0)
         self.assertEqual(result.final_score, 100.0)
         self.assertEqual(result.ranking_status, "HIGH_PRIORITY")
-        self.assertTrue(result.entry_score_gate_passed)
+        self.assertTrue(result.score_threshold_passed)
+        self.assertTrue(result.research_eligible)
         self.assertFalse(result.execution_authorized)
 
     def test_hard_veto_cannot_be_compensated_by_max_score(self):
@@ -160,7 +190,8 @@ class FeatureSnapshotChampionTests(unittest.TestCase):
         self.assertEqual(result.final_score, 100.0)
         self.assertTrue(result.hard_veto)
         self.assertEqual(result.ranking_status, "REJECT_HARD_VETO")
-        self.assertFalse(result.entry_score_gate_passed)
+        self.assertTrue(result.score_threshold_passed)
+        self.assertFalse(result.research_eligible)
 
     def test_risk_off_raises_practical_entry_score_gate_without_changing_score(self):
         penalties = {"chase_extension": 15, "event_risk": 8}
@@ -174,11 +205,28 @@ class FeatureSnapshotChampionTests(unittest.TestCase):
         self.assertEqual(risk_off.final_score, 77.0)
         self.assertEqual(neutral.practical_entry_threshold, 75.0)
         self.assertEqual(risk_off.practical_entry_threshold, 80.0)
-        self.assertTrue(neutral.entry_score_gate_passed)
-        self.assertFalse(risk_off.entry_score_gate_passed)
+        self.assertTrue(neutral.score_threshold_passed)
+        self.assertTrue(neutral.research_eligible)
+        self.assertFalse(risk_off.score_threshold_passed)
+        self.assertFalse(risk_off.research_eligible)
+
+    def test_low_confidence_blocks_research_eligibility_even_at_high_score(self):
+        result = self.scorer.score_feature_snapshot(
+            self.build_snapshot(data_confidence="LOW")
+        )
+        self.assertEqual(result.final_score, 100.0)
+        self.assertTrue(result.score_threshold_passed)
+        self.assertFalse(result.research_eligible)
 
     def test_missing_hard_veto_check_fails_closed(self):
         snapshot = self.build_snapshot(include_hard_veto_checked=False)
+        with self.assertRaises(ChampionInputError):
+            self.scorer.score_feature_snapshot(snapshot)
+
+    def test_missing_one_frozen_veto_flag_fails_closed(self):
+        snapshot = self.build_snapshot(
+            omit_veto_flags=(self.config.hard_veto_flags[0],)
+        )
         with self.assertRaises(ChampionInputError):
             self.scorer.score_feature_snapshot(snapshot)
 
