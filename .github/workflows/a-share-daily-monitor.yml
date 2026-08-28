@@ -26,8 +26,6 @@ permissions:
 
 concurrency:
   group: a-share-daily-monitor-${{ github.ref }}
-  # During runtime development, keep evidence only for the newest revision.
-  # Scheduled daily runs normally do not overlap.
   cancel-in-progress: true
 
 jobs:
@@ -59,21 +57,17 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s runtime/tests -v
 
-      # Pull-request CI must be deterministic and must not depend on live public
-      # market endpoints. Live-provider behavior is exercised by scheduled,
-      # workflow_dispatch and main-push monitor runs; PRs validate code/contracts.
       - name: Run fail-closed market monitor
         if: github.event_name != 'pull_request'
         run: python runtime/daily_monitor.py
 
-      # Run as a module from repository root so shared `src.*` contracts resolve
-      # consistently in GitHub Actions and local research environments.
+      # Primary history adapters use Eastmoney; resilient adapter falls back to
+      # Tencent history/index data when the primary endpoint is unavailable.
+      # Public-data failure may reduce evidence quality but never authorizes an order.
       - name: Collect short-mid sample evidence
         if: github.event_name != 'pull_request'
-        run: python -m runtime.sample_collector
+        run: python -m runtime.sample_collector_resilient
 
-      # Data maturity is coverage/auditability only. It must never be interpreted
-      # as alpha validation or as permission to increase risk.
       - name: Report short-mid sample data maturity
         if: github.event_name != 'pull_request'
         run: python -m runtime.sample_maturity
