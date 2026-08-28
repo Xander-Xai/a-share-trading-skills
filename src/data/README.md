@@ -34,6 +34,12 @@ adapters.py
 
 ingest.py
 → fail-closed candidate ingestion into PITStore
+
+official_disclosures.py
+→ SSE/SZSE official-disclosure normalization v0
+→ strict official-host provenance
+→ FIRST_OBSERVED / OFFICIAL_TIMESTAMP visibility semantics
+→ no undocumented live endpoint
 ```
 
 ## Current entities
@@ -105,8 +111,35 @@ strategy visibility
 
 The adapter must emit `NormalizedRecordCandidate` objects. Strategy code must not import provider-specific column names.
 
+## Official disclosure adapter status
+
+SSE/SZSE disclosure normalization now has a v0 implementation, but **live network acquisition remains intentionally unresolved** because no stable documented public machine API has yet been frozen in this repository.
+
+Current behavior:
+
+```text
+verified official row / capture
+→ official host validation
+→ exact timestamp or first-observed visibility
+→ canonical Disclosure
+→ PITStore
+```
+
+The adapter never converts a date-only listing into an invented intra-day publication time.
+
+Default:
+
+```text
+source_tier = TIER1
+permitted_use = UNRESOLVED_LICENSE
+```
+
+Evidence authority and data-use permission are independent.
+
+See `shared/official-disclosure-source-contract.md`.
+
 ## Current status
 
-This layer defines machine contracts. It does not yet include production adapters for exchange disclosures, licensed market data, corporate actions or consensus feeds.
+The data layer now contains canonical schema, PIT store/snapshot, and official-disclosure normalization contracts. It still does not claim production-ready live adapters for official disclosure retrieval, licensed market data, corporate actions or consensus feeds.
 
-Those adapters should be added one source at a time with fixtures and point-in-time tests.
+Adapters should continue to be added one source at a time with frozen fixtures and point-in-time tests.
