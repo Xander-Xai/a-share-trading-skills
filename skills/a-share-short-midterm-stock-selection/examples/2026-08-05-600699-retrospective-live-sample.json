@@ -71,20 +71,25 @@
       "regime_confidence": "MEDIUM_RECONSTRUCTED_NOT_CANONICAL"
     },
     "sector": {
-      "name": "汽车零部件",
-      "sector_return_pct_reference": 1.88,
+      "name": "汽车零部件 / 智能驾驶相关",
       "sector_state": "strong"
     },
     "capital_evidence": {
-      "financing_buy_rmb": 96052987,
-      "financing_repay_rmb": 74981382,
-      "financing_net_buy_rmb": 21071605,
-      "vendor_main_flow_state": "positive_but_vendor_defined"
+      "publication_timestamp": "2026-08-05T08:01:00+08:00",
+      "data_through": "2026-08-04",
+      "financing_buy_rmb": 67009500,
+      "financing_repay_rmb": 63348100,
+      "financing_net_buy_rmb": 3661400,
+      "financing_balance_rmb": 1438580600,
+      "financing_balance_state": "below one-year 30th percentile / relatively low",
+      "vendor_main_flow_state": "not required for PIT reconstruction",
+      "pit_exclusion": "2026-08-05 financing activity was first available on 2026-08-06 and is excluded from the entry-day information set"
     },
     "entry_context_notes": [
       "The entry occurred on a broad risk-on rebound day and in a strong auto-parts / intelligent-driving environment.",
       "The 2026-08-05 L3/L4 investor-platform reply was published after the regular close and must not be treated as information available for the intraday entry.",
-      "The entry price was within the day's range and about 1.82% above the prior close; this is not an extreme intraday high chase by itself."
+      "The exact execution timestamp is unknown; full-day close and volume cannot be assumed to have been known at the precise purchase moment.",
+      "The entry price was within the day's range and about 1.82% above the prior close; this alone does not establish a high-quality production setup."
     ]
   },
   "path_metrics_as_of_2026_08_28_close": {
@@ -119,7 +124,7 @@
     "day_3_to_5_window": {
       "dates": ["2026-08-10", "2026-08-11", "2026-08-12"],
       "max_favorable_excursion_pct_already_observed": 1.5563,
-      "close_on_2026_08_12": 21.23,
+      "close_on_2026-08-12": 21.23,
       "return_vs_cost_on_2026_08_12_pct": -1.3705,
       "retrospective_current_policy_state": "WEAKENING_REVIEW_CANDIDATE",
       "note": "Diagnostic counterfactual only; not proof of the exact exit that should have been taken."
@@ -131,8 +136,8 @@
     }
   },
   "current_policy_counterfactual": {
-    "size_gate": "LIKELY_BLOCKED_IF_REPORTED_50PCT_IS_OF_STOCK_ACCOUNT_EQUITY",
-    "reason": "Current short/mid governance caps short-term capital below 50% and normally limits a single short/mid symbol to about 20% of short/mid strategy NAV, subject to stricter account-level caps.",
+    "size_gate": "LIKELY_BLOCKED_IF_REPORTED_50PCT_IS_OF_STOCK_ACCOUNT_EQUITY_OR_SHORT_STRATEGY_NAV",
+    "reason": "Current short/mid governance normally limits a single short/mid symbol to about 20% of short/mid strategy NAV, subject to stricter risk and account-level caps.",
     "time_stop_gate": "WOULD_REQUIRE_REVIEW",
     "holding_horizon_gate": "REUNDERWRITE_REQUIRED_AFTER_15_TRADING_DAYS",
     "production_rule_violation_label": "NOT_ASSIGNED_RETROSPECTIVELY",
@@ -143,17 +148,19 @@
       "id": "H-JOYSON-01",
       "hypothesis": "A 3-5 trading-day follow-through gate using early MFE plus relative-strength deterioration may reduce losses from setups that never develop.",
       "candidate_features": ["MFE_3d", "MFE_5d", "relative_strength_3d", "relative_strength_5d", "volume_price_progress"],
-      "status": "CHALLENGER_RESEARCH_ONLY"
+      "status": "CHALLENGER_RESEARCH_ONLY",
+      "theory_status": "NOT_PROVEN_AS_OPTIMAL_WINDOW"
     },
     {
       "id": "H-JOYSON-02",
-      "hypothesis": "Single-day risk-on/sector strength is insufficient; require multi-day relative-strength persistence or clean breakout/retest confirmation for entries near recent local highs.",
+      "hypothesis": "Single-day risk-on/sector strength is insufficient; multi-day relative-strength persistence or clean breakout/retest confirmation may improve discrimination for entries near recent local highs.",
       "candidate_features": ["RS_5d", "RS_10d", "entry_extension_vs_MA5", "breakout_hold", "first_retest_success"],
-      "status": "CHALLENGER_RESEARCH_ONLY"
+      "status": "CHALLENGER_RESEARCH_ONLY",
+      "theory_status": "CONDITIONAL_EVIDENCE_WITH_SHORT_HORIZON_REVERSAL_COUNTEREVIDENCE"
     },
     {
       "id": "H-JOYSON-03",
-      "hypothesis": "Oversized positions amplify holding inertia and tail loss; current sizing governance should be evaluated as a risk-control feature independently from stock-selection alpha.",
+      "hypothesis": "Oversized positions amplify drawdown contribution and may interact with holding inertia; current sizing governance should be evaluated as a risk-control feature independently from stock-selection alpha.",
       "candidate_features": ["planned_trade_risk_pct", "symbol_exposure_pct", "final_short_cap_state", "drawdown_contribution_pct"],
       "status": "GOVERNANCE_VALIDATION_ONLY"
     },
@@ -164,20 +171,27 @@
       "status": "CHALLENGER_RESEARCH_ONLY"
     }
   ],
+  "corrections_2026_08_29": [
+    "Removed 2026-08-05 financing buy/repay/net data from the entry-day PIT context because those figures were first published on 2026-08-06.",
+    "Replaced financing evidence with the 2026-08-04 snapshot published at 08:01 on 2026-08-05.",
+    "Explicitly recorded that the exact intraday execution timestamp is unknown.",
+    "Linked the separate frozen blind replay and theoretical adversarial audit; this retrospective sample itself remains outcome-bearing and is not a blind forward record."
+  ],
   "promotion_guard": {
     "production_model_changed": false,
     "production_threshold_changed": false,
     "reason": "One retrospective partial-PIT sample is insufficient for Champion promotion or parameter changes.",
     "next_use": "aggregate with additional live/paper samples by setup, regime, score bucket, MFE/MAE and holding-day behavior"
   },
+  "related_frozen_replay": "2026-08-05-600699-blind-replay-frozen.json",
+  "theory_audit": "../../../research/short-mid-blind-replay-theoretical-audit-v1.md",
   "source_provenance": [
     "user-provided trade facts in ChatGPT conversation on 2026-08-29",
     "https://dabanke.com/hangqing-600699.html",
     "https://cn.investing.com/equities/joyson-electro-historical-data",
-    "https://www.cnfin.com/gs-lb/detail/20260805/4451156_1.html",
-    "https://www.cls.cn/detail/2446376",
-    "https://stock.stockstar.com/RB2026080500033313.shtml",
-    "https://finance.eastmoney.com/a/202608063833089932.html",
-    "https://stock.stockstar.com/RB2026080500027139.shtml"
+    "https://finance.sina.com.cn/stock/aiassist/lr/2026-08-05/doc-inimffsp3699411.shtml",
+    "https://finance.eastmoney.com/a/202608053832573292.html",
+    "https://finance.eastmoney.com/a/202608053832577977.html",
+    "https://stock.stockstar.com/RB2026070400008565.shtml"
   ]
 }
