@@ -94,6 +94,44 @@ class RawEvidenceArchiveTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.archive(store, status_code=999)
 
+    def test_sensitive_headers_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = RawEvidenceArchive(tmp)
+            with self.assertRaises(ValueError):
+                self.archive(
+                    store,
+                    headers={
+                        "content-type": "text/html",
+                        "Authorization": "Bearer should-not-be-persisted",
+                    },
+                )
+
+    def test_sensitive_locator_query_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = RawEvidenceArchive(tmp)
+            with self.assertRaises(ValueError):
+                self.archive(
+                    store,
+                    locator="https://vendor.example/data?access_token=secret",
+                )
+
+    def test_header_names_are_canonicalized_case_insensitively(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = RawEvidenceArchive(tmp)
+            first = self.archive(
+                store,
+                headers={"Content-Type": "text/html", "ETag": "abc"},
+            )
+            second = self.archive(
+                store,
+                headers={"content-type": "text/html", "etag": "abc"},
+            )
+            self.assertEqual(first.raw_snapshot_id, second.raw_snapshot_id)
+            self.assertEqual(
+                dict(first.headers or {}),
+                {"content-type": "text/html", "etag": "abc"},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
