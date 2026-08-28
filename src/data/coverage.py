@@ -45,9 +45,9 @@ def _parse_aware(value: str) -> datetime:
 class DatasetCoverage(EntityMixin):
     """Positive evidence that a dataset family is complete for an explicit scope.
 
-    `no row observed` is not evidence that no event occurred. A source adapter or
-    data-quality reconciliation job must emit a coverage assertion only after the
-    completeness condition for that dataset family has actually been checked.
+    `dataset_key` optionally identifies a logical sub-dataset inside one family,
+    for example a specific benchmark id. A keyed request cannot be satisfied by
+    an unkeyed assertion.
     """
 
     entity_type = "DATASET_COVERAGE"
@@ -64,11 +64,14 @@ class DatasetCoverage(EntityMixin):
     expected_count: int | None = None
     observed_count: int | None = None
     note: str | None = None
+    dataset_key: str | None = None
 
     def validate(self) -> None:
         _require_text(self.coverage_id, "coverage_id")
         _require_text(self.dataset_family, "dataset_family")
         _require_text(self.verification_method, "verification_method")
+        if self.dataset_key is not None:
+            _require_text(self.dataset_key, "dataset_key")
         start = _validate_date(self.start_date, "start_date")
         end = _validate_date(self.end_date, "end_date")
         if end < start:
@@ -110,8 +113,9 @@ class DatasetCoverage(EntityMixin):
     def record_id(self) -> str:
         self.validate()
         scope = self.security_id or self.exchange or "GLOBAL"
+        key = self.dataset_key or "ALL"
         return (
-            f"DATASET_COVERAGE:{self.dataset_family}:{self.scope_type}:"
+            f"DATASET_COVERAGE:{self.dataset_family}:{key}:{self.scope_type}:"
             f"{scope}:{self.coverage_id}:{self.start_date}:{self.end_date}"
         )
 
@@ -127,6 +131,7 @@ class CoverageResolution:
     assertion_record: StoredPITRecord | None = None
     verification_method: str | None = None
     scope_type: str | None = None
+    dataset_key: str | None = None
 
     @property
     def assertion_ref(self) -> str | None:
@@ -140,9 +145,8 @@ class CoverageResolver:
     """Resolve the latest applicable coverage assertion from a PIT snapshot.
 
     The most specific applicable scope wins (security > exchange > global). Within
-    the same scope the latest PIT-visible assertion wins. This means a newer
-    security-level PARTIAL assertion intentionally overrides an older broader
-    CONFIRMED_COMPLETE assertion and fails closed.
+    the same scope the latest PIT-visible assertion wins. Keyed dataset requests
+    require an exactly matching `dataset_key`.
     """
 
     _SCOPE_PRIORITY = {"GLOBAL": 1, "EXCHANGE": 2, "SECURITY": 3}
@@ -156,9 +160,12 @@ class CoverageResolver:
         requested_end: str,
         security_id: str | None = None,
         exchange: str | None = None,
+        dataset_key: str | None = None,
         accepted_methods: set[str] | None = None,
     ) -> CoverageResolution:
         family = _require_text(dataset_family, "dataset_family")
+        if dataset_key is not None:
+            dataset_key = _require_text(dataset_key, "dataset_key")
         start = _validate_date(requested_start, "requested_start")
         end = _validate_date(requested_end, "requested_end")
         if end < start:
@@ -177,6 +184,11 @@ class CoverageResolver:
                 ) from exc
 
             if assertion.dataset_family != family:
+                continue
+            if dataset_key is not None:
+                if assertion.dataset_key != dataset_key:
+                    continue
+            elif assertion.dataset_key is not None:
                 continue
             if date.fromisoformat(assertion.start_date) > start:
                 continue
@@ -203,6 +215,7 @@ class CoverageResolver:
         if not candidates:
             return CoverageResolution(
                 dataset_family=family,
+                dataset_key=dataset_key,
                 requested_start=requested_start,
                 requested_end=requested_end,
                 confirmed=False,
@@ -216,6 +229,7 @@ class CoverageResolver:
         if accepted_methods is not None and assertion.verification_method not in accepted_methods:
             return CoverageResolution(
                 dataset_family=family,
+                dataset_key=dataset_key,
                 requested_start=requested_start,
                 requested_end=requested_end,
                 confirmed=False,
@@ -229,6 +243,7 @@ class CoverageResolver:
         confirmed = assertion.completeness_status == "CONFIRMED_COMPLETE"
         return CoverageResolution(
             dataset_family=family,
+            dataset_key=dataset_key,
             requested_start=requested_start,
             requested_end=requested_end,
             confirmed=confirmed,
