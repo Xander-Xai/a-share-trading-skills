@@ -20,7 +20,7 @@ Raw Source Bytes
 → PITStore
 → data_snapshot_id
 → DatasetCoverage proof
-→ Adjustment / Feature / Strategy
+→ Adjustment / Benchmark / Feature / Strategy
 ```
 
 ## Files
@@ -52,9 +52,15 @@ adjustments.py
 → backward-adjusted OHLC research series
 → coverage + source-record lineage
 
+benchmarks.py
+→ canonical BENCHMARK_MASTER / BENCHMARK_DAILY_BAR
+→ keyed benchmark coverage
+→ deterministic benchmark close/return series
+
 coverage.py
 → DATASET_COVERAGE assertions
 → scope/date/method-aware completeness resolution
+→ optional dataset_key for logical sub-datasets
 
 coverage_producers.py
 → deterministic dataset reconciliation producers
@@ -90,6 +96,8 @@ IndustryMembership
 ConsensusExpectation
 TradingSession
 DatasetCoverage
+BenchmarkMaster
+BenchmarkDailyBar
 ```
 
 Shared facts and data-quality assertions do not contain Long/Short-Mid decision states.
@@ -139,10 +147,19 @@ zero CORPORATE_ACTION rows
 
 The production-facing Short/Mid feature path resolves coverage from the same PIT snapshot rather than accepting caller-supplied booleans.
 
+For logical sub-datasets such as individual benchmark series, coverage can additionally carry:
+
+```text
+dataset_key = benchmark_id
+```
+
+A keyed request cannot be proven complete by an unkeyed assertion or by another key.
+
 See:
 
 ```text
 shared/dataset-coverage-contract.md
+shared/benchmark-data-contract.md
 src/features/short_mid_verified.py
 ```
 
@@ -196,7 +213,7 @@ See `shared/official-corporate-action-source-contract.md`.
 
 ## Adjustment factors
 
-Canonical DAILY_BAR remains unadjusted. Derived price continuity now uses a separate deterministic layer:
+Canonical DAILY_BAR remains unadjusted. Derived price continuity uses a separate deterministic layer:
 
 ```text
 UNADJUSTED DAILY_BAR
@@ -233,6 +250,36 @@ See:
 shared/adjustment-factor-contract.md
 src/data/adjustments.py
 runtime/build_adjustment_series.py
+```
+
+## Benchmark series
+
+Benchmark data and benchmark selection are deliberately separated.
+
+Canonical facts:
+
+```text
+BENCHMARK_MASTER
+BENCHMARK_DAILY_BAR
+```
+
+A benchmark series requires exact keyed completeness evidence:
+
+```text
+dataset_family = BENCHMARK_DAILY_BAR
+dataset_key    = benchmark_id
+```
+
+`BenchmarkSeriesBuilder` then produces a deterministic close/return series with source lineage and `benchmark_series_id`.
+
+It never chooses or silently substitutes the benchmark. Primary broad/sector/peer selection remains a separately frozen research contract.
+
+See:
+
+```text
+shared/benchmark-data-contract.md
+src/data/benchmarks.py
+runtime/build_benchmark_series.py
 ```
 
 ## Key normalization choices
@@ -319,8 +366,8 @@ See `shared/official-disclosure-source-contract.md`.
 
 ## Current status
 
-The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, official-disclosure normalization, a reviewed 2026 official trading-calendar plan, DAILY_BAR/calendar reconciliation, a RawEvidenceArchive-backed official corporate-action coverage boundary, and a deterministic exchange-reference adjustment-factor layer.
+The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, official-disclosure normalization, a reviewed 2026 official trading-calendar plan, DAILY_BAR/calendar reconciliation, a RawEvidenceArchive-backed official corporate-action coverage boundary, a deterministic exchange-reference adjustment-factor layer, and a benchmark-series/coverage contract.
 
-It still does not claim production-ready live adapters or complete real coverage producers for licensed market data, live corporate-action capture, benchmarks or consensus feeds.
+It still does not claim production-ready live adapters or complete real coverage producers for licensed market data, live corporate-action capture, benchmark feeds or consensus feeds.
 
 Adapters and coverage producers should continue to be added one source at a time with frozen raw fixtures and point-in-time tests.
