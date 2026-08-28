@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "plans": [
+    {
+      "exchange": "SSE",
+      "year": 2026,
+      "source_name": "Shanghai Stock Exchange",
+      "source_url": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+      "source_snapshot_id": "CURATED_OFFICIAL_CALENDAR_2026_SSE_V1",
+      "publication_date": "2025-12-22",
+      "available_at": "2025-12-23T00:00:00+08:00",
+      "ingested_at": "2026-08-28T23:26:00+08:00",
+      "session_rule_version": "SSE_CALENDAR_PLAN_2026_V1",
+      "revision_id": "2026-v1",
+      "permitted_use": "UNRESOLVED_LICENSE",
+      "source_tier": "TIER1",
+      "strategy_visibility": ["long", "short_mid"],
+      "closures": [
+        {"start_date": "2026-01-01", "end_date": "2026-01-03", "label": "NEW_YEAR"},
+        {"start_date": "2026-02-15", "end_date": "2026-02-23", "label": "SPRING_FESTIVAL"},
+        {"start_date": "2026-04-04", "end_date": "2026-04-06", "label": "QINGMING"},
+        {"start_date": "2026-05-01", "end_date": "2026-05-05", "label": "LABOUR_DAY"},
+        {"start_date": "2026-06-19", "end_date": "2026-06-21", "label": "DRAGON_BOAT"},
+        {"start_date": "2026-09-25", "end_date": "2026-09-27", "label": "MID_AUTUMN"},
+        {"start_date": "2026-10-01", "end_date": "2026-10-07", "label": "NATIONAL_DAY"}
+      ]
+    },
+    {
+      "exchange": "SZSE",
+      "year": 2026,
+      "source_name": "Shenzhen Stock Exchange",
+      "source_url": "https://www.szse.cn/disclosure/notice/general/t20251222_618087.html",
+      "source_snapshot_id": "CURATED_OFFICIAL_CALENDAR_2026_SZSE_V1",
+      "publication_date": "2025-12-22",
+      "available_at": "2025-12-23T00:00:00+08:00",
+      "ingested_at": "2026-08-28T23:26:00+08:00",
+      "session_rule_version": "SZSE_CALENDAR_PLAN_2026_V1",
+      "revision_id": "2026-v1",
+      "permitted_use": "UNRESOLVED_LICENSE",
+      "source_tier": "TIER1",
+      "strategy_visibility": ["long", "short_mid"],
+      "closures": [
+        {"start_date": "2026-01-01", "end_date": "2026-01-03", "label": "NEW_YEAR"},
+        {"start_date": "2026-02-15", "end_date": "2026-02-23", "label": "SPRING_FESTIVAL"},
+        {"start_date": "2026-04-04", "end_date": "2026-04-06", "label": "QINGMING"},
+        {"start_date": "2026-05-01", "end_date": "2026-05-05", "label": "LABOUR_DAY"},
+        {"start_date": "2026-06-19", "end_date": "2026-06-21", "label": "DRAGON_BOAT"},
+        {"start_date": "2026-09-25", "end_date": "2026-09-27", "label": "MID_AUTUMN"},
+        {"start_date": "2026-10-01", "end_date": "2026-10-07", "label": "NATIONAL_DAY"}
+      ]
+    }
+  ]
+}
