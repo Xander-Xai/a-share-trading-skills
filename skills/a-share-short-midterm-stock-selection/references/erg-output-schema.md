@@ -1,4 +1,4 @@
-# ERG Output Schema v1.1
+# ERG Output Schema v1.2
 
 This is the minimum structured contract for Shadow research records using the Expectation–Reaction Gate.
 
@@ -22,6 +22,28 @@ execution_session:
   first_tradable_timestamp: null
   resolution_status: UNRESOLVED
 
+benchmark_contract:
+  version: null
+  contract_frozen_at: null
+  primary_benchmark: null
+  secondary_benchmark: null
+  sector_benchmark: null
+  peer_basket_rule: null
+  peer_basket_members_as_of: []
+  benchmark_selection_rule: null
+  benchmark_fallback_rule: null
+  pit_status: UNRESOLVED
+
+reaction_window_contract:
+  version: null
+  contract_frozen_at: null
+  event_family: null
+  reaction_anchor: null
+  primary_reaction_window: UNRESOLVED_RESEARCH
+  secondary_reaction_windows: []
+  window_selection_method: null
+  session_treatment: null
+
 expectation:
   baseline_type: NONE
   confidence: LOW
@@ -30,6 +52,7 @@ expectation:
   high: null
   dispersion: null
   coverage_count: null
+  coverage_flag: null
 
 surprise:
   direction: UNRESOLVED
@@ -56,6 +79,11 @@ reaction:
   relative_strength_vs_broad: null
   relative_strength_vs_sector: null
   relative_strength_vs_peer: null
+  abnormal_return_primary: null
+  abnormal_return_sector: null
+  abnormal_return_peer: null
+  benchmark_sensitivity: UNRESOLVED
+  window_sensitivity: UNRESOLVED
   post_event_RVOL: null
 
 research_state: WATCH
@@ -80,6 +108,24 @@ MULTI_EVIDENCE
 OTHER_EXPERIMENTAL
 ```
 
+Allowed `benchmark_sensitivity` labels:
+
+```text
+BENCHMARK_STABLE
+BENCHMARK_SENSITIVE
+INSUFFICIENT_DATA
+UNRESOLVED
+```
+
+Allowed `window_sensitivity` labels:
+
+```text
+WINDOW_STABLE
+WINDOW_SENSITIVE
+INSUFFICIENT_DATA
+UNRESOLVED
+```
+
 Rules:
 
 - Missing data remains `null/UNRESOLVED`.
@@ -88,3 +134,7 @@ Rules:
 - `strategy_type` is locked for the life of the trade thesis unless the original record is closed and re-underwritten.
 - Event timing must be resolved with `session-aware-execution-calendar.md`; an after-15:00 disclosure is not automatically mapped to the next trading day.
 - If exchange/broker/session state is unresolved, `first_tradable_timestamp` remains unresolved and no executable event trade is generated.
+- Event abnormal-return interpretation follows `benchmark-and-reaction-window-contract.md`.
+- A future event cohort must freeze the benchmark and primary reaction-window contracts before outcome observation.
+- If a legacy frozen cohort predates the contract, do not retrofit the contract and relabel post-hoc analysis as original forward evidence.
+- Low/none expectation coverage cannot be presented as a verified beat/miss without an explicit alternate expectation baseline.
