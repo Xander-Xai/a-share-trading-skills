@@ -243,3 +243,96 @@ locked universe
 ```
 
 目标是减少可避免的流程错误并验证净期望，不是最大化交易次数。
+
+## 15. Short-horizon continuation vs reversal — explicit boundary
+
+The 5–15 trading-day sleeve must not borrow 3–12 month momentum evidence as if it directly proved 3–5 day continuation.
+
+Supporting and adversarial evidence coexist:
+
+- Jegadeesh & Titman (1993): intermediate-horizon momentum over 3–12 month holding periods.
+  https://doi.org/10.1111/j.1540-6261.1993.tb04702.x
+- Lo, Mamaysky & Wang (2000): some objectively defined technical patterns contain incremental conditional information.
+  https://www.nber.org/papers/w7613
+- Jegadeesh & Titman (1995): short-horizon reversals can arise from microstructure effects.
+  https://doi.org/10.1006/jfin.1995.1006
+- Yu, Fung & Leung (2019): significant weekly reversals in Chinese SSE/SZSE/GEM samples, with horizon-dependent results.
+  https://doi.org/10.1016/j.iref.2019.03.006
+- Jiang, Tong & Song (2019): some Chinese-market technical rules survived data-snooping controls in their sample.
+  https://doi.org/10.1111/irfi.12161
+- Chuang et al. (2024): after broad multiple-testing correction and out-of-sample transaction costs, most apparently profitable Chinese technical rules did not survive.
+  https://doi.org/10.1016/j.pacfin.2024.102278
+
+Therefore:
+
+```text
+recent strength
+→ conditional continuation hypothesis
+not
+→ deterministic next-week forecast
+```
+
+The production system should use state transitions and conditional paths rather than uncalibrated probability statements.
+
+## 16. Blind replay / scenario probability discipline
+
+For retrospective PIT replay:
+
+```text
+conditional path = allowed
+uncalibrated numeric path probability = prohibited
+```
+
+A probability such as `50% / 30% / 20%` may only enter a research artifact if it comes from a frozen calibration procedure with a declared cohort, horizon, costs, sample size and confidence interval.
+
+A replay created after outcomes are known may test process/PIT discipline but is not Level-C forward evidence even when future data are manually hidden.
+
+Detailed adversarial audit and theory mapping:
+
+- `../../../research/short-mid-blind-replay-theoretical-audit-v1.md`
+
+Frozen case:
+
+- `../examples/2026-08-05-600699-blind-replay-frozen.md`
+- `../examples/2026-08-05-600699-blind-replay-frozen.json`
+
+## 17. Reference-price / cost-basis boundary
+
+Behavioral evidence on the disposition effect supports guarding against break-even anchoring, including Chinese retail-investor evidence. This does not imply an automatic sell rule for losing positions.
+
+Sources:
+
+- Odean (1998):
+  https://doi.org/10.1111/0022-1082.00072
+- Zhang et al. (2022), Chinese brokerage-account evidence:
+  https://doi.org/10.1016/j.irfa.2022.102205
+- Grinblatt & Han (2005), aggregate reference prices and momentum:
+  https://doi.org/10.1016/j.jfineco.2004.10.006
+
+Repository conclusion:
+
+```text
+cost basis = P&L / accounting fact
+cost basis != market target
+```
+
+HOLD / ADD / EXIT must follow current thesis, invalidation, opportunity cost and risk budget rather than the desire to return to breakeven.
+
+## 18. Stop and sizing theory boundary
+
+- Kaminski & Lo (2014) show stop-loss value is conditional: under a random walk a stop can lower expected return; under momentum some policies can reduce losses and add value.
+  https://doi.org/10.1016/j.finmar.2013.07.001
+- Markowitz (1952) supports portfolio diversification / covariance-aware risk thinking.
+  https://doi.org/10.1111/j.1540-6261.1952.tb01525.x
+- Kelly (1956) supports the broad idea that optimal size depends on edge and downside distribution under known probabilities/odds.
+  https://doi.org/10.1002/j.1538-7305.1956.tb03809.x
+
+Repository conclusion:
+
+```text
+predefine invalidation before sizing = defensible risk principle
+size decreases as downside distance / uncertainty rises = defensible risk principle
+exact 0.5% / 1% / 20% / 50-50 values = governance parameters, not academic optima
+```
+
+Because real equity probabilities are unknown and A-share gap/limit risk is material, the repository must not interpret full-Kelly sizing as a production default.
