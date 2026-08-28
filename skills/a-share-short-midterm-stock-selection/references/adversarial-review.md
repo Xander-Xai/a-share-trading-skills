@@ -4,6 +4,8 @@ Use this after ranking and before finalizing any shortlist or holding decision.
 
 The purpose is to actively search for reasons the answer may be wrong, rather than merely finding supporting evidence.
 
+For short/mid decisions also read `risk-resilience-layer.md`; this checklist is the attack surface for that cross-cutting layer.
+
 ## A. Universe integrity attack
 
 Ask:
@@ -253,7 +255,91 @@ For each material claim ask:
 
 Unresolved source conflict reduces confidence or blocks execution.
 
-## S. Final pass/fail report
+## S. Forecast / probability calibration attack
+
+Assume every numeric path probability is invented until proven otherwise.
+
+Ask:
+
+- What frozen cohort generated the probability?
+- Was the signal/state definition fixed before outcomes?
+- Is the forecast horizon declared?
+- Are transaction costs and execution assumptions included?
+- What is the sample size?
+- Is there an uncertainty/confidence interval?
+- Is the result in-sample, historical PIT, or untouched forward?
+
+If these cannot be answered:
+
+```text
+numeric probability → remove
+conditional path → allowed
+```
+
+A score is not a probability unless a separate calibration model has been validated.
+
+## T. Reference-price / anchoring attack
+
+Assume every important-looking price level is only geometry, not destiny.
+
+Ask:
+
+- Did the level exist at the analysis timestamp?
+- Is it being used as trigger/invalidation/retest geometry or as an unsupported bounce prediction?
+- Is the trader's purchase cost being treated as if the market must return to it?
+- Would the HOLD/ADD/EXIT decision be the same if the position were currently flat?
+
+Rules:
+
+```text
+historical pivot = execution geometry
+cost basis = accounting fact
+neither = guaranteed market target
+```
+
+If breakeven desire is the only reason to hold or add, force fresh re-underwriting.
+
+## U. Blind-replay / counterfactual integrity attack
+
+For retrospective replay ask:
+
+- When was the replay actually constructed?
+- Was the outcome already known to the researcher?
+- Are all post-`as_of` facts explicitly embargoed?
+- Are later financing/earnings/price records excluded by publication timestamp, not merely by data date?
+- Is the original snapshot immutable?
+- Is later outcome/reveal stored separately?
+
+A replay created after outcomes are known may validate PIT/process discipline, but it cannot be labeled untouched forward alpha evidence.
+
+## V. Model-uncertainty / resilience attack
+
+Assume the directional model is wrong even if the thesis is plausible.
+
+Ask:
+
+- Is intermediate-horizon momentum evidence being incorrectly applied to a 3–5 day horizon?
+- Is short-horizon reversal risk considered?
+- Does high volume actually produce price progress?
+- What is the neutral/no-follow-through path?
+- What is the failure path?
+- What happens if the stop gaps through?
+- Does uncertainty reduce risk or is it being converted into larger size through conviction language?
+- Can the trade remain within policy under realistic stress?
+
+A valid resilience response must define:
+
+```text
+continuation condition
+neutral / no-follow-through condition
+failure condition
+stress loss
+sizing consequence
+```
+
+without inventing probabilities.
+
+## W. Final pass/fail report
 
 Before final answer report at least:
 
@@ -275,6 +361,10 @@ Before final answer report at least:
 - execution-risk failures removed: count
 - excessive-factor clusters corrected: count
 - insufficient-data names: count
+- uncalibrated numeric probabilities removed: count
+- cost-basis anchoring issues: 0 / corrected / requires re-underwriting
+- retrospective replay mislabeled as forward evidence: 0 / corrected
+- stress-loss / gap-through-stop check: pass / reduce-size / reject / not-applicable
 - `no trade today` considered: yes/no
 
 The answer is not complete until this review passes.
