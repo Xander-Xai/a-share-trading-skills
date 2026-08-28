@@ -241,6 +241,7 @@ class CorporateAction(EntityMixin):
     ex_date: str | None = None
     pay_date: str | None = None
     cash_per_share: float | None = None
+    reference_cash_per_share: float | None = None
     bonus_ratio: float | None = None
     transfer_ratio: float | None = None
     rights_ratio: float | None = None
@@ -258,6 +259,7 @@ class CorporateAction(EntityMixin):
             _validate_date(getattr(self, name), name)
         for name in (
             "cash_per_share",
+            "reference_cash_per_share",
             "bonus_ratio",
             "transfer_ratio",
             "rights_ratio",
