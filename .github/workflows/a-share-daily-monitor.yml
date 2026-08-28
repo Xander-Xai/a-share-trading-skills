@@ -18,7 +18,7 @@ on:
       - ".github/workflows/a-share-daily-monitor.yml"
   schedule:
     # 15:40 Asia/Shanghai = 07:40 UTC. GitHub cron may run with queue delay.
-    # This is an EOD research monitor schedule, not precision intraday execution.
+    # This is an EOD research monitor/sample-evidence schedule, not precision intraday execution.
     - cron: "40 7 * * 1-5"
 
 permissions:
@@ -66,7 +66,14 @@ jobs:
         if: github.event_name != 'pull_request'
         run: python runtime/daily_monitor.py
 
-      - name: Commit report and market history
+      # Sample collection runs after the market monitor so the sample record can
+      # reuse the same day's market-regime evidence. It collects public evidence
+      # only and never creates an executable order permission.
+      - name: Collect short-mid sample evidence
+        if: github.event_name != 'pull_request'
+        run: python runtime/sample_collector.py
+
+      - name: Commit report, market history and sample evidence
         if: github.event_name != 'pull_request'
         shell: bash
         run: |
@@ -88,12 +95,15 @@ jobs:
           if [ -f runtime/state/market_history.csv ]; then
             git add runtime/state/market_history.csv
           fi
+          if [ -d runtime/state/sample_evidence ]; then
+            git add runtime/state/sample_evidence
+          fi
 
           if git diff --cached --quiet; then
-            echo "No monitor changes to commit."
+            echo "No monitor/sample changes to commit."
             exit 0
           fi
 
-          git commit -m "chore: update A-share daily monitor"
+          git commit -m "chore: update A-share daily monitor and sample evidence"
           git pull --rebase origin main
           git push origin HEAD:main
