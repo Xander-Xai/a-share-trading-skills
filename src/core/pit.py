@@ -40,7 +40,9 @@ class PITMetadata:
     payload_hash: str | None = None
     security_id: str | None = None
     exchange: str | None = None
+    source_locator: str | None = None
     supersedes_revision_id: str | None = None
+    is_current_revision: bool | None = None
     redistribution_allowed: bool | None = None
     retention_rule: str | None = None
 
@@ -58,6 +60,16 @@ class PITMetadata:
         for field_name, value in required_text.items():
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{field_name} is required")
+
+        for field_name, value in (
+            ("source_locator", self.source_locator),
+            ("security_id", self.security_id),
+            ("exchange", self.exchange),
+            ("supersedes_revision_id", self.supersedes_revision_id),
+            ("retention_rule", self.retention_rule),
+        ):
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise ValueError(f"{field_name} must be non-empty when present")
 
         available_at = _parse_aware_timestamp(self.available_at, "available_at")
         ingested_at = _parse_aware_timestamp(self.ingested_at, "ingested_at")
@@ -79,6 +91,11 @@ class PITMetadata:
 
         if self.permitted_use not in VALID_PERMITTED_USE:
             raise ValueError(f"invalid permitted_use: {self.permitted_use}")
+
+        if self.is_current_revision is not None and not isinstance(self.is_current_revision, bool):
+            raise ValueError("is_current_revision must be bool when present")
+        if self.redistribution_allowed is not None and not isinstance(self.redistribution_allowed, bool):
+            raise ValueError("redistribution_allowed must be bool when present")
 
     def visible_to(self, sleeve: str, replay_as_of: str) -> bool:
         """Return whether this record is observable to a sleeve at replay time."""
