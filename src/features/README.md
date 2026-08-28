@@ -30,6 +30,14 @@ PITExpectationSurpriseAdapter
 ↓
 ExpectationEvidence + SurpriseEvidence
 
+PIT FINANCIAL_STATEMENT (event)
++ PIT FINANCIAL_STATEMENT (pre-event comparator)
++ frozen earnings materiality contract
+↓
+PITEarningsMaterialityProducer
+↓
+MaterialityEvidence
+
 Expectation / Surprise
 + Materiality
 + Prepricing / Reaction
@@ -65,6 +73,13 @@ erg_expectation_surprise.py
 → guidance RANGE_BREAK / point or consensus POINT_DELTA surprise evidence
 → content-addressed source/classification contract
 → monetary v1 only; unsupported units fail closed
+
+erg_earnings_materiality.py
+→ exact current/comparator FINANCIAL_STATEMENT records
+→ comparable-period earnings diagnostics with low-base guard
+→ EVIDENCE_ONLY by default; no hidden materiality threshold
+→ optional THRESHOLD_RULE_V1 only with frozen explicit thresholds
+→ revenue/cash-flow/one-off diagnostics without hidden universal gates
 
 erg_shadow.py
 → structured Eligibility / Expectation / Surprise / Materiality / Prepricing / Reaction evidence
@@ -105,6 +120,7 @@ relative-performance windows
 prepricing CAR
 post-event reaction windows
 short/mid expectation-surprise classification
+short/mid earnings materiality classification
 ERG evidence/state transitions
 ```
 
@@ -127,6 +143,12 @@ positive abnormal return
 
 source-backed positive surprise
 != economic materiality
+
+source-backed materiality
+!= bullish direction
+
+MATERIAL
+!= CONFIRMED
 
 strong reaction
 != entry permission
