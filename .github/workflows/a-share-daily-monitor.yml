@@ -73,6 +73,12 @@ jobs:
         if: github.event_name != 'pull_request'
         run: python runtime/sample_collector.py
 
+      # Data maturity is coverage/auditability only. It must never be interpreted
+      # as alpha validation or as permission to increase risk.
+      - name: Report short-mid sample data maturity
+        if: github.event_name != 'pull_request'
+        run: python runtime/sample_maturity.py
+
       - name: Commit report, market history and sample evidence
         if: github.event_name != 'pull_request'
         shell: bash
