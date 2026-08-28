@@ -350,6 +350,7 @@ Each eligible event-driven candidate should preserve at least:
 as_of
 information_timestamp
 first_tradable_timestamp
+source_tier
 expectation_baseline_type
 expectation_confidence
 expectation_center
