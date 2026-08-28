@@ -36,6 +36,33 @@ class ResilientSampleCollectorTests(unittest.TestCase):
         self.assertAlmostEqual(float(out.iloc[-1]["换手率"]), 1.27)
         self.assertEqual(out.attrs["sample_source"], "AKShare stock_zh_a_hist_tx / Tencent fallback")
 
+    def test_vendor_flow_failure_does_not_erase_base_participation(self):
+        base_record = {
+            "price_and_path": {"bar": {"close": 19.01}},
+            "effective_date": "2026-08-28",
+            "effective_at": "2026-08-28T15:00:00+08:00",
+            "record_key": "s1:2026-08-28",
+            "data_quality": {"price_complete": True, "market_complete": True, "participation_complete": False},
+            "vendor_flow": {"status": "PROVIDER_ERROR"},
+            "margin": {"status": "AVAILABLE"},
+            "provider_errors": [],
+        }
+        sample = {"sample_id": "s1"}
+        with patch.object(
+            resilient,
+            "_primary_build_sample_record",
+            return_value=(base_record, [], pd.DataFrame({"x": [1]}), pd.DataFrame({"x": [1]})),
+        ):
+            record, _, _, _ = resilient.build_sample_record_resilient(
+                sample, date(2026, 8, 29), "2026-08-29T04:00:00+08:00", Path("."), Path(".")
+            )
+        self.assertTrue(record["data_quality"]["participation_complete"])
+        self.assertFalse(record["data_quality"]["vendor_flow_complete"])
+        self.assertEqual(
+            record["participation_evidence"]["vendor_flow_role"],
+            "CORROBORATIVE_ONLY_NOT_REQUIRED_FOR_BASE_COMPLETENESS",
+        )
+
     def test_lower_quality_revision_is_not_appended(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "2026-08-28.jsonl"
