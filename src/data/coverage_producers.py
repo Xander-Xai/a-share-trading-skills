@@ -56,19 +56,14 @@ class TradingCalendarCoverageProducer:
         }
 
         if not calendar_resolution.confirmed:
-            return DatasetCoverage(
+            return self._unresolved(
                 coverage_id=coverage_id,
-                dataset_family="DAILY_BAR",
-                scope_type="SECURITY",
                 security_id=security_id,
                 exchange=exchange,
                 start_date=start_date,
                 end_date=end_date,
-                completeness_status="UNRESOLVED",
-                verification_method="TRADING_CALENDAR_RECONCILED",
-                expected_count=None,
                 observed_count=len(observed_dates),
-                note=(
+                reason=(
                     "calendar coverage unresolved: "
                     f"{calendar_resolution.reason}; "
                     f"calendar_method={calendar_resolution.verification_method or 'NONE'}"
@@ -76,23 +71,56 @@ class TradingCalendarCoverageProducer:
             )
 
         sessions = self._sessions(materialized, exchange=exchange)
-        expected_dates = {
-            session.trade_date
-            for session in sessions
-            if session.is_open
-            and start <= date.fromisoformat(session.trade_date) <= end
-        }
-        calendar_dates = {
-            session.trade_date
+        in_range_sessions = [
+            session
             for session in sessions
             if start <= date.fromisoformat(session.trade_date) <= end
-        }
+        ]
+        if not in_range_sessions:
+            return self._unresolved(
+                coverage_id=coverage_id,
+                security_id=security_id,
+                exchange=exchange,
+                start_date=start_date,
+                end_date=end_date,
+                observed_count=len(observed_dates),
+                reason="calendar assertion confirmed but no TRADING_SESSION rows were materialized",
+            )
 
-        # Calendar coverage says the range is complete, so there must be a
-        # canonical session row (open or closed) for every date represented by
-        # the authoritative enumeration contract. We do not fabricate dates here;
-        # any discrepancy is handled upstream when the calendar coverage assertion
-        # is created.
+        # When the applicable assertion is for exactly the requested range, its
+        # observed_count can also verify that the snapshot actually contains the
+        # enumerated calendar rows. This catches accidental snapshot filtering or
+        # record loss between the calendar audit and the reconciliation job.
+        assertion_record = calendar_resolution.assertion_record
+        if assertion_record is not None:
+            assertion = DatasetCoverage(**assertion_record.payload)
+            assertion.validate()
+            exact_range = (
+                assertion.start_date == start_date and assertion.end_date == end_date
+            )
+            if (
+                exact_range
+                and assertion.observed_count is not None
+                and assertion.observed_count != len(in_range_sessions)
+            ):
+                return self._unresolved(
+                    coverage_id=coverage_id,
+                    security_id=security_id,
+                    exchange=exchange,
+                    start_date=start_date,
+                    end_date=end_date,
+                    observed_count=len(observed_dates),
+                    reason=(
+                        "calendar rows do not match confirmed assertion: "
+                        f"asserted={assertion.observed_count}, "
+                        f"materialized={len(in_range_sessions)}"
+                    ),
+                )
+
+        expected_dates = {
+            session.trade_date for session in in_range_sessions if session.is_open
+        }
+        calendar_dates = {session.trade_date for session in in_range_sessions}
         unexpected_bar_dates = observed_dates - expected_dates
         missing_bar_dates = expected_dates - observed_dates
 
@@ -123,6 +151,34 @@ class TradingCalendarCoverageProducer:
             expected_count=len(expected_dates),
             observed_count=len(observed_dates),
             note="; ".join(note_parts),
+        )
+        coverage.validate()
+        return coverage
+
+    @staticmethod
+    def _unresolved(
+        *,
+        coverage_id: str,
+        security_id: str,
+        exchange: str,
+        start_date: str,
+        end_date: str,
+        observed_count: int,
+        reason: str,
+    ) -> DatasetCoverage:
+        coverage = DatasetCoverage(
+            coverage_id=coverage_id,
+            dataset_family="DAILY_BAR",
+            scope_type="SECURITY",
+            security_id=security_id,
+            exchange=exchange,
+            start_date=start_date,
+            end_date=end_date,
+            completeness_status="UNRESOLVED",
+            verification_method="TRADING_CALENDAR_RECONCILED",
+            expected_count=None,
+            observed_count=observed_count,
+            note=reason,
         )
         coverage.validate()
         return coverage
@@ -164,9 +220,15 @@ class TradingCalendarCoverageProducer:
         for record in records:
             if record.metadata.entity_type != "TRADING_SESSION":
                 continue
+            if record.metadata.exchange and record.metadata.exchange != exchange:
+                continue
             session = TradingSession(**record.payload)
             session.validate()
             if session.exchange != exchange:
+                if record.metadata.exchange == exchange:
+                    raise ValueError(
+                        "TRADING_SESSION payload exchange disagrees with metadata"
+                    )
                 continue
             if session.trade_date in seen:
                 raise ValueError(f"duplicate TRADING_SESSION trade_date: {session.trade_date}")
