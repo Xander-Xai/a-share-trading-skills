@@ -45,9 +45,9 @@ def _parse_aware(value: str) -> datetime:
 class DatasetCoverage(EntityMixin):
     """Positive evidence that a dataset family is complete for an explicit scope.
 
-    This entity exists because `no row observed` is not evidence that no event
-    occurred. A source adapter/data-quality job must emit a coverage assertion
-    only after its completeness condition has actually been verified.
+    `no row observed` is not evidence that no event occurred. A source adapter or
+    data-quality reconciliation job must emit a coverage assertion only after the
+    completeness condition for that dataset family has actually been checked.
     """
 
     entity_type = "DATASET_COVERAGE"
@@ -137,7 +137,13 @@ class CoverageResolution:
 
 
 class CoverageResolver:
-    """Resolve the latest applicable coverage assertion from a PIT snapshot."""
+    """Resolve the latest applicable coverage assertion from a PIT snapshot.
+
+    The most specific applicable scope wins (security > exchange > global). Within
+    the same scope the latest PIT-visible assertion wins. This means a newer
+    security-level PARTIAL assertion intentionally overrides an older broader
+    CONFIRMED_COMPLETE assertion and fails closed.
+    """
 
     _SCOPE_PRIORITY = {"GLOBAL": 1, "EXCHANGE": 2, "SECURITY": 3}
 
