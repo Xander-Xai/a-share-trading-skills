@@ -70,6 +70,17 @@ def _permitted_for(metadata: PITMetadata, intended_use: str) -> bool:
     return metadata.permitted_use == "REDISTRIBUTION_ALLOWED"
 
 
+def _snapshot_identity_payload(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "snapshot_schema_version": manifest["snapshot_schema_version"],
+        "strategy_id": manifest["strategy_id"],
+        "sleeve": manifest["sleeve"],
+        "as_of": manifest["as_of"],
+        "intended_use": manifest["intended_use"],
+        "records": manifest["records"],
+    }
+
+
 @dataclass(frozen=True)
 class StoredPITRecord:
     metadata: PITMetadata
@@ -115,6 +126,10 @@ class PITStore:
     This is the first production-core storage contract, not a high-scale database.
     It deliberately uses an auditable JSONL log so replay semantics can stabilize
     before a Parquet/DuckDB or transactional backend is introduced.
+
+    The JSONL backend is single-writer by design. Multi-writer ingestion must use
+    a backend with explicit transactional/concurrency semantics rather than rely
+    on concurrent appends to this reference implementation.
     """
 
     def __init__(self, root: str | Path):
@@ -202,21 +217,33 @@ class PITStore:
         entity_filter = None if entity_types is None else set(entity_types)
         security_filter = None if security_ids is None else set(security_ids)
 
-        eligible: list[StoredPITRecord] = []
-        blocked_for_use: list[StoredPITRecord] = []
+        observable: list[StoredPITRecord] = []
         for record in self.read_all():
             metadata = record.metadata
             if entity_filter is not None and metadata.entity_type not in entity_filter:
                 continue
             if security_filter is not None and metadata.security_id not in security_filter:
                 continue
-            if not metadata.visible_to(sleeve, as_of):
-                continue
-            if not _permitted_for(metadata, intended_use):
-                blocked_for_use.append(record)
-                continue
-            eligible.append(record)
+            if metadata.visible_to(sleeve, as_of):
+                observable.append(record)
 
+        # A stable record_id identifies one logical fact across revisions. Replay
+        # first selects the latest revision that was actually visible at as_of.
+        latest: dict[str, StoredPITRecord] = {}
+        for record in observable:
+            current = latest.get(record.metadata.record_id)
+            if current is None or self._revision_sort_key(record) > self._revision_sort_key(current):
+                latest[record.metadata.record_id] = record
+
+        # Licensing/permitted-use is evaluated on the selected observable
+        # revision, not on superseded historical revisions that are no longer
+        # part of the snapshot.
+        selected = list(latest.values())
+        blocked_for_use = [
+            record
+            for record in selected
+            if not _permitted_for(record.metadata, intended_use)
+        ]
         if blocked_for_use and intended_use != "RESEARCH":
             blocked_ids = sorted(
                 f"{r.metadata.record_id}:{r.metadata.revision_id}"
@@ -226,16 +253,8 @@ class PITStore:
                 f"records are not permitted for {intended_use}: {blocked_ids}"
             )
 
-        # A stable record_id identifies one logical fact across revisions. Replay
-        # selects the latest revision that was actually visible at as_of.
-        latest: dict[str, StoredPITRecord] = {}
-        for record in eligible:
-            current = latest.get(record.metadata.record_id)
-            if current is None or self._revision_sort_key(record) > self._revision_sort_key(current):
-                latest[record.metadata.record_id] = record
-
         return sorted(
-            latest.values(),
+            selected,
             key=lambda record: (
                 record.metadata.entity_type,
                 record.metadata.security_id or "",
@@ -310,6 +329,11 @@ class PITStore:
         manifest = json.loads(path.read_text(encoding="utf-8"))
         if manifest.get("snapshot_id") != snapshot_id:
             raise ValueError("snapshot manifest id mismatch")
+        expected = _sha256_text(_canonical_json(_snapshot_identity_payload(manifest)))
+        if expected != snapshot_id:
+            raise ValueError("snapshot manifest content does not match snapshot_id")
+        if manifest.get("record_count") != len(manifest.get("records", [])):
+            raise ValueError("snapshot record_count mismatch")
         return manifest
 
     def materialize_snapshot(self, snapshot_id: str) -> list[StoredPITRecord]:
