@@ -1,8 +1,10 @@
-# Research & Model Governance v3.1
+# Research & Model Governance v3.2
 
 > 本文件定义跨长期与短中期策略的研究模型治理、Champion/Challenger 晋级、回测防偏差、Benchmark 与参数证据等级。
 >
 > 本文件不替代资本/风险规则，也不替代自动化执行规则。资金与仓位受 `capital-allocation-and-entry-policy.md` 约束；Paper/Live/自动报单受 `automation-execution-governance.md` 约束。
+>
+> 长期与短中期的机器边界读取 `strategy-boundary-contract.md`；PIT 数据元数据读取 `canonical-pit-data-contract.md`。
 
 ## 1. 核心原则
 
@@ -25,6 +27,15 @@ Research Edge
 ```
 
 技术、资金、基本面、消息、估值都不是单独的充分买入条件。
+
+机器可执行 artifact 必须声明：
+
+```text
+strategy_id
+sleeve = long | short_mid
+```
+
+共享事实不等于共享决策状态。短中期 ERG/Reaction/5–20日 Forward/R-based tactical rules 不得自动覆盖长期 Thesis/IRR/估值决策；长期估值结果也不得自动成为短中期入场信号。
 
 ## 2. 事实、研究推论与治理参数必须分层
 
@@ -74,20 +85,25 @@ Catalyst 15
 
 除非完成 Challenger 晋级流程，否则不得静默替换。
 
+长期模型由 `a-share-retirement-investing` Skill 的质量、估值、Expected IRR 与 Portfolio Fit 体系独立管理，不因短中期 Champion/ERG 晋级而改变。
+
 ### 3.2 Challenger
 
 任何新评分、因果模型、止盈止损、参数或特征组合，先作为 Challenger：
 
 ```text
-相同股票池
+相同股票池 / 可比股票池规则
 相同 as_of
 相同可用信息
 相同交易约束
 相同成本假设
 相同风险预算
+同一 sleeve 内可比
 ```
 
-并行产生影子决策，不影响 Champion 的真实执行。
+并行产生影子决策，不影响当前生产模型的真实执行。
+
+禁止把 Long 与 Short/Mid 当作彼此的 Champion/Challenger，因为两者目标函数、时间尺度和主要评价指标不同。
 
 ### 3.3 禁止事项
 
@@ -95,59 +111,127 @@ Catalyst 15
 - 不能只展示新模型赢的样本；
 - 不能用未来财报、后来退市结果或后见之明修正历史输入；
 - 不能在 Challenger 表现差时临时修改样本区间；
-- 不能因为单个热门行情阶段胜出就替换长期生产规则。
+- 不能因为单个热门行情阶段胜出就替换长期生产规则；
+- 不能用短中期 R 倍数/5–20日收益要求长期模型通过；
+- 不能用长期 Expected IRR 直接为短中期 Entry 提供权限。
 
-## 4. Challenger 晋级门槛
+## 4. Challenger 晋级门槛：Common + Sleeve-specific
 
-至少记录：
+过去统一使用 `Expectancy(R) / Profit Factor / MFE/MAE` 等指标容易把短中期交易语言强加到长期系统。v3.2 起正式拆分。
+
+### 4.1 Common metrics
+
+两类策略都至少记录适用的公共质量指标：
 
 ```text
-Net Return
-Excess Return vs Benchmark
-Expectancy (R)
-Profit Factor
+Net / Total Return as appropriate
+Excess Return vs correct Benchmark
 Max Drawdown
-Calmar
-Win Rate
-Average Win / Average Loss
 Turnover
-Tax + Commission + Slippage + Impact
-MFE / MAE
-Holding Days
+Tax + Commission + Slippage + Impact where applicable
+Data Coverage / Missing Rate
 Rule Violation Rate
-Regime Breakdown
-Sector / Factor Breakdown
+Point-in-time Audit Status
+Source / Revision Provenance
+Sector / Factor Concentration
+Complexity / Maintenance Cost
+Reproducibility Status
 ```
 
-### Promotion Gate
+公共指标只解决“研究是否可信/执行是否稳健”，不强迫两个 sleeve 使用同一种 Alpha 定义。
 
-Challenger 进入人工评审至少同时满足：
+### 4.2 Short/Mid promotion metrics
 
-1. 样本外 / Forward 结果为正，不只样本内好看；
-2. 扣除税费、佣金、滑点和合理冲击成本后仍保留优势；
-3. 最大回撤不因追求收益而显著恶化；
-4. 收益不由极少数偶然交易贡献；
-5. 尽可能覆盖趋势、震荡、风险偏好下降等不同 Regime；
-6. 无明显数据泄漏、幸存者偏差或 look-ahead；
-7. 规则可执行且符合 A 股交易约束；
-8. 人工复核确认新增复杂度值得引入。
+短中期重点评价：
 
-没有固定交易笔数可以保证晋级安全。样本量属于评审输入，不是自动晋级开关。
+```text
+Expectancy (R)
+Profit Factor
+Win Rate
+Average Win / Average Loss
+MFE / MAE
+Holding Days
+Regime Breakdown
+Event-family Breakdown
+False Positive / False Negative
+No-trade Opportunity Cost
+Median / P90 Blocked MFE
+Confirmation Delay Cost
+Cost Drag
+Gap / Tail-loss diagnostics
+```
+
+短中期 promotion 必须围绕其实际 5–60 交易日战术目标和当前 Skill/experiment contract 评价。
+
+### 4.3 Long-term promotion metrics
+
+长期重点评价：
+
+```text
+Total Return
+Excess Total Return
+Dividend Return
+Dividend Growth / Coverage
+Expected IRR Calibration Error
+Bear/Base/Bull Forecast Error
+Normalized Earnings / FCF Forecast Error
+Max Drawdown
+Permanent Impairment Cases
+Valuation Error
+Thesis Failure Rate
+Cash Drag
+Turnover
+Capital-allocation Contribution
+Benchmark Total Return
+```
+
+长期不要求通过以下短中期指标才能晋级：
+
+```text
+planned_RR
+5/10/20-day forward return
+short tactical Profit Factor
+MFE/MAE as primary promotion gate
+short tactical time stop
+ERG reaction-window success
+```
+
+这些数据可以作为诊断信息，但不能成为长期模型主要裁决标准。
+
+### 4.4 Promotion Gate — common requirements
+
+任何 Challenger 进入人工评审至少同时满足：
+
+1. 主要结论来自样本外 / Forward 或其他未被反复调参污染的证据，而不只样本内好看；
+2. 使用与策略相匹配的成本、税费、Benchmark 和现金口径；
+3. 风险不能因追求收益而无披露地显著恶化；
+4. 结果不能由极少数偶然样本主导而不披露；
+5. 无明显数据泄漏、幸存者偏差或 look-ahead；
+6. 规则可执行且符合 A 股约束；
+7. 人工复核确认新增复杂度值得引入；
+8. 只在本 sleeve 内完成模型 Promotion，不跨 sleeve 自动传播。
+
+### 4.5 Sleeve-specific Promotion Gate
+
+短中期：
+
+- 尽可能覆盖趋势、震荡、风险偏好下降等不同 Regime；
+- 扣除成本后仍有正的战术期望或明确风险改进；
+- 必须披露错过赢家成本和确认延迟成本；
+- ERG/事件型模块需执行相应 Ablation/Placebo/Forward 协议。
+
+长期：
+
+- 使用 Total Return 口径与长期适配 Benchmark；
+- Expected IRR / 估值假设必须可回溯并进行情景/敏感性分析；
+- 需要跨财报、分红和经营变化周期持续验证；
+- 重点检查永久性资本损失、估值错误和 thesis 失效，而不是追求短期高胜率。
+
+没有固定交易笔数或持有年份可以自动保证晋级安全。样本量/时间跨度属于评审输入，不是自动开关。
 
 ## 5. Causal Research Layer
 
 研究阶段采用因果顺序，而不是简单把所有指标混成一个分数：
-
-```text
-1. Survival / Governance
-2. Business Economics
-3. Valuation / Expectations
-4. Catalyst / Expectation Change
-5. Market & Sector Regime
-6. Participation / Relative Strength
-7. Price Structure / Execution
-8. Portfolio Risk
-```
 
 ### 长期
 
@@ -157,7 +241,8 @@ Survival
 → Earnings / FCF Quality
 → Balance Sheet
 → Per-share Value Creation
-→ Valuation
+→ Dividend Sustainability where relevant
+→ Valuation / Expected IRR
 → Portfolio Fit
 ```
 
@@ -166,14 +251,17 @@ Survival
 ### 短中期
 
 ```text
-Expectation Change
-→ Market Participation
+Eligibility
+→ Expectation Change
+→ Materiality
+→ Prepricing
+→ Market Reaction / Participation
 → Regime Fit
-→ Price Confirmation
-→ Reward/Risk
+→ Price Confirmation / Execution
+→ Tactical Risk
 ```
 
-技术面主要承担状态识别、确认和执行职责；任何可交易 Alpha 必须由样本外净收益验证。
+技术面主要承担状态识别、确认和执行职责；任何可交易 Alpha 必须由样本外净收益或明确风险改进验证。
 
 ## 6. Point-in-time 与幸存者偏差治理
 
@@ -193,6 +281,19 @@ Expectation Change
 涨跌停
 T+1
 交易费用与滑点
+```
+
+机器数据逐步迁移到 `canonical-pit-data-contract.md`，至少区分：
+
+```text
+effective_at
+published_at
+available_at
+ingested_at
+source / source_tier / source_snapshot_id
+revision_id
+permitted_use
+strategy_visibility
 ```
 
 禁止：
@@ -236,7 +337,8 @@ Total Return Index: H00300
 
 - 相同持有期宽基；
 - 行业/因子基准；
-- cash/no-trade baseline。
+- cash/no-trade baseline；
+- ERG 事件研究使用事前冻结的 Benchmark / Reaction Window Contract。
 
 ## 8. Required Return 不允许写死 ERP
 
@@ -316,6 +418,8 @@ Max Buy Price
 其是否具备可交易 Alpha 必须样本外验证。
 ```
 
+技术/动量在长期 sleeve 中可以作为辅助上下文或执行参考，但不得自动替代长期质量、估值与 thesis。
+
 ### 资金
 
 不把 vendor “主力净流入”当作真实机构净买入事实。
@@ -328,7 +432,9 @@ Positioning — 融资、机构披露、席位等可验证证据
 Price Confirmation — 相对强度、突破承接、价格进展
 ```
 
-## 11. MFE / MAE 必须进入学习闭环
+这些短中期证据不自动成为长期 ADD/EXIT 权限。
+
+## 11. MFE / MAE 的作用域
 
 每笔短中期交易至少记录：
 
@@ -353,6 +459,8 @@ exit_reason
 
 不得只看最终 PnL 调参。
 
+长期可以保留 MFE/MAE 作为诊断数据，但不把短期 MFE/MAE/R 倍数作为长期 thesis 或模型晋级的核心指标。
+
 ## 12. 参数修改纪律
 
 任何生产参数修改必须记录：
@@ -365,6 +473,8 @@ supporting_evidence
 forward_test_start
 promotion_decision
 approver
+strategy_id
+sleeve
 ```
 
 禁止自动化系统根据近期盈亏自行改写策略文件或提升风险。
@@ -378,6 +488,8 @@ capital_policy_version
 automation_governance_version
 research_model_governance_version
 skill_version
+strategy_id
+sleeve
 strategy_version / model_version
 ```
 
@@ -387,17 +499,18 @@ strategy_version / model_version
 Hypothesis
 → Historical Research
 → Point-in-time Audit
-→ Challenger Shadow Score
-→ Forward Paper
-→ Manual Live Validation
-→ Champion Promotion Review
-→ Assisted/Semi-auto
+→ Challenger Shadow
+→ Forward / Paper
+→ Manual Live Validation where applicable
+→ Champion Promotion Review within the same sleeve
+→ Assisted/Semi-auto only if needed
 → Full Auto only if execution governance also passes
 ```
 
 ```text
 Good Model ≠ Safe Auto Execution
 Safe Executor ≠ Positive Edge
+Long Model ≠ Short/Mid Model
 ```
 
-两者都通过且账户风险符合 Level 1A，才允许提高自动化程度。
+模型、自动化与账户风险三道 Gate 分别通过后，才允许提高相应 sleeve 的真实执行权限。
