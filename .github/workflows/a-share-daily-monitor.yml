@@ -66,18 +66,17 @@ jobs:
         if: github.event_name != 'pull_request'
         run: python runtime/daily_monitor.py
 
-      # Sample collection runs after the market monitor so the sample record can
-      # reuse the same day's market-regime evidence. It collects public evidence
-      # only and never creates an executable order permission.
+      # Run as a module from repository root so shared `src.*` contracts resolve
+      # consistently in GitHub Actions and local research environments.
       - name: Collect short-mid sample evidence
         if: github.event_name != 'pull_request'
-        run: python runtime/sample_collector.py
+        run: python -m runtime.sample_collector
 
       # Data maturity is coverage/auditability only. It must never be interpreted
       # as alpha validation or as permission to increase risk.
       - name: Report short-mid sample data maturity
         if: github.event_name != 'pull_request'
-        run: python runtime/sample_maturity.py
+        run: python -m runtime.sample_maturity
 
       - name: Commit report, market history and sample evidence
         if: github.event_name != 'pull_request'
