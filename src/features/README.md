@@ -1,6 +1,6 @@
 # Feature / Measurement Layer
 
-`src/features/` converts canonical PIT-valid facts into deterministic research measurements.
+`src/features/` converts canonical PIT-valid facts into deterministic research measurements and Shadow research evidence.
 
 It is not an order engine and is not the source of shared policy.
 
@@ -21,6 +21,10 @@ AdjustmentFactorBuilder
 RelativePerformanceBuilder
 ↓
 EventReactionMeasurementBuilder
+↓
+ERG Evidence Bundle
+↓
+ERG Shadow State Machine v0
 ```
 
 ## Modules
@@ -42,11 +46,17 @@ relative_performance.py
 event_reaction.py
 → PIT event clock + explicit prepricing/reaction windows
 → first-full-session daily-bar measurement
+
+erg_shadow.py
+→ structured Eligibility / Expectation / Surprise / Materiality / Prepricing / Reaction evidence
+→ content-addressed ERG evidence bundle
+→ conservative Shadow research-state resolver
+→ never changes position state or authorizes execution
 ```
 
 ## Strategy boundary
 
-The current market/relative/event modules are tactical and must enforce:
+The current market/relative/event/ERG modules are tactical and must enforce:
 
 ```text
 a_share_short_mid / short_mid
@@ -72,7 +82,7 @@ MA / RVOL
 relative-performance windows
 prepricing CAR
 post-event reaction windows
-ERG evidence
+ERG evidence/state transitions
 ```
 
 do not automatically enter:
@@ -96,7 +106,20 @@ strong reaction
 != entry permission
 
 ERG evidence
+!= ERG Research State
+
+ERG Research State
+!= Position State
+
+ERG CONFIRMED
 != order authorization
+```
+
+The current v0 ERG state machine always emits:
+
+```text
+position_state = FLAT
+executable = false
 ```
 
 Downstream model/state code must preserve these separations.
