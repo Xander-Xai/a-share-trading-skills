@@ -22,12 +22,13 @@ Examples are evidence records, not permanent recommendations.
 - `2026-08-28-eight-stock-forward-cohort.md`
 - `2026-08-28-eight-stock-forward-cohort.json`
 - `2026-08-05-600699-retrospective-live-sample.json`
+- `2026-08-29-600699-position-review.md`
 
 The 2026-08-26 example freezes a 43-stock research whitelist derived only from the user's locked 357-stock universe.
 
 The 2026-08-28 cohort is a forward-test baseline and must not be rewritten with later outcomes.
 
-The 2026-08-05 600699 record is a user-reported live-manual retrospective sample. Its entry cost, reported position weight and no-operation holding path are preserved as supplied; missing original thesis/stop/score fields remain missing rather than being reconstructed with hindsight. It is intended to study early follow-through failure, MFE/MAE, time-stop discipline, position sizing and holding inertia. It does **not** change the production Champion by itself.
+The 2026-08-05 600699 record is a user-reported live-manual retrospective sample. Its entry cost, reported position weight and no-operation holding path are preserved as supplied; missing original thesis/stop/score fields remain missing rather than being reconstructed with hindsight. The 2026-08-29 position review derives research hypotheses for early follow-through, MFE/MAE, time-stop discipline, position sizing and holding inertia. These retrospective artifacts do **not** change the production Champion by themselves.
 
 ## Recommended follow-up naming
 
