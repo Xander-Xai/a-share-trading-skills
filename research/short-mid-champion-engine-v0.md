@@ -1,6 +1,6 @@
 # Short/Mid Champion Engine v0
 
-> Status: `IMPLEMENTED AGGREGATION CORE / FEATURE COMPUTATION INCOMPLETE`
+> Status: `IMPLEMENTED AGGREGATION CORE / DETERMINISTIC MARKET FEATURE SLICE STARTED / FULL SCORE COMPUTATION INCOMPLETE`
 >
 > Strategy: `a_share_short_mid`
 >
@@ -16,10 +16,20 @@ The repository now contains a machine-executable aggregation core:
 configs/short_mid/champion-v1.json
 src/features/snapshot.py
 src/strategies/short_mid/champion.py
+runtime/champion_score.py
 runtime/tests/test_feature_snapshot_champion.py
 ```
 
-This is intentionally **v0** because the system still does not automatically infer every qualitative Champion sub-score from canonical market/filing data.
+The first low-subjectivity market feature slice is also now implemented under:
+
+```text
+src/features/short_mid_market.py
+runtime/short_mid_market_features.py
+runtime/tests/test_short_mid_market_features.py
+shared/short-mid-market-feature-contract.md
+```
+
+This remains **v0** because the system still does not automatically infer every qualitative Champion sub-score from canonical market/filing data.
 
 ## 2. Frozen current Champion contract
 
@@ -86,9 +96,44 @@ from
 practical research eligibility
 ```
 
-## 5. What v0 does not do
+## 5. What is now deterministic
 
-The current engine does **not** claim that these sub-scores are already fully automated:
+The first market feature slice computes low-subjectivity fields from canonical PIT data, including:
+
+```text
+1/5/10/20-session return
+MA5 / MA10 / MA20
+close-to-MA distance
+20-session high distance
+RVOL 1 vs prior 20
+turnover ratio 1 vs prior 20
+gap / range / close-vs-open
+suspension/action observations
+```
+
+These computations are not allowed to assume that an observed row set is complete.
+
+Trailing features become `AVAILABLE` only when the caller explicitly supplies verified:
+
+```text
+daily_bar_coverage_confirmed = true
+corporate_action_coverage_confirmed = true
+```
+
+Otherwise adjustment-sensitive fields remain `UNRESOLVED`.
+
+This prevents:
+
+```text
+no observed corporate-action row
+→ falsely conclude no corporate action occurred
+```
+
+and prevents unadjusted-price series from being treated as continuously adjusted without proof.
+
+## 6. What v0 still does not do
+
+The current engine does **not** claim that all Champion sub-scores are fully automated:
 
 ```text
 trend_quality = 7.2
@@ -97,9 +142,27 @@ catalyst.materiality = 4.0
 ...
 ```
 
-Those values must come from a versioned `FeatureSnapshot` and are rejected when required values are missing or unresolved.
+The current market features remain measurements:
 
-The next implementation layer must determine, one feature at a time, which inputs are:
+```text
+market.return_20d_pct
+market.rvol_1_vs_20
+market.close_to_ma10_pct
+...
+```
+
+They are **not** silently mapped into score points.
+
+For example, the repository does not currently assert:
+
+```text
+return_20d > X
+→ trend_quality = 8
+```
+
+because that would introduce a new threshold/parameter choice requiring its own research and frozen validation contract.
+
+The remaining feature families must be classified into:
 
 ```text
 fully deterministic from canonical data
@@ -107,9 +170,9 @@ AI-assisted with evidence
 human-reviewed
 ```
 
-and then freeze each calculation/research contract.
+before their score mapping can be automated.
 
-## 6. Execution boundary
+## 7. Execution boundary
 
 Champion v0 never authorizes a broker order:
 
@@ -121,7 +184,7 @@ A high score or `research_eligible=true` is not an execution command.
 
 Portfolio sizing, account caps, T+1, broker truth, reconciliation and human/automation approval remain downstream governance layers.
 
-## 7. Long-term isolation
+## 8. Long-term isolation
 
 The engine enforces:
 
@@ -130,13 +193,13 @@ strategy_id = a_share_short_mid
 sleeve = short_mid
 ```
 
-A long-term feature snapshot cannot be scored by this Champion.
+A long-term feature snapshot cannot be scored by this Champion or by the Short/Mid market-feature builder.
 
-Nothing in this implementation changes the long-term retirement methodology or imports Short/Mid score thresholds, ERG state, R-based risk or short-horizon reaction semantics into the long sleeve.
+Nothing in this implementation changes the long-term retirement methodology or imports Short/Mid score thresholds, ERG state, R-based risk, gap logic, RVOL or short-horizon reaction semantics into the long sleeve.
 
-## 8. Production significance
+## 9. Production significance
 
-Before this change:
+The current path has advanced from:
 
 ```text
 Skill prose
@@ -144,7 +207,7 @@ Skill prose
 → score
 ```
 
-After v0:
+through:
 
 ```text
 data_snapshot_id
@@ -154,20 +217,22 @@ data_snapshot_id
 → reproducible score result
 ```
 
-The remaining major gap is feature computation, not score aggregation.
+and now begins replacing subjective inputs with machine-computed, PIT-linked measurements.
 
-## 9. Next step
+The remaining major gap is **feature-to-score mapping and non-market feature computation**, not score arithmetic.
 
-Implement a first deterministic Short/Mid feature-computation slice from canonical data, prioritizing low-subjectivity fields such as:
+## 10. Next step
+
+Prioritize infrastructure that makes the current market features objectively usable before inventing thresholds:
 
 ```text
-price/return structure
-relative strength
-turnover / RVOL
-basic trend geometry
-price extension
-session/execution facts
-data completeness
+trading-calendar coverage verification
+corporate-action completeness / adjustment factors
+broad/sector benchmark series
+relative strength / abnormal return
+session / price-limit / board facts
 ```
+
+Then research deterministic mapping candidates through frozen historical/forward experiments.
 
 Do not begin by automating highly subjective fields such as moat, business materiality or concept authenticity without an evidence/review contract.
