@@ -1,4 +1,4 @@
-# Raw Evidence Archive Contract v1
+# Raw Evidence Archive Contract v1.1
 
 > Status: `ACTIVE RAW LINEAGE CONTRACT`
 >
@@ -100,6 +100,8 @@ headers
 
 `observed_at` must be timezone-aware.
 
+HTTP header names are canonicalized to lowercase before observation identity is computed so semantically equivalent header casing does not create different snapshots.
+
 ## 5. Immutable behavior
 
 The archive must detect:
@@ -137,17 +139,38 @@ Legal/vendor review may later justify a new metadata observation or policy mappi
 
 ## 7. Security / privacy boundary
 
-The archive must not be used to store:
+The raw archive is not credential storage.
+
+It must not persist:
 
 ```text
 broker passwords
 API secrets
+Authorization headers
+Proxy-Authorization headers
+Cookie / Set-Cookie headers
+x-api-key / auth-token style headers
 session cookies that authorize trades
 identity documents
 private account tokens
+signed URLs containing access-token / signature / password style query parameters
 ```
 
-Raw source archive is for research/data evidence, not credential storage.
+The active reference implementation rejects common sensitive HTTP headers and common credential-bearing query parameter names.
+
+Transport implementations must still perform source-specific secret scrubbing before passing evidence to the archive. The machine deny-list is a guardrail, not a complete data-loss-prevention system.
+
+If a provider requires authenticated retrieval:
+
+```text
+credential
+→ transport only
+
+scrubbed locator + selected non-secret response metadata + raw evidence
+→ archive
+```
+
+Never serialize request Authorization/Cookie material into an evidence manifest.
 
 ## 8. Source adapter rule
 
@@ -155,13 +178,16 @@ Preferred future live ingestion path:
 
 ```text
 Fetch source
-→ archive raw bytes + response metadata
+→ scrub credentials / request secrets
+→ archive raw bytes + selected response metadata
 → raw_snapshot_id
 → parse/normalize
 → PITStore using source_snapshot_id = raw_snapshot_id
 ```
 
 If parsing fails, raw evidence remains available for debugging/quarantine.
+
+Only explicitly selected non-secret response headers should be archived. Do not dump an entire response-header map by default.
 
 ## 9. Current backend limitations
 
@@ -174,6 +200,7 @@ encryption-at-rest management
 retention enforcement
 distributed replication
 large-scale lifecycle policies
+full DLP / secret scanning
 ```
 
 Those features should be added only when deployment requirements justify them.
