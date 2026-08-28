@@ -25,7 +25,9 @@ class ChampionConfig:
     config_version: str
     strategy_id: str
     sleeve: str
+    section_caps: dict[str, float]
     base_sections: dict[str, dict[str, float]]
+    hard_veto_flags: tuple[str, ...]
     penalty_caps: dict[str, float]
     thresholds: dict[str, float]
     risk_off_regimes: tuple[str, ...]
@@ -41,19 +43,40 @@ class ChampionConfig:
         )
         if not self.config_version.strip():
             raise ValueError("config_version is required")
-        if not self.base_sections:
-            raise ValueError("base_sections cannot be empty")
+        if not self.base_sections or not self.section_caps:
+            raise ValueError("section_caps and base_sections cannot be empty")
+        if set(self.section_caps) != set(self.base_sections):
+            raise ValueError("section_caps must exactly match base_sections")
 
-        base_total = 0.0
-        for section, criteria in self.base_sections.items():
+        section_cap_total = 0.0
+        for section, section_cap in self.section_caps.items():
+            if not isinstance(section_cap, (int, float)) or section_cap <= 0:
+                raise ValueError(f"invalid section cap: {section}={section_cap!r}")
+            criteria = self.base_sections[section]
             if not section or not criteria:
                 raise ValueError("section names and criteria are required")
+            criterion_total = 0.0
             for criterion, cap in criteria.items():
                 if not criterion or not isinstance(cap, (int, float)) or cap <= 0:
                     raise ValueError(f"invalid score cap: {section}.{criterion}={cap!r}")
-                base_total += float(cap)
-        if abs(base_total - 100.0) > 1e-9:
-            raise ValueError(f"Champion base score caps must sum to 100, got {base_total}")
+                criterion_total += float(cap)
+            if abs(criterion_total - float(section_cap)) > 1e-9:
+                raise ValueError(
+                    f"section cap mismatch for {section}: criteria={criterion_total}, section_cap={section_cap}"
+                )
+            section_cap_total += float(section_cap)
+        if abs(section_cap_total - 100.0) > 1e-9:
+            raise ValueError(
+                f"Champion section caps must sum to 100, got {section_cap_total}"
+            )
+
+        if not self.hard_veto_flags:
+            raise ValueError("hard_veto_flags cannot be empty")
+        if len(set(self.hard_veto_flags)) != len(self.hard_veto_flags):
+            raise ValueError("hard_veto_flags must be unique")
+        for flag in self.hard_veto_flags:
+            if not isinstance(flag, str) or not flag.strip():
+                raise ValueError("hard_veto_flags must contain non-empty strings")
 
         for name, cap in self.penalty_caps.items():
             if not name or not isinstance(cap, (int, float)) or cap < 0:
@@ -75,6 +98,8 @@ class ChampionConfig:
         watch = float(self.thresholds["watch"])
         if not (self.score_floor <= watch <= trigger <= high <= self.score_ceiling):
             raise ValueError("Champion thresholds must be monotonic within score bounds")
+        if self.thresholds["risk_off_entry_buffer"] < 0:
+            raise ValueError("risk_off_entry_buffer cannot be negative")
         if self.score_floor > self.score_ceiling:
             raise ValueError("score_floor cannot exceed score_ceiling")
 
@@ -84,12 +109,17 @@ class ChampionConfig:
             config_version=str(row["config_version"]),
             strategy_id=str(row["strategy_id"]),
             sleeve=str(row["sleeve"]),
+            section_caps={
+                str(section): float(cap)
+                for section, cap in row["section_caps"].items()
+            },
             base_sections={
                 str(section): {
                     str(name): float(cap) for name, cap in criteria.items()
                 }
                 for section, criteria in row["base_sections"].items()
             },
+            hard_veto_flags=tuple(str(v) for v in row["hard_veto_flags"]),
             penalty_caps={
                 str(name): float(cap) for name, cap in row["penalty_caps"].items()
             },
@@ -117,7 +147,7 @@ class ChampionScoreInput:
     section_scores: dict[str, dict[str, float]]
     penalties: dict[str, float]
     hard_veto_checked: bool
-    hard_veto_reasons: tuple[str, ...]
+    hard_veto_flags: dict[str, bool]
     data_confidence: str
     market_regime: str
 
@@ -132,6 +162,12 @@ class ChampionScoreInput:
             raise ChampionInputError("feature_snapshot_id is required")
         if not self.hard_veto_checked:
             raise ChampionInputError("hard-veto checks must be completed before scoring")
+        if set(self.hard_veto_flags) != set(config.hard_veto_flags):
+            raise ChampionInputError(
+                "all frozen hard-veto flags must be explicitly evaluated"
+            )
+        if any(type(value) is not bool for value in self.hard_veto_flags.values()):
+            raise ChampionInputError("hard-veto flag values must be booleans")
         if self.data_confidence not in VALID_DATA_CONFIDENCE:
             raise ChampionInputError(
                 f"invalid data_confidence: {self.data_confidence!r}"
@@ -149,7 +185,7 @@ class ChampionScoreInput:
                 )
             for name, cap in criteria.items():
                 value = actual[name]
-                if not isinstance(value, (int, float)):
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
                     raise ChampionInputError(
                         f"score must be numeric: {section}.{name}"
                     )
@@ -162,16 +198,12 @@ class ChampionScoreInput:
             raise ChampionInputError("Champion penalty set does not match frozen config")
         for name, cap in config.penalty_caps.items():
             value = self.penalties[name]
-            if not isinstance(value, (int, float)):
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise ChampionInputError(f"penalty must be numeric: {name}")
             if value < 0 or value > cap:
                 raise ChampionInputError(
                     f"penalty outside cap: {name}={value}, cap={cap}"
                 )
-
-        for reason in self.hard_veto_reasons:
-            if not isinstance(reason, str) or not reason.strip():
-                raise ChampionInputError("hard-veto reasons must be non-empty strings")
 
 
 @dataclass(frozen=True)
@@ -187,7 +219,8 @@ class ChampionScoreResult:
     hard_veto_reasons: tuple[str, ...]
     market_regime: str
     practical_entry_threshold: float
-    entry_score_gate_passed: bool
+    score_threshold_passed: bool
+    research_eligible: bool
     data_confidence: str
     execution_authorized: bool = False
 
@@ -204,7 +237,8 @@ class ChampionScoreResult:
             "hard_veto_reasons": list(self.hard_veto_reasons),
             "market_regime": self.market_regime,
             "practical_entry_threshold": self.practical_entry_threshold,
-            "entry_score_gate_passed": self.entry_score_gate_passed,
+            "score_threshold_passed": self.score_threshold_passed,
+            "research_eligible": self.research_eligible,
             "data_confidence": self.data_confidence,
             "execution_authorized": self.execution_authorized,
         }
@@ -213,9 +247,10 @@ class ChampionScoreResult:
 class ChampionScorer:
     """Deterministic aggregator for the frozen Short/Mid Champion.
 
-    This scorer does not infer qualitative sub-scores from market or filing data.
-    It consumes an explicit, versioned feature snapshot and applies frozen score,
-    penalty and veto mechanics. It never authorizes broker execution.
+    This v0 scorer does **not** infer qualitative sub-scores from market or filing
+    data. It consumes an explicit, versioned feature snapshot and applies frozen
+    score, penalty, confidence and veto mechanics. It never authorizes broker
+    execution.
     """
 
     def __init__(self, config: ChampionConfig):
@@ -237,7 +272,10 @@ class ChampionScorer:
             max(self.config.score_floor, raw_score),
         )
 
-        hard_veto = bool(inputs.hard_veto_reasons)
+        hard_veto_reasons = tuple(
+            flag for flag in self.config.hard_veto_flags if inputs.hard_veto_flags[flag]
+        )
+        hard_veto = bool(hard_veto_reasons)
         if hard_veto:
             ranking_status = "REJECT_HARD_VETO"
         elif final_score >= self.config.thresholds["high_priority"]:
@@ -254,7 +292,12 @@ class ChampionScorer:
         if regime in self.config.risk_off_regimes:
             entry_threshold += self.config.thresholds["risk_off_entry_buffer"]
 
-        entry_score_gate_passed = (not hard_veto) and final_score >= entry_threshold
+        score_threshold_passed = final_score >= entry_threshold
+        research_eligible = (
+            (not hard_veto)
+            and inputs.data_confidence != "LOW"
+            and score_threshold_passed
+        )
 
         return ChampionScoreResult(
             config_version=self.config.config_version,
@@ -265,10 +308,11 @@ class ChampionScorer:
             final_score=final_score,
             ranking_status=ranking_status,
             hard_veto=hard_veto,
-            hard_veto_reasons=tuple(inputs.hard_veto_reasons),
+            hard_veto_reasons=hard_veto_reasons,
             market_regime=regime,
             practical_entry_threshold=float(entry_threshold),
-            entry_score_gate_passed=entry_score_gate_passed,
+            score_threshold_passed=score_threshold_passed,
+            research_eligible=research_eligible,
             data_confidence=inputs.data_confidence,
             execution_authorized=False,
         )
@@ -321,16 +365,14 @@ class ChampionScorer:
         if checked is not True:
             raise ChampionInputError("champion.hard_veto_checked must be true")
 
-        hard_veto_reasons = tuple(
-            sorted(
-                name.removeprefix("champion.hard_veto.")
-                for name, feature in feature_map.items()
-                if name.startswith("champion.hard_veto.")
-                and name != "champion.hard_veto_checked"
-                and feature.status == "AVAILABLE"
-                and feature.value is True
-            )
-        )
+        hard_veto_flags: dict[str, bool] = {}
+        for flag in self.config.hard_veto_flags:
+            value = required(f"champion.hard_veto.{flag}").value
+            if type(value) is not bool:
+                raise ChampionInputError(
+                    f"champion.hard_veto.{flag} must be a boolean"
+                )
+            hard_veto_flags[flag] = value
 
         data_confidence_value = required("champion.data_confidence").value
         if not isinstance(data_confidence_value, str):
@@ -348,7 +390,7 @@ class ChampionScorer:
             section_scores=section_scores,
             penalties=penalties,
             hard_veto_checked=True,
-            hard_veto_reasons=hard_veto_reasons,
+            hard_veto_flags=hard_veto_flags,
             data_confidence=data_confidence,
             market_regime=regime_value,
         )
