@@ -42,6 +42,14 @@ class OfficialDisclosureAdapterTests(unittest.TestCase):
         self.assertEqual(candidate.metadata.source_tier, "TIER1")
         self.assertEqual(candidate.metadata.permitted_use, "UNRESOLVED_LICENSE")
 
+    def test_raw_archive_snapshot_id_is_preserved_when_supplied(self):
+        row = self.sse_row(source_snapshot_id="raw-snapshot-abc123")
+        adapter = build_sse_disclosure_adapter(
+            StaticOfficialDisclosureTransport((row,))
+        )
+        candidate = adapter.normalize(row)
+        self.assertEqual(candidate.metadata.source_snapshot_id, "raw-snapshot-abc123")
+
     def test_official_timestamp_basis_requires_exact_published_at(self):
         row = self.sse_row()
         adapter = build_sse_disclosure_adapter(
