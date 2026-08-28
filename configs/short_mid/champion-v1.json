@@ -1,0 +1,59 @@
+{
+  "config_version": "champion-v1",
+  "strategy_id": "a_share_short_mid",
+  "sleeve": "short_mid",
+  "base_sections": {
+    "technical": {
+      "trend_quality": 8,
+      "structure_setup": 6,
+      "volume_price_confirmation": 6,
+      "relative_strength": 5,
+      "entry_quality": 5
+    },
+    "capital": {
+      "turnover_volume_quality": 8,
+      "financing_participation": 5,
+      "institutional_activity": 5,
+      "sector_capital_confirmation": 4,
+      "vendor_flow_evidence": 4,
+      "price_confirmation": 4
+    },
+    "fundamentals": {
+      "earnings_trend": 7,
+      "earnings_quality": 4,
+      "operating_cash_flow": 5,
+      "balance_sheet_quality": 4,
+      "industry_position": 3,
+      "valuation_sanity": 2
+    },
+    "catalyst": {
+      "certainty": 5,
+      "materiality": 5,
+      "timing_decay": 5
+    }
+  },
+  "penalty_caps": {
+    "chase_extension": 15,
+    "event_risk": 15,
+    "concept_authenticity": 20,
+    "accounting_quality": 20,
+    "execution_risk": 15,
+    "factor_crowding": 10,
+    "data_confidence": 10
+  },
+  "thresholds": {
+    "high_priority": 80,
+    "trigger_candidate": 75,
+    "watch": 65,
+    "practical_entry_base": 75,
+    "risk_off_entry_buffer": 5
+  },
+  "risk_off_regimes": [
+    "RISK_OFF",
+    "HIGH_FAILURE_RATE",
+    "PANIC"
+  ],
+  "score_floor": 0,
+  "score_ceiling": 100,
+  "governance_note": "Weights, penalty caps and thresholds are governance parameters, not proven optimal alpha parameters."
+}
