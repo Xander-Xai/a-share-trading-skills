@@ -95,7 +95,9 @@ class CandidateAndIngestTests(unittest.TestCase):
             source="licensed-market-data",
             source_tier="TIER2",
             source_snapshot_id="market-20260828-close",
+            source_locator="vendor://daily-bar/601600/2026-08-28",
             revision_id="rev-1",
+            is_current_revision=True,
             effective_at="2026-08-28T15:00:00+08:00",
             available_at="2026-08-28T15:00:05+08:00",
             ingested_at="2026-08-28T15:01:00+08:00",
@@ -111,6 +113,11 @@ class CandidateAndIngestTests(unittest.TestCase):
             candidate.metadata.record_id,
             "DAILY_BAR:601600:2026-08-28",
         )
+        self.assertEqual(
+            candidate.metadata.source_locator,
+            "vendor://daily-bar/601600/2026-08-28",
+        )
+        self.assertTrue(candidate.metadata.is_current_revision)
         self.assertEqual(candidate.payload["price_basis"], "UNADJUSTED")
 
     def test_ingested_entity_can_be_recovered_by_snapshot(self):
