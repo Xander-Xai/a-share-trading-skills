@@ -2,22 +2,35 @@
 
 A股一级资产配置、长期养老投资、短中期交易与自动化监控 Skill / Runtime 集合。
 
-当前仓库形成三层策略链路，并共享三类仓库级治理：
+当前仓库形成“共享基础设施 + 双策略引擎”的演进方向：
 
 ```text
 Multi-Asset Allocation Skill
 → 决定多少资本成为 Stock Account Equity
 
-Long Retirement Investing Skill
-+ Short/Mid Stock Selection Skill
-→ 管理股票账户内部长期 / 短中期 / 待配置现金
+Shared Governance / Data / Account / Execution Core
+        │
+        ├─ Long Retirement Investing Skill
+        │  → 长期质量 / 现金流 / 分红 / Expected IRR / Valuation
+        │
+        └─ Short/Mid Stock Selection Skill
+           → Champion / ERG / Regime / Execution / Tactical Risk
 
-Daily Monitor Runtime
-→ 自动采集市场状态、计算情绪、生成研究监控日报
+Current Runtime
+→ short_mid Monitor MVP only
+```
 
-Capital / Risk Governance
-+ Automation / Execution Governance
-+ Research / Model Governance
+核心边界：
+
+```text
+共享事实
++ 共享账户真相
++ 共享执行基础设施
+
+但不共享：
+时间尺度
+决策逻辑
+主要验证标准
 ```
 
 ## 当前治理版本
@@ -25,7 +38,9 @@ Capital / Risk Governance
 ```text
 Capital / Risk:          v2.3
 Automation / Execution: v1.2
-Research / Model:        v3
+Research / Model:        v3.2
+Strategy Boundary:       v1
+Canonical PIT Data:      v1
 ```
 
 版本号分别属于不同 artifact，优先级由 `shared/policy-precedence.md` 决定。
@@ -40,43 +55,32 @@ a-share-trading-skills/
 │   ├── capital-allocation-and-entry-policy.md
 │   ├── automation-execution-governance.md
 │   ├── research-model-governance.md
+│   ├── strategy-boundary-contract.md
+│   ├── canonical-pit-data-contract.md
 │   ├── research-validation-2026-08-26.md
 │   ├── adversarial-research-review-2026-08-26.md
 │   └── consistency-audit-2026-08-26.md
 ├── research/
-│   └── a-share-long-vs-tactical-empirical-study.md
+│   ├── a-share-long-vs-tactical-empirical-study.md
+│   └── production-system-evolution-report-2026-08-28.md
+├── src/
+│   └── core/
+│       ├── strategy_boundary.py
+│       └── pit.py
 ├── runtime/
 │   ├── README.md
 │   ├── requirements.txt
 │   ├── monitor.py
 │   ├── daily_monitor.py
+│   ├── config/
+│   │   └── short_mid_universe.json
 │   └── tests/
 ├── .github/workflows/
 │   └── a-share-daily-monitor.yml
 └── skills/
     ├── a-share-multi-asset-allocation/
-    │   ├── README.md
-    │   └── SKILL.md
     ├── a-share-retirement-investing/
-    │   ├── README.md
-    │   ├── SKILL.md
-    │   ├── references/
-    │   │   ├── methodology.md
-    │   │   ├── execution-template.md
-    │   │   ├── expected-irr-total-return-benchmark.md
-    │   │   └── ...
-    │   └── examples/
     └── a-share-short-midterm-stock-selection/
-        ├── README.md
-        ├── SKILL.md
-        ├── references/
-        │   ├── scoring-system.md
-        │   ├── a-share-sentiment-regime-index.md
-        │   ├── causal-challenger-model.md
-        │   ├── champion-challenger-forward-test.md
-        │   ├── trade-ledger-mfe-mae-extension.md
-        │   └── ...
-        └── examples/
 ```
 
 ## 从全部金融资产到股票账户
@@ -100,7 +104,7 @@ Stock Account Equity
 + Stock-account Pending Cash
 ```
 
-统一术语为 `Stock Account Equity`，不再混用 `Equity Account Equity`。
+统一术语为 `Stock Account Equity`。
 
 Multi-Asset Skill 只决定有多少资本进入股票账户，不得绕过股票账户 Level 1A 风险规则。
 
@@ -121,11 +125,113 @@ Level 4   examples / case studies / dated snapshots / watchlists
 另外：
 
 ```text
-runtime/* + .github/workflows/*
+runtime/* + src/* + .github/workflows/*
 = Implementation Layer
 ```
 
 实现层必须服从当前 Policy / Skill / Champion，不能反过来定义生产规则；`reports/` 与 `runtime/state/` 属于 Generated Evidence / Runtime State。
+
+## Strategy Boundary
+
+稳定机器身份：
+
+```text
+strategy_id = a_share_long_retirement
+sleeve      = long
+
+strategy_id = a_share_short_mid
+sleeve      = short_mid
+```
+
+长期与短中期共享：
+
+```text
+security master
+PIT data
+calendar/session
+filings
+prices
+corporate actions
+account equity
+broker positions
+orders/fills
+cross-sleeve exposure
+reconciliation
+audit
+```
+
+但不能共享一个决策脑。
+
+### Long
+
+```text
+Survival / Governance
+→ Business Durability
+→ Normalized Earnings / FCF
+→ Balance Sheet
+→ Dividend Sustainability
+→ Per-share Value Creation
+→ Expected IRR / Valuation
+→ Portfolio Fit
+```
+
+### Short/Mid
+
+```text
+Eligibility
+→ Expectation / Surprise
+→ Materiality
+→ Prepricing
+→ Reaction / Participation
+→ Regime
+→ Execution Geometry
+→ Tactical Risk
+```
+
+明确禁止：
+
+```text
+short_mid ERG INVALIDATED
+!= automatic long EXIT
+
+5/10/20-day tactical outcome
+!= long-term model promotion gate
+
+long Base IRR attractive
+!= automatic short_mid ENTRY
+```
+
+详见 `shared/strategy-boundary-contract.md`。
+
+## Canonical PIT Direction
+
+生产研究逐步采用：
+
+```text
+Immutable Raw Evidence
+→ Normalized PIT Record
+→ Feature Snapshot
+→ Strategy Decision
+→ Outcome / Order
+```
+
+Canonical metadata 至少区分：
+
+```text
+effective_at
+published_at
+available_at
+ingested_at
+source / source_tier / source_snapshot_id
+revision_id
+payload_hash
+permitted_use
+strategy_visibility
+```
+
+`available_at` 表示研究可见性；`first_tradable_timestamp` 属于执行层，两者不得混用。
+
+详见 `shared/canonical-pit-data-contract.md`。
 
 ## 统一股票账户分母
 
@@ -143,7 +249,7 @@ Stock Account Equity
 - 账户级单股合计暴露；
 - 账户级风险簇合计暴露。
 
-长期仓内部 Core/Growth、十股示例 `model_long_book_weight` 使用 long-book 内部分母，执行前先换算到账户级权重。
+长期仓内部 Core/Growth、模型 `model_long_book_weight` 使用 long-book 内部分母，执行前先换算到账户级权重。
 
 ## 顶层股票资金策略
 
@@ -233,6 +339,37 @@ Hard Ceiling 是计划风险上限，不是跳空/跌停下实际亏损保证。
 
 回撤治理：4%降风险、6%停止新开仓、8%暂停策略并复核。
 
+## Research / Model Governance
+
+短中期当前 Champion：
+
+```text
+Technical 30
+Capital Participation 30
+Fundamentals 25
+Catalyst 15
+```
+
+因果模型仍为：
+
+```text
+CHALLENGER / SHADOW ONLY
+```
+
+v3.2 开始，Promotion 指标正式拆分为：
+
+```text
+Common metrics
++ Short/Mid metrics
++ Long-term metrics
+```
+
+不会再要求长期系统通过短中期 `Expectancy_R / Profit Factor / MFE/MAE / 5–20日窗口` 才能晋级。
+
+长期主要围绕 Total Return、Expected IRR calibration、估值/Thesis 错误、Dividend/FCF、永久性资本损失和组合适配验证。
+
+短中期主要围绕 Expectancy_R、PF、MFE/MAE、FP/FN、Blocked MFE、Confirmation Delay、Regime/Event-family 等验证。
+
 ## A-Share Sentiment Regime Index
 
 当前 Monitor 使用的研究状态变量：
@@ -259,46 +396,12 @@ Regime：
 统一语义：
 
 - `PANIC` / `DATA_INSUFFICIENT`：当前趋势型新仓 fail closed；
-- `RISK_OFF`：提高入场门槛、风险取保守端、严格拒绝追高，**不是单凭情绪分数永久禁止所有交易**；
+- `RISK_OFF`：提高入场门槛、风险取保守端、严格拒绝追高，不是单凭情绪分数永久禁止所有交易；
 - `EUPHORIA`：不等于加仓，额外检查拥挤与 extension。
 
-完整方法：
+该指数只属于 Short/Mid research context，不自动改变长期仓。
 
-`skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md`
-
-权重和阈值属于 Governance Parameter，需 Forward 校准。
-
-## Research / Model Governance
-
-短中期当前 Champion：
-
-```text
-Technical 30
-Capital Participation 30
-Fundamentals 25
-Catalyst 15
-```
-
-因果模型仍为：
-
-```text
-CHALLENGER / SHADOW ONLY
-```
-
-晋级路径：
-
-```text
-Champion
-→ Challenger Shadow
-→ Forward-Test
-→ Cost / Risk / Regime / Bias Audit
-→ Human Promotion Review
-→ New Champion only if promoted
-```
-
-无法重建 point-in-time 输入的历史结果标记 `Biased / Non-promotable`。
-
-## 长期研究升级
+## 长期研究
 
 ```text
 Price Low != Valuation Low
@@ -317,7 +420,9 @@ Point-in-time Risk-free Rate
 + Configured Required Risk Premium
 ```
 
-长期 Benchmark 优先使用 Total Return 口径，例如沪深300全收益指数 `H00300`。
+长期 Benchmark 优先使用 Total Return 口径。
+
+长期 ADD/HOLD/TRIM/EXIT 主要由 Thesis、Balance、Valuation、Portfolio Gate 与 Expected Return 决定，不使用短中期 ERG/Reaction Window/R-based tactical stop 替代。
 
 ## Active Forward Study
 
@@ -341,14 +446,28 @@ vs Cash / Government-Bond Opportunity Cost
 
 `runtime/daily_monitor.py`
 
-GitHub Actions 工作日北京时间15:40左右调度：
+它现在明确是：
+
+```text
+strategy_id = a_share_short_mid
+sleeve      = short_mid
+runtime_mode = SHORT_MID_MONITOR_ONLY
+```
+
+默认 universe：
+
+`runtime/config/short_mid_universe.json`
+
+不再把 Level-4 dated example 作为 runtime 默认 universe。
+
+当前流程：
 
 ```text
 交易日识别
 → 全A行情
 → 涨停/跌停/炸板
 → Sentiment Score / Regime
-→ 43股历史 whitelist 当日行情合并
+→ runtime short_mid universe
 → pre_action 研究状态
 → JSON + Markdown 日报
 → 成交额历史留档
@@ -357,7 +476,7 @@ GitHub Actions 工作日北京时间15:40左右调度：
 运行前：
 
 ```text
-compileall
+compileall runtime + src
 → unit tests
 → fail-closed monitor
 ```
@@ -367,10 +486,48 @@ compileall
 ```text
 AUTO_MONITOR = true
 AUTO_ORDER   = false
-runtime_mode = MONITOR_ONLY
 ```
 
-日报 `REFRESH_FULL_GATES / RISK_REVIEW / EVENT_REVIEW` 等都是研究状态，不是交易指令。
+日报 `REFRESH_FULL_GATES / RISK_REVIEW / EVENT_REVIEW` 等都是 short_mid 研究状态，不是交易指令。
+
+## Production Evolution
+
+批准的架构基础：
+
+`research/production-system-evolution-report-2026-08-28.md`
+
+第一阶段目标不是自动下单，而是：
+
+```text
+PIT Reproducible Research Core
+```
+
+优先顺序：
+
+```text
+Strategy Boundary + PIT Data Contract
+→ Canonical Data Store / Snapshot
+→ Short/Mid Champion Engine
+→ ERG Engine
+→ Historical Replay
+→ Forward / Ablation / Placebo
+→ Paper Ledger / Broker Simulator
+→ Reconciliation
+→ Human-confirmed Live
+→ Optional Semi-auto
+```
+
+长期独立演进：
+
+```text
+Long Quality Engine
+→ Cash Flow / Dividend Engine
+→ Expected IRR / Valuation Engine
+→ Long Paper Portfolio
+→ Automated Research / Manual Order can remain the end state
+```
+
+Qlib、vn.py、PostgreSQL、MLflow、Prefect、OpenTelemetry 等均为后续按实际需求引入的组件，不因为“生产系统应该现代化”而一次性堆栈。
 
 ## 自动化执行原则
 
@@ -391,6 +548,8 @@ capital_policy_version
 automation_governance_version
 research_model_governance_version
 skill_version
+strategy_id
+sleeve
 strategy_version
 model_version
 ```
@@ -415,26 +574,20 @@ model_version
 
 短中期已实现利润超出允许资本时，优先回流长期待配置池；长期没有合格机会则保持现金。短中期亏损缩水时不从长期仓自动补血。
 
-## 当前验证案例
-
-长期：十股养老模型组合 Forward-Test 示例。
-
-短中期：2026-08-26 的43股最终研究 whitelist + machine-readable baseline；同日36股文件是较早中间快照。
-
-所有 dated examples 都是 Level 4 历史证据，不是当前买入名单。真实交易前必须重新运行对应 Skill。
-
 ## 审计与证据
 
 - 规则优先级：`shared/policy-precedence.md`
 - 资本/风险：`shared/capital-allocation-and-entry-policy.md`
 - 自动化/执行：`shared/automation-execution-governance.md`
 - 研究/模型：`shared/research-model-governance.md`
+- 策略边界：`shared/strategy-boundary-contract.md`
+- PIT 数据：`shared/canonical-pit-data-contract.md`
+- Production 架构：`research/production-system-evolution-report-2026-08-28.md`
 - 研究证据：`shared/research-validation-2026-08-26.md`
 - 对抗审查：`shared/adversarial-research-review-2026-08-26.md`
 - 跨策略实证研究：`research/a-share-long-vs-tactical-empirical-study.md`
 - 一级资产配置：`skills/a-share-multi-asset-allocation/SKILL.md`
-- A股情绪指数：`skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md`
 - Runtime：`runtime/README.md`
 - 全仓一致性扫描：`shared/consistency-audit-2026-08-26.md`
 
-具体比例、阈值、评分权重和批次属于治理参数，后续通过 Forward/Live 数据持续校准。
+具体比例、阈值、评分权重和批次属于治理参数，后续通过各自 sleeve 的 Forward/Live 数据持续校准。
