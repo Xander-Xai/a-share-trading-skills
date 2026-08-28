@@ -41,6 +41,10 @@ class OfficialDisclosureRow:
     `observed_at` is when our collection process actually saw this index row.
     `published_at` is optional because some official listing surfaces expose only
     a date. The adapter never fabricates an intra-day publication timestamp.
+
+    When the raw source response has already been archived, `source_snapshot_id`
+    should be the immutable RawEvidenceArchive snapshot id. Static/manual tests may
+    omit it and use the deterministic observation fallback.
     """
 
     security_id: str
@@ -54,6 +58,7 @@ class OfficialDisclosureRow:
     revision_id: str = "rev-1"
     supersedes_revision_id: str | None = None
     is_current_revision: bool | None = True
+    source_snapshot_id: str | None = None
 
 
 class OfficialDisclosureTransport(Protocol):
@@ -141,7 +146,7 @@ class OfficialDisclosureAdapter:
             source_locator=row.document_url,
             period_end=row.period_end,
         )
-        source_snapshot_id = (
+        source_snapshot_id = row.source_snapshot_id or (
             f"{self.exchange}:{row.announcement_id}:observed:{ingested_at}"
         )
         return NormalizedRecordCandidate.from_entity(
