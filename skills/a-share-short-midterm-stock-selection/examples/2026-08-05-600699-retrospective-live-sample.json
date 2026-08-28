@@ -1,0 +1,183 @@
+{
+  "sample_id": "20260805-600699-retro-live-01",
+  "sample_type": "retrospective_live_manual",
+  "evaluation_role": "research_sample_only",
+  "strategy_id": "a_share_short_mid",
+  "sleeve": "short_mid",
+  "champion_or_challenger": "not_model_generated_entry",
+  "model_version_at_entry": null,
+  "governance_bundle_used_for_retrospective_review": {
+    "capital_policy_version": "v2.3",
+    "automation_governance_version": "v1.3",
+    "research_model_governance_version": "v3.2",
+    "skill_version": "v1.7.0",
+    "holding_risk_management_version": "v3",
+    "trade_ledger_version": "v3",
+    "mfe_mae_extension_version": "v1.1"
+  },
+  "identity": {
+    "stock_code": "600699",
+    "stock_name": "均胜电子",
+    "market": "SSE"
+  },
+  "user_reported_trade": {
+    "entry_date": "2026-08-05",
+    "entry_timestamp": null,
+    "actual_average_cost": 21.525,
+    "reported_position_weight_pct": 50.0,
+    "reported_position_weight_denominator": "user-described total position; exact Stock Account Equity denominator not independently verified",
+    "operations_after_entry": "none",
+    "status_as_of_review": "open",
+    "user_instruction": "keep position unchanged; include as sample to optimize short-term trading model"
+  },
+  "point_in_time_quality": {
+    "entry_decision_snapshot_available": false,
+    "predefined_invalidation_available": false,
+    "original_thesis_available": false,
+    "original_score_available": false,
+    "original_market_regime_record_available": false,
+    "classification": "PARTIAL_PIT_RETROSPECTIVE",
+    "allowed_use": [
+      "holding-risk research",
+      "MFE/MAE path research",
+      "time-stop research",
+      "position-sizing governance diagnostics",
+      "entry follow-through research",
+      "negative-control / case-study analysis"
+    ],
+    "prohibited_use": [
+      "counting as Champion-generated trade win/loss",
+      "changing production thresholds from this single sample",
+      "using post-entry information to rewrite the original entry thesis"
+    ]
+  },
+  "reconstructed_entry_day": {
+    "date": "2026-08-05",
+    "open": 21.69,
+    "high": 21.85,
+    "low": 21.21,
+    "close": 21.62,
+    "day_return_pct": 2.27,
+    "turnover_pct": 2.76,
+    "volume_shares_approx": 38490000,
+    "market": {
+      "shanghai_composite_return_pct": 1.47,
+      "shenzhen_component_return_pct": 1.86,
+      "chinext_return_pct": 1.32,
+      "total_market_turnover_rmb_approx": 2680000000000,
+      "breadth_up": 3725,
+      "breadth_down": 1621,
+      "reconstructed_regime": "RISK_ON_STRONG_REBOUND",
+      "regime_confidence": "MEDIUM_RECONSTRUCTED_NOT_CANONICAL"
+    },
+    "sector": {
+      "name": "汽车零部件",
+      "sector_return_pct_reference": 1.88,
+      "sector_state": "strong"
+    },
+    "capital_evidence": {
+      "financing_buy_rmb": 96052987,
+      "financing_repay_rmb": 74981382,
+      "financing_net_buy_rmb": 21071605,
+      "vendor_main_flow_state": "positive_but_vendor_defined"
+    },
+    "entry_context_notes": [
+      "The entry occurred on a broad risk-on rebound day and in a strong auto-parts / intelligent-driving environment.",
+      "The 2026-08-05 L3/L4 investor-platform reply was published after the regular close and must not be treated as information available for the intraday entry.",
+      "The entry price was within the day's range and about 1.82% above the prior close; this is not an extreme intraday high chase by itself."
+    ]
+  },
+  "path_metrics_as_of_2026_08_28_close": {
+    "as_of": "2026-08-28T15:00:00+08:00",
+    "last_price": 19.01,
+    "holding_trading_days_inclusive": 18,
+    "MFE_price": 21.86,
+    "MFE_date": "2026-08-06",
+    "MFE_pct_from_cost": 1.5563,
+    "MAE_price": 18.68,
+    "MAE_date": "2026-08-25",
+    "MAE_pct_from_cost": -13.2172,
+    "unrealized_return_pct": -11.6841,
+    "estimated_stock_account_drawdown_contribution_pct_if_reported_50pct_means_stock_account_equity": -5.8420,
+    "MFE_to_abs_MAE_ratio": 0.1178,
+    "notable_path_events": [
+      {
+        "date": "2026-08-19",
+        "close": 19.42,
+        "day_return_pct": -7.96,
+        "volume_shares_approx": 38620000,
+        "interpretation": "large-volume structural breakdown / adverse shock; requires holding-state review under current governance"
+      },
+      {
+        "date": "2026-08-25",
+        "low": 18.68,
+        "interpretation": "maximum adverse excursion through the review cutoff and the 15th trading day inclusive"
+      }
+    ]
+  },
+  "time_review_diagnostics": {
+    "day_3_to_5_window": {
+      "dates": ["2026-08-10", "2026-08-11", "2026-08-12"],
+      "max_favorable_excursion_pct_already_observed": 1.5563,
+      "close_on_2026_08_12": 21.23,
+      "return_vs_cost_on_2026_08_12_pct": -1.3705,
+      "retrospective_current_policy_state": "WEAKENING_REVIEW_CANDIDATE",
+      "note": "Diagnostic counterfactual only; not proof of the exact exit that should have been taken."
+    },
+    "day_15_boundary": {
+      "date": "2026-08-25",
+      "current_policy_requirement": "fresh re-underwriting required before allowing short-to-medium continuation",
+      "observed_behavior": "position remained unchanged"
+    }
+  },
+  "current_policy_counterfactual": {
+    "size_gate": "LIKELY_BLOCKED_IF_REPORTED_50PCT_IS_OF_STOCK_ACCOUNT_EQUITY",
+    "reason": "Current short/mid governance caps short-term capital below 50% and normally limits a single short/mid symbol to about 20% of short/mid strategy NAV, subject to stricter account-level caps.",
+    "time_stop_gate": "WOULD_REQUIRE_REVIEW",
+    "holding_horizon_gate": "REUNDERWRITE_REQUIRED_AFTER_15_TRADING_DAYS",
+    "production_rule_violation_label": "NOT_ASSIGNED_RETROSPECTIVELY",
+    "note": "Current policies may post-date the original trade and original pre-trade intent is incomplete; this record diagnoses divergence from current governance rather than declaring a historical rule breach."
+  },
+  "research_hypotheses_generated": [
+    {
+      "id": "H-JOYSON-01",
+      "hypothesis": "A 3-5 trading-day follow-through gate using early MFE plus relative-strength deterioration may reduce losses from setups that never develop.",
+      "candidate_features": ["MFE_3d", "MFE_5d", "relative_strength_3d", "relative_strength_5d", "volume_price_progress"],
+      "status": "CHALLENGER_RESEARCH_ONLY"
+    },
+    {
+      "id": "H-JOYSON-02",
+      "hypothesis": "Single-day risk-on/sector strength is insufficient; require multi-day relative-strength persistence or clean breakout/retest confirmation for entries near recent local highs.",
+      "candidate_features": ["RS_5d", "RS_10d", "entry_extension_vs_MA5", "breakout_hold", "first_retest_success"],
+      "status": "CHALLENGER_RESEARCH_ONLY"
+    },
+    {
+      "id": "H-JOYSON-03",
+      "hypothesis": "Oversized positions amplify holding inertia and tail loss; current sizing governance should be evaluated as a risk-control feature independently from stock-selection alpha.",
+      "candidate_features": ["planned_trade_risk_pct", "symbol_exposure_pct", "final_short_cap_state", "drawdown_contribution_pct"],
+      "status": "GOVERNANCE_VALIDATION_ONLY"
+    },
+    {
+      "id": "H-JOYSON-04",
+      "hypothesis": "A large-volume breakdown after weak early follow-through should force an explicit holding-state transition rather than passive continuation.",
+      "candidate_features": ["large_down_day", "RVOL", "break_of_pivot", "post_break_reclaim_failure"],
+      "status": "CHALLENGER_RESEARCH_ONLY"
+    }
+  ],
+  "promotion_guard": {
+    "production_model_changed": false,
+    "production_threshold_changed": false,
+    "reason": "One retrospective partial-PIT sample is insufficient for Champion promotion or parameter changes.",
+    "next_use": "aggregate with additional live/paper samples by setup, regime, score bucket, MFE/MAE and holding-day behavior"
+  },
+  "source_provenance": [
+    "user-provided trade facts in ChatGPT conversation on 2026-08-29",
+    "https://dabanke.com/hangqing-600699.html",
+    "https://cn.investing.com/equities/joyson-electro-historical-data",
+    "https://www.cnfin.com/gs-lb/detail/20260805/4451156_1.html",
+    "https://www.cls.cn/detail/2446376",
+    "https://stock.stockstar.com/RB2026080500033313.shtml",
+    "https://finance.eastmoney.com/a/202608063833089932.html",
+    "https://stock.stockstar.com/RB2026080500027139.shtml"
+  ]
+}
