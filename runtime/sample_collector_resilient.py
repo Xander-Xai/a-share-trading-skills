@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from datetime import date
+from pathlib import Path
 
 import akshare as ak
 import pandas as pd
@@ -10,10 +12,34 @@ from runtime import sample_collector as core
 
 _primary_stock_history = core.fetch_stock_history
 _primary_benchmark_history = core.fetch_benchmark_history
+_primary_build_sample_record = core.build_sample_record
+_primary_append_revisioned_daily = core.append_revisioned_daily
 
 
 def _market_symbol(code: str) -> str:
     return f"sh{code}" if str(code).startswith(("5", "6", "9")) else f"sz{code}"
+
+
+def _quality_score(record: dict) -> int:
+    quality = record.get("data_quality") or {}
+    return sum(1 for value in quality.values() if value is True)
+
+
+def _semantic_payload(record: dict) -> dict:
+    """Compare evidence semantics, not observation-time/network-noise fields."""
+    return {
+        key: value
+        for key, value in record.items()
+        if key
+        not in {
+            "available_at",
+            "ingested_at",
+            "payload_hash",
+            "revision_number",
+            "supersedes_payload_hash",
+            "provider_errors",
+        }
+    }
 
 
 def fetch_stock_history_resilient(
@@ -95,11 +121,77 @@ def fetch_benchmark_history_resilient(
     return out if not out.empty else None
 
 
+def build_sample_record_resilient(sample, as_of, ingested_at, state_dir, report_dir):
+    record, disclosures, hist, benchmark = _primary_build_sample_record(
+        sample, as_of, ingested_at, state_dir, report_dir
+    )
+
+    # If every price adapter fails, anchor the failed collection attempt to the
+    # latest known trading session rather than inventing a weekend/holiday sample day.
+    if record.get("price_and_path") is None:
+        calendar_errors: list[str] = []
+        trade_dates = core.recent_trade_dates(as_of, calendar_errors, limit=1)
+        if trade_dates:
+            latest_session = trade_dates[0].isoformat()
+            record["effective_date"] = latest_session
+            record["effective_at"] = f"{latest_session}T15:00:00+08:00"
+            record["record_key"] = f"{sample['sample_id']}:{latest_session}"
+            market_report = core.load_market_report(report_dir, latest_session)
+            if market_report is not None:
+                record["market_state"] = {
+                    "status": "AVAILABLE",
+                    "market_metrics": market_report.get("market_metrics"),
+                    "sentiment": market_report.get("sentiment"),
+                    "spot_provider": market_report.get("spot_provider"),
+                }
+                record["data_quality"]["market_complete"] = True
+        if calendar_errors:
+            record.setdefault("provider_errors", []).extend(calendar_errors)
+
+    record["provider_provenance"] = {
+        "stock_history": None if hist is None else hist.attrs.get("sample_source"),
+        "benchmark_history": None if benchmark is None else benchmark.attrs.get("sample_source"),
+    }
+    return record, disclosures, hist, benchmark
+
+
+def append_revisioned_daily_resilient(path: Path, record: dict) -> bool:
+    """Do not let a transient provider outage supersede better evidence."""
+    prior_same_key: list[dict] = []
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            if str(row.get("record_key")) == str(record.get("record_key")):
+                prior_same_key.append(row)
+
+    if prior_same_key:
+        best_prior_quality = max(_quality_score(row) for row in prior_same_key)
+        new_quality = _quality_score(record)
+        if new_quality < best_prior_quality:
+            return False
+
+        latest_best = max(
+            (row for row in prior_same_key if _quality_score(row) == best_prior_quality),
+            key=lambda row: int(row.get("revision_number", 0)),
+        )
+        if _semantic_payload(latest_best) == _semantic_payload(record):
+            return False
+
+    return _primary_append_revisioned_daily(path, record)
+
+
 def main() -> int:
-    # Monkey-patch only the public historical price adapters. The core collector
-    # retains all PIT, revision, margin, disclosure and checkpoint semantics.
+    # Patch only adapter/orchestration behavior. Core PIT, checkpoint, margin,
+    # disclosure and sample-governance semantics remain unchanged.
     core.fetch_stock_history = fetch_stock_history_resilient
     core.fetch_benchmark_history = fetch_benchmark_history_resilient
+    core.build_sample_record = build_sample_record_resilient
+    core.append_revisioned_daily = append_revisioned_daily_resilient
     return core.main()
 
 
