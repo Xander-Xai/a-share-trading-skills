@@ -14,6 +14,8 @@ Examples are evidence records, not permanent recommendations.
 6. Paper and live trades must record their own trigger, planned entry, actual/simulated fill, invalidation, size and exit.
 7. Strategy-version changes start a new evaluation segment.
 8. Retrospective user-reported live trades with incomplete pre-trade evidence must be labeled `PARTIAL_PIT_RETROSPECTIVE`; they may support holding-risk/MFE/MAE/time-stop research but must not be counted as Champion-generated wins or losses.
+9. A retrospectively constructed blind replay must be labeled `retrospective_blind_replay_frozen`; even with strict future-data embargo it is **not** Level-C forward evidence because the researcher may already know the outcome.
+10. Uncalibrated scenario probabilities are prohibited in frozen blind replays. Conditional paths are allowed; numeric probabilities require a frozen empirical calibration procedure.
 
 ## Current examples
 
@@ -22,13 +24,21 @@ Examples are evidence records, not permanent recommendations.
 - `2026-08-28-eight-stock-forward-cohort.md`
 - `2026-08-28-eight-stock-forward-cohort.json`
 - `2026-08-05-600699-retrospective-live-sample.json`
+- `2026-08-05-600699-blind-replay-frozen.md`
+- `2026-08-05-600699-blind-replay-frozen.json`
 - `2026-08-29-600699-position-review.md`
 
 The 2026-08-26 example freezes a 43-stock research whitelist derived only from the user's locked 357-stock universe.
 
 The 2026-08-28 cohort is a forward-test baseline and must not be rewritten with later outcomes.
 
-The 2026-08-05 600699 record is a user-reported live-manual retrospective sample. Its entry cost, reported position weight and no-operation holding path are preserved as supplied; missing original thesis/stop/score fields remain missing rather than being reconstructed with hindsight. The 2026-08-29 position review derives research hypotheses for early follow-through, MFE/MAE, time-stop discipline, position sizing and holding inertia. These retrospective artifacts do **not** change the production Champion by themselves.
+The 2026-08-05 600699 retrospective live record is a user-reported live-manual sample. Its entry cost, reported position weight and no-operation holding path are preserved as supplied; missing original thesis/stop/score fields remain missing rather than being reconstructed with hindsight. A 2026-08-29 factual correction removed financing data that was not actually available by the 2026-08-05 close.
+
+The 2026-08-05 600699 blind replay is a separate **frozen PIT reconstruction** using only information available by the 2026-08-05 close. It stores conditional right-side paths without numeric probabilities and maps the reconstructed state to the current production thresholds. Because the replay was created after the real outcome was known, it is a process/PIT validation artifact, not untouched forward-alpha evidence. Its theoretical and adversarial basis is documented in:
+
+- `../../../research/short-mid-blind-replay-theoretical-audit-v1.md`
+
+The 2026-08-29 position review derives research hypotheses for early follow-through, MFE/MAE, time-stop discipline, position sizing and holding inertia. These retrospective artifacts do **not** change the production Champion by themselves.
 
 ## Recommended follow-up naming
 
@@ -37,6 +47,7 @@ YYYY-MM-DD-daily-scorecard.md
 YYYY-MM-DD-paper-trades.jsonl
 YYYY-MM-DD-live-trades.jsonl
 YYYY-MM-DD-position-review.md
+YYYY-MM-DD-code-blind-replay-reveal-YYYY-MM-DD.md
 ```
 
 For the future runtime system, execution records should move to the structured ledger described in:
