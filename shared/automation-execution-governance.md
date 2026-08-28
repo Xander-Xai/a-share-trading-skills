@@ -1,8 +1,8 @@
-# Shared Automation & Execution Governance v1.2
+# Shared Automation & Execution Governance v1.3
 
 > 适用范围：本仓库长期养老与短中期两套策略从研究、模拟仓、人工实盘、半自动到自动执行的共同上位规则。
 >
-> 本文件不决定“买什么、买多少”。资金比例、风险预算、单股/风险簇上限、建仓批次由 `capital-allocation-and-entry-policy.md` 管理；研究模型、Champion/Challenger、point-in-time 与模型晋级由 `research-model-governance.md` 管理。
+> 本文件不决定“买什么、买多少”。资金比例、风险预算、单股/风险簇上限、建仓批次由 `capital-allocation-and-entry-policy.md` 管理；研究模型、Champion/Challenger、point-in-time 与模型晋级由 `research-model-governance.md` 管理；长期/短中期机器边界由 `strategy-boundary-contract.md` 管理；PIT 元数据由 `canonical-pit-data-contract.md` 管理。
 
 ## 1. 基本原则
 
@@ -32,11 +32,12 @@ AUTO_ORDER   = false
 ```text
 Good Model != Safe Auto Execution
 Safe Executor != Positive Edge
+Long Model != Short/Mid Model
 ```
 
 ## 2. Governance Bundle 必须完整记录
 
-仓库存在三类 Level-1 治理文件，不能只保存一个含义不明的 `policy_version`。
+仓库存在多类上位治理/契约文件，不能只保存一个含义不明的 `policy_version`。
 
 每个 Paper cohort、真实决策和订单至少保存：
 
@@ -45,16 +46,20 @@ capital_policy_version
 automation_governance_version
 research_model_governance_version
 skill_version
+strategy_id
+sleeve
 strategy_version
 model_version
 ```
 
-2026-08-26 当前基线：
+2026-08-28 当前基线：
 
 ```text
 capital_policy_version         = v2.3
-automation_governance_version = v1.2
-research_model_governance     = v3
+automation_governance_version = v1.3
+research_model_governance     = v3.2
+strategy_boundary_contract    = v1
+canonical_pit_data_contract   = v1
 ```
 
 不同 artifact 的版本号独立演进；优先级由 `policy-precedence.md` 决定，不能按版本数字大小推断覆盖关系。
@@ -145,9 +150,10 @@ Account Cluster Exposure
 - 两策略是否对同股产生冲突订单；
 - 卖出是否误卖另一策略虚拟份额；
 - T+1 和 broker 可卖数量；
-- `CAP_BREACH` 是否已存在。
+- `CAP_BREACH` 是否已存在；
+- `strategy_id / sleeve` 是否与产生该决策的模型一致。
 
-策略可以共享标的，不能共享第二套独立风险额度。
+策略可以共享标的，不能共享第二套独立风险额度，也不能共享一个未声明边界的决策状态。
 
 ## 6. 模式晋级必须靠证据
 
@@ -159,6 +165,7 @@ Account Cluster Exposure
 - 决策可复现；
 - 无 look-ahead；
 - 当前 Champion / 已批准模型状态明确；
+- strategy context 与 sleeve-specific model 一致；
 - Level 1A 风险政策未被绕过；
 - 订单、成交、费用、分红/公司行动记账正确；
 - 绩效与 Benchmark 口径正确；
@@ -188,6 +195,8 @@ Account Cluster Exposure
 - independent Kill Switch；
 - 全量审计日志。
 
+Full Auto 不是所有策略的强制终态。长期账户可以长期停留在 automated research / manual order 或 human-confirmed execution。
+
 ## 7. 下单前统一硬门禁
 
 任何半自动/自动订单必须全部通过：
@@ -196,12 +205,16 @@ Account Cluster Exposure
 current capital policy loaded
 current automation governance loaded
 current research model governance loaded
+current strategy boundary contract loaded
+current PIT data contract loaded
 current skill version loaded
+strategy_id / sleeve valid and matched to model
 current model status valid (Champion or explicitly approved)
 approved symbol / universe
 fresh quote
 fresh official-event check
 point-in-time evidence valid
+required data permitted-use status valid for production
 position reconciled with broker truth
 strategy virtual positions reconciled
 no cross-strategy order conflict
@@ -210,7 +223,7 @@ no required-data MISSING / CONFLICT
 position/risk calculation valid
 post-trade Final Short Cap valid when applicable
 post-trade account symbol / cluster caps valid
-strategy heat valid
+strategy heat valid when applicable
 broker connection healthy
 compliance state valid
 kill switch not active
@@ -247,6 +260,8 @@ state = CAP_BREACH
 - 官方披露抓取失败；
 - 代码/价格/复权冲突；
 - point-in-time 状态不确定；
+- `strategy_id / sleeve` 与模型不匹配；
+- 数据 permitted-use / license 状态不允许目标生产用途；
 - 治理版本或模型状态不一致；
 - 本地与 Broker 持仓不一致；
 - 虚拟子账与 Broker 净持仓无法对账；
@@ -291,11 +306,11 @@ capital_policy_version
 automation_governance_version
 research_model_governance_version
 skill_version
+strategy_id
+sleeve
 strategy_version
 model_version
 model_status
-strategy_id
-sleeve
 stock_code
 thesis / reason
 action
@@ -303,6 +318,7 @@ score / valuation / setup state
 target_weight / risk budget
 tranche
 source_snapshot
+data_snapshot_id
 human_approved
 ```
 
@@ -312,6 +328,7 @@ human_approved
 order_id
 decision_id
 strategy_id
+sleeve
 created/submitted/fill time
 side
 order_type
