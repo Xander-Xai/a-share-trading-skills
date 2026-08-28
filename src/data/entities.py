@@ -241,6 +241,12 @@ class CorporateAction(EntityMixin):
     ex_date: str | None = None
     pay_date: str | None = None
     cash_per_share: float | None = None
+    reference_cash_per_share: float | None = None
+    bonus_ratio: float | None = None
+    transfer_ratio: float | None = None
+    rights_ratio: float | None = None
+    rights_price: float | None = None
+    reference_total_share_change_ratio: float | None = None
     ratio: float | None = None
     currency: str = "CNY"
 
@@ -251,12 +257,37 @@ class CorporateAction(EntityMixin):
         _validate_date(self.announcement_date, "announcement_date", required=True)
         for name in ("record_date", "ex_date", "pay_date"):
             _validate_date(getattr(self, name), name)
-        _finite(self.cash_per_share, "cash_per_share", allow_none=True)
-        _finite(self.ratio, "ratio", allow_none=True)
-        if self.cash_per_share is not None and self.cash_per_share < 0:
-            raise ValueError("cash_per_share cannot be negative")
-        if self.ratio is not None and self.ratio < 0:
-            raise ValueError("ratio cannot be negative")
+        for name in (
+            "cash_per_share",
+            "reference_cash_per_share",
+            "bonus_ratio",
+            "transfer_ratio",
+            "rights_ratio",
+            "rights_price",
+            "reference_total_share_change_ratio",
+            "ratio",
+        ):
+            _finite(getattr(self, name), name, allow_none=True)
+            value = getattr(self, name)
+            if value is not None and value < 0:
+                raise ValueError(f"{name} cannot be negative")
+
+        if self.rights_ratio is not None and self.rights_ratio > 0:
+            if self.rights_price is None:
+                raise ValueError("rights_price is required when rights_ratio > 0")
+        if self.rights_price is not None and (self.rights_ratio is None or self.rights_ratio <= 0):
+            raise ValueError("rights_ratio > 0 is required when rights_price is present")
+
+        explicit_ratios = (
+            self.bonus_ratio,
+            self.transfer_ratio,
+            self.rights_ratio,
+            self.reference_total_share_change_ratio,
+        )
+        if self.ratio is not None and any(value is not None for value in explicit_ratios):
+            raise ValueError(
+                "legacy ratio cannot be combined with explicit bonus/transfer/rights/reference ratios"
+            )
 
     def record_id(self) -> str:
         self.validate()

@@ -20,7 +20,7 @@ Raw Source Bytes
 → PITStore
 → data_snapshot_id
 → DatasetCoverage proof
-→ Feature / Strategy
+→ Adjustment / Feature / Strategy
 ```
 
 ## Files
@@ -44,7 +44,13 @@ official_trading_calendar.py
 official_corporate_actions.py
 → official implemented corporate-action batch normalization
 → RawEvidenceArchive-backed completeness requirements
+→ explicit cash/bonus/transfer/rights economics
 → SECURITY / EXCHANGE CORPORATE_ACTION coverage
+
+adjustments.py
+→ deterministic exchange-reference adjustment factors
+→ backward-adjusted OHLC research series
+→ coverage + source-record lineage
 
 coverage.py
 → DATASET_COVERAGE assertions
@@ -142,7 +148,7 @@ src/features/short_mid_verified.py
 
 ## Official trading calendar
 
-The 2026 SSE/SZSE annual trading calendar now has a source-backed reviewed plan:
+The 2026 SSE/SZSE annual trading calendar has a source-backed reviewed plan:
 
 ```text
 configs/data/trading_calendar/cn-a-share-2026-official.json
@@ -164,7 +170,7 @@ See `shared/official-trading-calendar-source-contract.md`.
 
 ## Official corporate actions
 
-Implemented corporate-action completeness now has a source-batch contract:
+Implemented corporate-action completeness has a source-batch contract:
 
 ```text
 RawEvidenceArchive snapshot
@@ -188,6 +194,47 @@ No live SSE/SZSE transport is promoted yet. The current module is the normalizat
 
 See `shared/official-corporate-action-source-contract.md`.
 
+## Adjustment factors
+
+Canonical DAILY_BAR remains unadjusted. Derived price continuity now uses a separate deterministic layer:
+
+```text
+UNADJUSTED DAILY_BAR
++ confirmed DAILY_BAR coverage
++ confirmed CORPORATE_ACTION coverage
++ explicit corporate-action economics
+↓
+AdjustmentFactorBuilder
+↓
+BACKWARD_EXCHANGE_REFERENCE_V1
+```
+
+The canonical action schema distinguishes:
+
+```text
+cash_per_share
+reference_cash_per_share
+bonus_ratio
+transfer_ratio
+rights_ratio
+rights_price
+reference_total_share_change_ratio
+```
+
+The historical generic `ratio` remains readable for legacy records but is rejected by the adjustment engine because its economic meaning is ambiguous.
+
+The engine uses the common SSE/SZSE ex-right/ex-dividend reference-price algebra and records coverage/source lineage in a deterministic `adjustment_series_id`.
+
+This adjusted research series is not automatically equivalent to tax-aware investor total return, broker PnL, or execution prices.
+
+See:
+
+```text
+shared/adjustment-factor-contract.md
+src/data/adjustments.py
+runtime/build_adjustment_series.py
+```
+
 ## Key normalization choices
 
 ### Prices
@@ -198,7 +245,7 @@ See `shared/official-corporate-action-source-contract.md`.
 price_basis = UNADJUSTED
 ```
 
-Adjusted prices are derived research features so corporate-action handling remains explicit.
+Adjusted prices are derived so corporate-action handling remains explicit and auditable.
 
 ### Financials
 
@@ -272,7 +319,7 @@ See `shared/official-disclosure-source-contract.md`.
 
 ## Current status
 
-The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, official-disclosure normalization, a reviewed 2026 official trading-calendar plan, DAILY_BAR/calendar reconciliation, and a RawEvidenceArchive-backed official corporate-action coverage boundary.
+The data layer now contains raw-evidence archive, canonical schema, PIT store/snapshot, dataset-coverage resolution, official-disclosure normalization, a reviewed 2026 official trading-calendar plan, DAILY_BAR/calendar reconciliation, a RawEvidenceArchive-backed official corporate-action coverage boundary, and a deterministic exchange-reference adjustment-factor layer.
 
 It still does not claim production-ready live adapters or complete real coverage producers for licensed market data, live corporate-action capture, benchmarks or consensus feeds.
 
