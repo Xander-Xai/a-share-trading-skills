@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.4",
+  "date": "2026-08-29",
+  "as_of": "2026-08-29T00:04:22.554854+08:00",
+  "strategy_id": "a_share_short_mid",
+  "sleeve": "short_mid",
+  "runtime_mode": "SHORT_MID_MONITOR_ONLY",
+  "trading_day_status": "MARKET_CLOSED",
+  "auto_monitor": true,
+  "auto_order": false,
+  "spot_provider": "NOT_REQUESTED",
+  "universe": {
+    "runtime_universe_version": "2026-08-28-v1",
+    "as_of": "2026-08-28T18:10:00+08:00",
+    "source_type": "RUNTIME_CONFIG",
+    "source_note": "Bootstrapped from the approved 2026-08-28 short/mid research set. This is runtime configuration, not a mutable rewrite of the frozen Forward cohort.",
+    "path": "runtime/config/short_mid_universe.json",
+    "status": "LOADED"
+  },
+  "governance_refs": {
+    "capital_policy": "shared/capital-allocation-and-entry-policy.md",
+    "automation_governance": "shared/automation-execution-governance.md",
+    "research_model_governance": "shared/research-model-governance.md",
+    "strategy_boundary": "shared/strategy-boundary-contract.md",
+    "pit_data_contract": "shared/canonical-pit-data-contract.md",
+    "short_mid_skill": "skills/a-share-short-midterm-stock-selection/SKILL.md",
+    "sentiment_model": "skills/a-share-short-midterm-stock-selection/references/a-share-sentiment-regime-index.md"
+  },
+  "market_metrics": {
+    "valid_stock_count": null,
+    "advance_count": null,
+    "decline_count": null,
+    "flat_count": null,
+    "limit_up_count": null,
+    "limit_down_count": null,
+    "broken_limit_count": null,
+    "strong_count": null,
+    "weak_count": null,
+    "median_return_pct": null,
+    "total_turnover": null,
+    "turnover_20d_median": null
+  },
+  "sentiment": {
+    "breadth_score": null,
+    "limit_balance_score": null,
+    "board_quality_score": null,
+    "tail_score": null,
+    "median_score": null,
+    "turnover_score": null,
+    "sentiment_score": null,
+    "regime": "DATA_INSUFFICIENT",
+    "crowding_flag": false,
+    "available_weight": 0,
+    "turnover_history_ready": false,
+    "data_confidence": "LOW",
+    "calendar_gate": "MARKET_CLOSED",
+    "spot_provider_gate": "PASS",
+    "strategy_context_gate": "PASS"
+  },
+  "candidates": [
+    {
+      "code": "601600",
+      "name": "中国铝业",
+      "pre_action": "NO_ACTION_DATA_MISSING"
+    },
+    {
+      "code": "002602",
+      "name": "世纪华通",
+      "pre_action": "NO_ACTION_DATA_MISSING"
+    },
+    {
+      "code": "600096",
+      "name": "云天化",
+      "pre_action": "NO_ACTION_DATA_MISSING"
+    },
+    {
+      "code": "600392",
+      "name": "盛和资源",
+      "pre_action": "NO_ACTION_DATA_MISSING"
+    },
+    {
+      "code": "600415",
+      "name": "小商品城",
+      "pre_action": "NO_ACTION_DATA_MISSING"
+    },
+    {
+      "code": "601808",
+      "name": "中海油服",
+      "pre_action": "NO_ACTION_DATA_MISSING"
+    },
+    {
+      "code": "002831",
+      "name": "裕同科技",
+      "pre_action": "NO_ACTION_DATA_MISSING"
+    },
+    {
+      "code": "002273",
+      "name": "水晶光电",
+      "pre_action": "NO_ACTION_DATA_MISSING"
+    }
+  ],
+  "provider_errors": [],
+  "provider": {
+    "spot_primary": "AKShare stock_zh_a_spot_em / Eastmoney",
+    "spot_fallback": "AKShare stock_zh_a_spot / Sina",
+    "execution_note": "aggregation providers only; live execution requires official/broker cross-check and permitted-use review"
+  }
+}
