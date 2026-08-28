@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "registry_version": "2026-08-29-v1",
+  "strategy_id": "a_share_short_mid",
+  "sleeve": "short_mid",
+  "collection_contract": "skills/a-share-short-midterm-stock-selection/references/sample-data-acquisition-contract.md",
+  "source_note": "Runtime sample registry. Public evidence is collected automatically; user-provided execution facts remain explicitly labeled.",
+  "samples": [
+    {
+      "sample_id": "20260805-600699-retro-live-01",
+      "sample_role": "RETROSPECTIVE_LIVE_MANUAL",
+      "code": "600699",
+      "name": "均胜电子",
+      "exchange": "SSE",
+      "status": "OPEN",
+      "entry_date": "2026-08-05",
+      "actual_average_cost": 21.525,
+      "shares": null,
+      "reported_position_weight_pct": 50.0,
+      "position_weight_denominator": "USER_REPORTED_UNVERIFIED",
+      "collect_from": "2026-08-05",
+      "benchmark_symbol": "sh000001",
+      "benchmark_name": "上证指数",
+      "collect_vendor_flow": true,
+      "collect_margin": true,
+      "collect_disclosures": true,
+      "forward_alpha_eligible": false,
+      "note": "User-reported real trade. Entry decision snapshot was not frozen prospectively; use for holding-risk/MFE/MAE and sample-system research, not Champion forward win/loss attribution."
+    }
+  ]
+}
