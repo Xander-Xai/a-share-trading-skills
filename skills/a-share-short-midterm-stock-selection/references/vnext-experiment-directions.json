@@ -1,5 +1,5 @@
 {
-  "registry_version": "1.0",
+  "registry_version": "1.1",
   "as_of": "2026-08-28",
   "baseline": {
     "skill_version": "1.7.0",
@@ -14,7 +14,15 @@
     "same_cost_model": true,
     "same_position_sizing": true,
     "same_risk_budget": true,
-    "same_evaluation_horizons": true
+    "same_evaluation_horizons": true,
+    "benchmark_contract_reference": "references/benchmark-and-reaction-window-contract.md",
+    "methodology_validation_reference": "references/methodology-consolidation-and-validation-contract.md"
+  },
+  "validation_maturity": {
+    "level_a": "INTEGRATION_CASE_VALIDATION",
+    "level_b": "HISTORICAL_POINT_IN_TIME_RESEARCH",
+    "level_c": "UNTOUCHED_FORWARD_VALIDATION",
+    "promotion_requires_existing_governance_review": true
   },
   "stage1_screening": {
     "return_oriented": {
@@ -45,21 +53,38 @@
     {
       "id": "A",
       "name": "ERG_PRECISION",
-      "status": "PROPOSED",
+      "status": "INFRASTRUCTURE_STARTED",
       "lane": "ALPHA_DISCRIMINATION",
       "hypothesis": "Frozen benchmark, reaction-window and expectation-confidence contracts provide incremental event discrimination relative to current ERG.",
+      "infrastructure_status": {
+        "benchmark_contract": "ACTIVE",
+        "reaction_window_contract": "ACTIVE_WITH_PRIMARY_WINDOWS_UNRESOLVED_RESEARCH",
+        "erg_schema_fields": "ACTIVE",
+        "forward_test_fields": "ACTIVE",
+        "expectation_calibration": "PENDING",
+        "alpha_result": "NOT_PROVEN"
+      },
       "primary_metrics": [
         "Delta_Expectancy_R",
         "Event_Increment_vs_Placebo",
         "False_Positive_Delta",
         "False_Negative_Delta",
-        "Expectation_Coverage"
+        "Expectation_Coverage",
+        "Benchmark_Sensitivity_Rate",
+        "Window_Sensitivity_Rate"
       ],
       "estimated_new_fields": [8, 12],
       "estimated_external_sources": [1, 3],
       "pit_burden": "MEDIUM_HIGH",
       "parameter_selection_risk": "MEDIUM_HIGH",
-      "subexperiments": ["A0", "A1", "A2", "A3", "A4"]
+      "subexperiments": ["A0", "A1", "A2", "A3", "A4"],
+      "current_subexperiment_status": {
+        "A0": "BASELINE_ACTIVE",
+        "A1": "CONTRACT_INFRASTRUCTURE_ACTIVE_NO_RESULT",
+        "A2": "CONTRACT_INFRASTRUCTURE_ACTIVE_PRIMARY_WINDOWS_UNRESOLVED",
+        "A3": "PENDING",
+        "A4": "PENDING"
+      }
     },
     {
       "id": "B",
