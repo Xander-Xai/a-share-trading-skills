@@ -40,11 +40,16 @@ MaterialityEvidence
 
 Expectation / Surprise
 + Materiality
-+ Prepricing / Reaction
++ EventReactionMeasurement
++ frozen assembly/classification lineage
+↓
+EarningsERGEndToEndPipeline
 ↓
 ERG Evidence Bundle
 ↓
 ERG Shadow State Machine v0
+↓
+content-addressed EarningsERGRun
 ```
 
 ## Modules
@@ -80,6 +85,13 @@ erg_earnings_materiality.py
 → EVIDENCE_ONLY by default; no hidden materiality threshold
 → optional THRESHOLD_RULE_V1 only with frozen explicit thresholds
 → revenue/cash-flow/one-off diagnostics without hidden universal gates
+
+earnings_erg_pipeline.py
+→ joins source-backed Expectation/Surprise + Earnings Materiality + EventReactionMeasurement
+→ enforces same event/security/current statement/primary metric
+→ rejects reaction measurements containing post-as_of data
+→ requires frozen lineage for resolved Prepricing / Reaction categories
+→ emits one content-addressed EarningsERGRun and full replay artifact
 
 erg_shadow.py
 → structured Eligibility / Expectation / Surprise / Materiality / Prepricing / Reaction evidence
@@ -121,6 +133,7 @@ prepricing CAR
 post-event reaction windows
 short/mid expectation-surprise classification
 short/mid earnings materiality classification
+Earnings ERG pipeline runs
 ERG evidence/state transitions
 ```
 
@@ -152,6 +165,9 @@ MATERIAL
 
 strong reaction
 != entry permission
+
+EarningsERGRun
+!= production model promotion
 
 ERG evidence
 != ERG Research State
