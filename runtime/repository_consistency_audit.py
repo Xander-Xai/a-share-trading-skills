@@ -57,7 +57,7 @@ def _header_version(path: str, pattern: str, expected: str) -> CheckResult:
 
 def _yaml_skill_version(path: str, expected: str) -> CheckResult:
     text = _read(path)
-    match = re.search(r"(?m)^version:\s*[\"']?([^\"'\n]+)[\"']?\s*$", text)
+    match = re.search(r"(?m)^\s*version:\s*[\"']?([^\"'\n]+)[\"']?\s*$", text)
     actual = match.group(1).strip() if match else None
     return CheckResult(
         name=f"skill_version:{path}",
