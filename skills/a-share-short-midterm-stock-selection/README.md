@@ -17,10 +17,10 @@
 ```text
 Capital Eligibility:     v2
 Pre-Trade Authorization: v1.1
-Capital / Risk:           v2.5
-Automation / Execution:  v1.4
+Capital / Risk:           v2.6
+Automation / Execution:  v1.5
 Research / Model:         v3.2
-Short/Mid Skill:          v1.7.2
+Short/Mid Skill:          v1.7.3
 ```
 
 ## Level 0：先授权资金，再授权股票
