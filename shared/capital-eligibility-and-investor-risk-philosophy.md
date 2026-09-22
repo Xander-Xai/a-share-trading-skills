@@ -1,8 +1,10 @@
-# Capital Eligibility & Investor Risk Philosophy v1
+# Capital Eligibility & Investor Risk Philosophy v2
 
-> Status: ACTIVE SHARED GOVERNANCE.
+> Status: **ACTIVE LEVEL-0 HARD-VETO GOVERNANCE**.
 > Scope: all real-money long and short/mid A-share decisions in this repository.
 > This file defines what capital is eligible for stock risk before selection, timing, execution or sizing.
+>
+> Any executable ENTRY/ADD sizing must additionally pass `pre-trade-order-authorization-contract.md`. Missing critical personal-capital inputs means executable shares = 0.
 
 ## 1. Core premise: probability, not guaranteed profit
 
