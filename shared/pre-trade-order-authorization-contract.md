@@ -1,10 +1,12 @@
-# Pre-Trade Order Authorization Contract v1
+# Pre-Trade Order Authorization Contract v1.1
 
 > Status: **ACTIVE HARD-VETO GOVERNANCE**.
 >
-> Scope: every real-money or paper action that increases A-share risk (`ENTRY` / `ADD`) across all strategies.
+> Scope: every **real-money** action that increases A-share risk (`ENTRY` / `ADD`) across all strategies.
 >
-> This contract is an **order-permission gate**. Research can still run when inputs are missing, but no module may emit an executable buy quantity until this contract passes.
+> This contract is an **order-permission gate**. Research can still run when inputs are missing, but no module may emit an executable real-money buy quantity until this contract passes.
+>
+> **Paper mode is separate:** Paper research may reuse the same sizing geometry with `paper_capital_rmb`, paper positions and synthetic risk budgets, but it must not ask for or fabricate the user's personal emergency reserve / cash-need answers. Paper artifacts must be explicitly labeled `PAPER` and remain non-executable.
 
 ## 1. Why this contract exists
 
@@ -100,6 +102,7 @@ current_short_symbol_exposure_rmb:
 current_short_cluster_exposure_rmb:
 current_open_initial_risk_rmb:
 current_factor_initial_risk_rmb:
+current_trade_planned_risk_rmb:   # existing shares' risk to the CURRENT invalidation
 final_short_cap_rmb:
 ```
 
@@ -124,6 +127,7 @@ For long:
 position_state: ENTRY|ADD
 entry_price:
 long_target_total_position_rmb:
+current_long_symbol_exposure_rmb:
 planned_tranche_fraction:
 valuation_gate: PASS|FAIL|UNKNOWN
 portfolio_gate: PASS|FAIL|UNKNOWN
@@ -142,6 +146,12 @@ Normal production sizing uses the Operating Target, not the Hard Ceiling:
 ```text
 per_trade_operating_risk = 0.5% × short_mid_strategy_nav
 
+remaining_user_trade_risk
+= max(0, user_max_loss_this_trade_rmb - current_trade_planned_risk)
+
+remaining_trade_risk
+= max(0, per_trade_operating_risk - current_trade_planned_risk)
+
 remaining_portfolio_heat
 = max(0, 2% × strategy_nav - current_open_initial_risk)
 
@@ -150,14 +160,14 @@ remaining_factor_heat
 
 allowed_new_loss
 = min(
-    user_max_loss_this_trade_rmb,
-    per_trade_operating_risk,
+    remaining_user_trade_risk,
+    remaining_trade_risk,
     remaining_portfolio_heat,
     remaining_factor_heat
   )
 ```
 
-The 1% per-trade / 3% aggregate Hard Ceiling is not a sizing target and cannot be used merely because the user wants a larger position.
+`user_max_loss_this_trade_rmb` is the user's maximum planned loss for the **whole trade across all tranches**, not a fresh allowance for each ADD. The 1% per-trade / 3% aggregate Hard Ceiling is not a sizing target and cannot be used merely because the user wants a larger position.
 
 ### 4.2 Short/mid share caps
 
@@ -177,19 +187,19 @@ Then:
 
 ```text
 max_total_new_shares
-= board_lot_floor(min(all share caps))
+= valid_buy_quantity_floor(min(all share caps), security_quantity_rule)
 ```
 
 Default first strategic tranche:
 
 ```text
 ENTRY planned_shares
-= board_lot_floor(50% × max_total_new_shares)
+= valid_buy_quantity_floor(50% × max_total_new_shares, security_quantity_rule)
 ```
 
 An ADD is allowed only after explicit positive confirmation. It may use remaining authorized capacity, but never exceed any current cap.
 
-If rounding makes the result less than one board lot:
+If rounding makes the result less than the security's minimum valid buy quantity:
 
 ```text
 NO_TRADE_POSITION_TOO_SMALL_FOR_RISK_BUDGET
@@ -211,7 +221,7 @@ new_order_value
 )
 ```
 
-Then apply the approved strategic tranche (`40/30/30`, approved exception, or more conservative plan) and 100-share board-lot rounding.
+Then apply the approved strategic tranche (`40/30/30`, approved exception, or more conservative plan) and the security-specific minimum/increment rule.
 
 If no approved target position / valuation / thesis / balance / portfolio gates exist:
 
@@ -219,6 +229,41 @@ If no approved target position / valuation / thesis / balance / portfolio gates 
 READY / WATCH
 max_executable_shares = 0
 ```
+
+## 4.4 Security-specific buy quantity rules
+
+Do not assume every A-share venue uses a universal 100-share board lot.
+
+Current execution baseline (must be refreshed before Live if exchange rules change):
+
+```text
+SSE main board:  minimum 100, increment 100
+SZSE main board / ChiNext: minimum 100, increment 100
+SSE STAR Market: minimum 200, increment 1 above the minimum
+BSE: minimum 100, increment 1 above the minimum
+```
+
+Runtime must store or derive:
+
+```yaml
+min_buy_shares:
+buy_increment_shares:
+security_board:
+quantity_rule_as_of:
+```
+
+If the board / quantity rule is unknown:
+
+```text
+authorization_state = NEED_USER_INPUT
+max_executable_shares = 0
+```
+
+Official rule baselines:
+
+- SSE Trading Rules (2026 revision): https://www.sse.com.cn/lawandrules/sselawsrules2025/stocks/exchange/c/c_20260424_10816482.shtml
+- SZSE Trading Rules (2026 revision): https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020260424690713155663.pdf
+- BSE Trading Rules (2026): https://www.bse.cn/jygl_list/200028217.html
 
 ## 5. Account-level concentration cap helper
 
@@ -261,6 +306,9 @@ max_executable_shares:
 planned_entry_shares:
 planned_notional_rmb:
 worst_case_planned_loss_rmb:
+current_trade_planned_risk_rmb:
+min_buy_shares:
+buy_increment_shares:
 binding_constraints:
 cash_need_gate:
 emergency_reserve_gate:
@@ -287,7 +335,7 @@ FAIL cash_need_gate -> manual buy anyway
 FAIL emergency reserve -> manual buy anyway
 borrowed money -> manual buy anyway
 unknown Final Short Cap -> guess a size
-risk budget gives 0 shares -> widen stop / raise risk until 100 shares fits
+risk budget gives 0 shares -> widen stop / raise risk until the venue minimum fits
 ADD without positive confirmation
 ```
 
