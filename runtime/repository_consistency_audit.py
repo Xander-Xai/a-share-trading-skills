@@ -204,6 +204,17 @@ def run_audit() -> list[CheckResult]:
         ),
     ])
 
+    checks.extend([
+        CheckResult(
+            name="privacy_boundary",
+            ok=not (ROOT / "runtime/portfolio_instances.json").exists()
+               and not (ROOT / "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md").exists()
+               and (ROOT / ".gitignore").exists()
+               and (ROOT / "runtime/PRIVATE_STATE.md").exists(),
+            detail="personal portfolio/trade artifacts must not be tracked in public source",
+        ),
+    ])
+
     workflow = ".github/workflows/a-share-daily-monitor.yml"
     checks.append(_contains_all(
         workflow,
