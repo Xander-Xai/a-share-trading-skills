@@ -1,0 +1,51 @@
+name: Repository Governance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "shared/**"
+      - "skills/**"
+      - "src/**"
+      - "runtime/**"
+      - "README.md"
+      - ".github/workflows/**"
+  push:
+    branches: [main]
+    paths:
+      - "shared/**"
+      - "skills/**"
+      - "src/**"
+      - "runtime/**"
+      - "README.md"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-governance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile governance and pretrade core
+        run: python -m compileall -q src/core runtime/pretrade_cli.py runtime/repository_consistency_audit.py
+
+      - name: Run repository consistency audit
+        run: python runtime/repository_consistency_audit.py
+
+      - name: Run pretrade hard-gate tests
+        run: python -m unittest runtime.tests.test_pretrade_risk_gate -v
