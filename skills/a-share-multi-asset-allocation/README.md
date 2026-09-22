@@ -11,6 +11,7 @@ Total Financial Assets
 → Portfolio Stress Budget
 → Cash / Fixed Income / Stock Allocation
 → Stock Account Equity
+→ Level-0 Capital Eligibility / Pre-Trade Authorization revalidation
 → shared/capital-allocation-and-entry-policy.md
 → Long + Short/Mid + Stock-account Pending Cash
 ```
@@ -28,6 +29,8 @@ Stock Account Equity
 本 Skill 只决定：
 
 > 全部可投资金融资产中，有多少资本可以成为 `Stock Account Equity`。
+
+证券级真实买入仍需再次通过 Level 0，防止收入、应急金、近期现金需求或债务状态变化后继续沿用过期的资产配置假设。
 
 进入股票账户以后：
 
