@@ -1,4 +1,5 @@
 import unittest
+import math
 
 from src.core.account_snapshot import CanonicalAccountSnapshot
 
@@ -42,6 +43,19 @@ class AccountSnapshotTests(unittest.TestCase):
     def test_unknown_governance_state_rejected(self):
         with self.assertRaises(ValueError):
             snapshot(reconciliation_state="GUESS")
+
+    def test_incomplete_or_invalid_fields_block_entry_and_add(self):
+        for field, value in (("cash", None), ("stock_account_equity", None), ("open_initial_risk", None), ("factor_initial_risk", math.nan), ("trade_planned_risk", -1.0), ("positions", None)):
+            current = snapshot(**{field: value})
+            self.assertFalse(current.is_complete_and_valid)
+            self.assertEqual(current.authorization_gate("ENTRY"), "BLOCKED")
+            self.assertEqual(current.authorization_gate("ADD"), "BLOCKED")
+
+    def test_empty_exposure_mappings_are_valid_and_exit_survives_incomplete(self):
+        current = snapshot()
+        self.assertTrue(current.is_complete_and_valid)
+        self.assertEqual(current.authorization_gate("EXIT"), "AUTHORIZED_RISK_REDUCTION")
+        self.assertEqual(snapshot(cash=None).authorization_gate("EXIT"), "AUTHORIZED_RISK_REDUCTION")
 
 
 if __name__ == "__main__":

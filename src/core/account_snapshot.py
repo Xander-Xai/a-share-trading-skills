@@ -7,6 +7,8 @@ module deliberately never stores credentials or real account data in Git.
 from __future__ import annotations
 
 import json
+import math
+from collections.abc import Mapping as MappingABC
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping, Protocol
@@ -46,7 +48,24 @@ class CanonicalAccountSnapshot:
         return (
             self.reconciliation_state == "RECONCILED"
             and self.staleness_state == "FRESH"
+            and self.is_complete_and_valid
         )
+
+    @property
+    def is_complete_and_valid(self) -> bool:
+        numeric_fields = (
+            "cash", "stock_account_equity", "short_mid_nav", "open_initial_risk",
+            "factor_initial_risk", "trade_planned_risk",
+        )
+        for name in numeric_fields:
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                return False
+            if value < 0 or (name in {"stock_account_equity", "short_mid_nav"} and value <= 0):
+                return False
+        return all(isinstance(getattr(self, name), MappingABC) for name in (
+            "positions", "strategy_virtual_positions", "symbol_exposure", "cluster_exposure"
+        ))
 
     def authorization_gate(self, action: str) -> str:
         """Return BLOCKED for risky opens, while preserving risk reduction."""

@@ -18,6 +18,10 @@ class CheckResult:
     detail: str
 
 
+class GitEnumerationError(RuntimeError):
+    pass
+
+
 def _read(path: str) -> str:
     target = ROOT / path
     if not target.exists():
@@ -72,8 +76,8 @@ def _git_tracked_paths() -> set[str]:
         result = subprocess.run(
             ["git", "ls-files"], cwd=ROOT, check=True, capture_output=True, text=True
         )
-    except (OSError, subprocess.CalledProcessError):
-        return set()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise GitEnumerationError(f"git ls-files failed: {exc}") from exc
     return {line.replace("\\", "/") for line in result.stdout.splitlines()}
 
 
@@ -113,6 +117,13 @@ def run_audit() -> list[CheckResult]:
 
     if missing_files:
         return checks
+
+    try:
+        tracked_paths = _git_tracked_paths()
+        checks.append(CheckResult("tracked_file_enumeration", True, "ok"))
+    except GitEnumerationError as exc:
+        checks.append(CheckResult("tracked_file_enumeration", False, str(exc)))
+        tracked_paths = None
 
     checks.extend([
         _header_version(
@@ -252,11 +263,12 @@ def run_audit() -> list[CheckResult]:
         ),
         CheckResult(
             name="no_tracked_personal_instances",
-            ok=not any(path in _git_tracked_paths() for path in (
+            ok=tracked_paths is not None and not any(path in tracked_paths for path in (
                 "runtime/portfolio_instances.json",
                 "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md",
             )),
-            detail="public tracked tree excludes personal portfolio/trade artifacts",
+            detail=("public tracked tree excludes personal portfolio/trade artifacts"
+                    if tracked_paths is not None else "NOT_EVALUATED: tracked file enumeration failed"),
         ),
         _contains_all(
             "src/core/account_snapshot.py",

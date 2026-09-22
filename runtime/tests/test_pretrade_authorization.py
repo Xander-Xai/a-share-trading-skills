@@ -3,10 +3,50 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.core.pretrade_authorization import persist_pretrade_card
+from runtime.pretrade_cli import finalize_authorization
+from src.core.pretrade_authorization import authorization_input_snapshot, persist_pretrade_card
 
 
 class PreTradeAuthorizationPersistenceTests(unittest.TestCase):
+    def test_complete_inputs_hash_is_deterministic_and_sensitive(self):
+        base = {"capital": {"cash": 1000}, "strategy_inputs": {"entry_price": 10.0, "invalidation_price": 9.0, "exposure": 0}, "action": "ENTRY"}
+        _, first = authorization_input_snapshot(base)
+        _, second = authorization_input_snapshot({"action": "ENTRY", "strategy_inputs": {"invalidation_price": 9.0, "entry_price": 10.0, "exposure": 0}, "capital": {"cash": 1000}})
+        self.assertEqual(first, second)
+        for key, value in (("entry_price", 11.0), ("invalidation_price", 8.0), ("exposure", 100.0)):
+            changed = json.loads(json.dumps(base))
+            changed["strategy_inputs"][key] = value
+            self.assertNotEqual(first, authorization_input_snapshot(changed)[1])
+        changed = json.loads(json.dumps(base))
+        changed["strategy_inputs"]["confirmation"] = True
+        self.assertNotEqual(first, authorization_input_snapshot(changed)[1])
+
+    def test_decision_id_does_not_change_input_hash(self):
+        inputs = {"capital": {"cash": 1000}, "strategy_inputs": {"entry_price": 10}, "action": "ENTRY"}
+        _, first = authorization_input_snapshot(inputs)
+        _, second = authorization_input_snapshot(inputs)
+        self.assertEqual(first, second)
+
+    def test_entry_persistence_failure_blocks_and_zeroes_quantity(self):
+        from types import SimpleNamespace
+
+        decision = SimpleNamespace(authorization_state="AUTHORIZED", position_state="ENTRY", max_executable_shares=200)
+        def fail(*args, **kwargs):
+            raise PermissionError("read-only")
+        out, code = finalize_authorization(decision, {"action": "ENTRY"}, persist=fail)
+        self.assertEqual(code, 1)
+        self.assertEqual(out["authorization_state"], "BLOCKED")
+        self.assertEqual(out["max_executable_shares"], 0)
+        self.assertEqual(out["reason"], "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED")
+        self.assertNotEqual(out["authorization_state"], "AUTHORIZED")
+
+    def test_add_persistence_failure_blocks(self):
+        from types import SimpleNamespace
+
+        decision = SimpleNamespace(authorization_state="AUTHORIZED", position_state="ADD", max_executable_shares=100)
+        out, code = finalize_authorization(decision, {"action": "ADD"}, persist=lambda *a, **k: (_ for _ in ()).throw(OSError("disk full")))
+        self.assertEqual((out["authorization_state"], out["max_executable_shares"], code), ("BLOCKED", 0, 1))
+
     def test_card_is_private_and_contains_snapshot_hash(self):
         with tempfile.TemporaryDirectory() as directory:
             path = persist_pretrade_card(

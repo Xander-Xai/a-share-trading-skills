@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 import uuid
+from dataclasses import asdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -129,7 +130,11 @@ def run_short_mid(capital, action):
         min_buy_shares=min_buy_shares,
         buy_increment_shares=buy_increment_shares,
     )
-    return evaluate_short_mid_pretrade(inp)
+    return evaluate_short_mid_pretrade(inp), {
+        "capital": asdict(capital),
+        "strategy_inputs": asdict(inp),
+        "action": action,
+    }
 
 
 def run_long(capital, action):
@@ -152,7 +157,46 @@ def run_long(capital, action):
         min_buy_shares=min_buy_shares,
         buy_increment_shares=buy_increment_shares,
     )
-    return evaluate_long_pretrade(inp)
+    return evaluate_long_pretrade(inp), {
+        "capital": asdict(capital),
+        "strategy_inputs": asdict(inp),
+        "action": action,
+    }
+
+
+def finalize_authorization(decision, authorization_inputs, *, persist=persist_pretrade_card):
+    """Persist the complete frozen inputs before exposing an authorization."""
+    out = dict(decision.__dict__)
+    out["decision_id"] = str(uuid.uuid4())
+    out["authorization_inputs"] = authorization_inputs
+    out["manual_order_rule"] = "可以买得更少；买得更多必须重新授权。任何未授权增仓都应记录为规则违规。"
+    try:
+        private_path = persist(
+            out,
+            snapshot=authorization_inputs,
+            policy_versions={
+                "capital_eligibility": "2",
+                "pre_trade_authorization": "1.1",
+                "capital_allocation": "2.6",
+            },
+        )
+        out["private_persistence"] = str(private_path)
+        return out, 0
+    except (OSError, ValueError) as exc:
+        out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
+        out["private_persistence_error"] = str(exc)
+        action = str(out.get("position_state", "")).upper()
+        if action in {"TRIM", "EXIT"}:
+            out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
+            out["audit_record_incomplete"] = True
+            return out, 0
+        out["authorization_state"] = "BLOCKED"
+        out["reason"] = "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED"
+        out["executable_quantity"] = 0
+        out["max_executable_shares"] = 0
+        out["planned_entry_shares"] = 0
+        out["planned_notional_rmb"] = 0
+        return out, 1
 
 
 def main():
@@ -163,33 +207,17 @@ def main():
     capital = collect_capital_safety()
 
     if sleeve == "short_mid":
-        decision = run_short_mid(capital, action)
+        decision, authorization_inputs = run_short_mid(capital, action)
     elif sleeve == "long":
-        decision = run_long(capital, action)
+        decision, authorization_inputs = run_long(capital, action)
     else:
         print(json.dumps({"authorization_state": "BLOCKED", "reason": "unknown strategy"}, ensure_ascii=False, indent=2))
         return 2
 
-    out = dict(decision.__dict__)
-    out["decision_id"] = str(uuid.uuid4())
-    out["manual_order_rule"] = "可以买得更少；买得更多必须重新授权。任何未授权增仓都应记录为规则违规。"
-    try:
-        private_path = persist_pretrade_card(
-            out,
-            snapshot={"capital": capital.__dict__, "decision": decision.__dict__},
-            policy_versions={
-                "capital_eligibility": "2",
-                "pre_trade_authorization": "1.1",
-                "capital_allocation": "2.6",
-            },
-        )
-        out["private_persistence"] = str(private_path)
-    except (OSError, ValueError) as exc:
-        out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
-        out["private_persistence_error"] = str(exc)
+    out, exit_code = finalize_authorization(decision, authorization_inputs)
     print("\n=== Pre-Trade Card ===")
     print(json.dumps(out, ensure_ascii=False, indent=2))
-    return 0 if decision.authorization_state == "AUTHORIZED" else 1
+    return exit_code
 
 
 if __name__ == "__main__":
