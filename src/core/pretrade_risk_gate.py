@@ -334,3 +334,21 @@ def evaluate_long_pretrade(inp: LongPreTradeInput) -> PreTradeDecision:
     decision.binding_constraints = binding
     decision.cap_details = value_caps
     return decision
+
+
+def validate_manual_requested_shares(decision: PreTradeDecision, requested_shares: int) -> tuple[bool, str]:
+    """Validate a user's manual buy quantity against the frozen authorization.
+
+    Buying fewer shares is allowed. Buying more requires a fresh authorization.
+    """
+    if decision.authorization_state != "AUTHORIZED":
+        return False, "UNAUTHORIZED_MANUAL_RISK_INCREASE"
+    if requested_shares < 0:
+        return False, "INVALID_SHARE_QUANTITY"
+    if requested_shares == 0:
+        return True, "SKIP_TRADE"
+    if requested_shares > decision.max_executable_shares:
+        return False, "UNAUTHORIZED_MANUAL_RISK_INCREASE"
+    if requested_shares > decision.planned_entry_shares:
+        return False, "REAUTHORIZATION_REQUIRED_ABOVE_PLANNED_TRANCHE"
+    return True, "AUTHORIZED_MANUAL_QUANTITY"
