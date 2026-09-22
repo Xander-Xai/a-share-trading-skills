@@ -1,6 +1,6 @@
 # Repository Policy Precedence
 
-> 本文件定义全仓库规则层级与实现边界。资金/风险以 `capital-allocation-and-entry-policy.md` 为股票账户内 Source of Truth；Paper/Broker/自动化以 `automation-execution-governance.md` 为上位规则；研究证据、Champion/Challenger、point-in-time、Benchmark 与模型晋级以 `research-model-governance.md` 为上位规则。
+> 本文件定义全仓库规则层级与实现边界。任何增加真实/模拟股票风险的动作首先受 Level 0 资金资格与订单授权硬门禁约束；通过后，资金/风险以 `capital-allocation-and-entry-policy.md` 为股票账户内 Source of Truth；Paper/Broker/自动化以 `automation-execution-governance.md` 为上位规则；研究证据、Champion/Challenger、point-in-time、Benchmark 与模型晋级以 `research-model-governance.md` 为上位规则。
 
 ## 0. 上游资产配置 Scope
 
@@ -45,6 +45,9 @@ Policy Conflict
 ## 1. 规范性规则层级
 
 ```text
+Level 0  — shared/capital-eligibility-and-investor-risk-philosophy.md
+           shared/pre-trade-order-authorization-contract.md
+  ↓
 Level 1A — shared/capital-allocation-and-entry-policy.md
 Level 1B — shared/automation-execution-governance.md
 Level 1C — shared/research-model-governance.md
@@ -57,11 +60,34 @@ Level 3  — skills/*/references/*.md
 Level 4  — examples / case studies / dated snapshots / watchlists
 ```
 
+- 0：资金是否有资格承担股票风险、是否允许输出可执行买入股数、强制个人资金问卷、ENTRY/ADD 授权；对新增风险拥有 Hard Veto；
 - 1A：资本配置、统一分母、仓位、风险、建仓、补仓、止损/止盈、再平衡、账户级同股/风险簇聚合；
 - 1B：Paper/Live、Broker Net Position、Strategy Virtual Position、执行安全、幂等、Kill Switch、合规和自动化晋级；
 - 1C：研究证据等级、Champion/Challenger、point-in-time、Benchmark、模型验证与晋级。
 
-多个 Level-1 同时涉及一个动作时必须全部满足。
+Level 0 必须先通过；通过后，多个 Level-1 同时涉及一个动作时必须全部满足。
+
+## 1A. Level 0 — Capital Eligibility / Pre-Trade Authorization
+
+Level 0 由以下两个文件共同构成：
+
+- `shared/capital-eligibility-and-investor-risk-philosophy.md` — 判断什么钱有资格进入股票风险；
+- `shared/pre-trade-order-authorization-contract.md` — 在给出真实 ENTRY/ADD 股数前强制收集个人资金、账户暴露、风险预算与交易触发信息。
+
+Level 0 是新增风险的最高优先级否决层：
+
+```text
+Level 0 FAIL / UNKNOWN critical field
+→ research may continue
+→ WATCH / READY allowed
+→ executable ENTRY / ADD shares = 0
+```
+
+任何 Skill、Champion、估值模型、技术信号、人工 override 或自动化模块都不能绕过 Level 0 增加风险。
+
+TRIM / EXIT 属于降低风险动作；在信息不完整但需要保护资本时，可以按既定风险计划继续执行，不应被 Level 0 阻止。
+
+Multi-Asset Allocation 仍负责从 Total Financial Assets 生成可进入股票系统的长期风险资本；Level 0 不替代资产配置，而是在**每次证券级增加风险前再次授权**，防止个人现金需求或账户状态变化后仍按旧假设下单。
 
 ## 2. Level 1A — Capital / Risk
 
