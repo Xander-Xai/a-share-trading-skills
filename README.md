@@ -40,19 +40,19 @@ Account / Risk / Ledger / Execution
 
 ```text
 Capital Eligibility:    v2 (Level 0 hard veto)
-Pre-Trade Authorization: v1 (Level 0 hard veto)
+Pre-Trade Authorization: v1.1 (Level 0 hard veto)
 Capital / Risk:          v2.5
 Automation / Execution: v1.4
 Research / Model:        v3.2
 Strategy Boundary:       v1
-Canonical PIT Data:      v1
+Canonical PIT Data:      v1.2
 ```
 
 规则优先级读取 `shared/policy-precedence.md`。
 
 ## Real-money buy hard gate
 
-本仓库现在把“买什么”和“能不能用这笔钱买”分开。任何真实/模拟 `ENTRY` / `ADD` 在输出具体股数前必须经过：
+本仓库现在把“买什么”和“能不能用这笔钱买”分开。任何真实资金 `ENTRY` / `ADD` 在输出具体股数前必须经过：
 
 ```text
 个人现金安全
@@ -62,7 +62,7 @@ Canonical PIT Data:      v1
 → 交易触发 / 失效点
 → 风险预算
 → 最严格约束反推股数
-→ 100股整手向下取整
+→ 按证券所属市场的最小申报数量/递增单位向下取整
 ```
 
 关键输入缺失时：
@@ -71,6 +71,8 @@ Canonical PIT Data:      v1
 WATCH / READY allowed
 executable buy shares = 0
 ```
+
+Paper 模式复用相同的风险/仓位几何，但使用隔离的 `paper_capital_rmb` 与模拟持仓，不要求、也不得伪造个人应急金/现金需求答案。
 
 核心文件：
 
@@ -448,6 +450,8 @@ reports/
 ## Rule precedence
 
 ```text
+Level 0   capital eligibility / pre-trade authorization
+    ↓
 Level 1A  capital / risk
 Level 1B  automation / execution
 Level 1C  research / model
