@@ -48,6 +48,41 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
             self.assertFalse(result.ok)
             self.assertIn(missing, result.detail)
 
+    def test_effective_git_ignore_rules_are_used(self):
+        calls = []
+
+        def fake_run(args, **kwargs):
+            calls.append(args)
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        with patch.object(audit.subprocess, "run", side_effect=fake_run):
+            result = audit._private_paths_ignored()
+        self.assertTrue(result.ok)
+        self.assertTrue(calls)
+        self.assertTrue(all("check-ignore" in call for call in calls))
+
+    def test_effective_git_ignore_missing_rule_fails(self):
+        def fake_run(args, **kwargs):
+            path = args[-1]
+            code = 1 if path.startswith("runtime/private/") else 0
+            return subprocess.CompletedProcess(args, code, "", "")
+
+        with patch.object(audit.subprocess, "run", side_effect=fake_run):
+            result = audit._private_paths_ignored()
+        self.assertFalse(result.ok)
+        self.assertIn("runtime/private/", result.detail)
+
+    def test_effective_git_ignore_command_failure_is_not_privacy_pass(self):
+        error = subprocess.CalledProcessError(128, ["git", "check-ignore"], stderr="bad repo")
+
+        def fake_run(*args, **kwargs):
+            raise error
+
+        with patch.object(audit.subprocess, "run", side_effect=fake_run):
+            result = audit._private_paths_ignored()
+        self.assertFalse(result.ok)
+        self.assertIn("NOT_EVALUATED", result.detail)
+
     def test_internal_links_use_tracked_markdown_only(self):
         self.assertTrue(audit._internal_links_exist({"README.md"}).ok)
         self.assertFalse(audit._internal_links_exist({"docs/public.md"}).ok)

@@ -87,6 +87,21 @@ class PreTradeAuthorizationPersistenceTests(unittest.TestCase):
         out, code = finalize_authorization(decision, {"action": "ADD"}, persist=lambda *a, **k: (_ for _ in ()).throw(OSError("disk full")))
         self.assertEqual((out["authorization_state"], out["max_executable_shares"], code), ("BLOCKED", 0, 1))
 
+    def test_entry_non_json_serializable_persistence_failure_blocks_without_traceback(self):
+        from types import SimpleNamespace
+
+        decision = SimpleNamespace(authorization_state="AUTHORIZED", position_state="ENTRY", max_executable_shares=200)
+        out, code = finalize_authorization(
+            decision,
+            {"action": "ENTRY", "unserializable": object()},
+            persist=persist_pretrade_card,
+        )
+        self.assertEqual(code, 1)
+        self.assertEqual(out["authorization_state"], "BLOCKED")
+        self.assertEqual(out["max_executable_shares"], 0)
+        self.assertEqual(out["planned_entry_shares"], 0)
+        self.assertEqual(out["reason"], "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED")
+
     def test_decision_id_collision_is_create_once_and_preserves_original_card(self):
         with tempfile.TemporaryDirectory() as directory:
             path = persist_pretrade_card(

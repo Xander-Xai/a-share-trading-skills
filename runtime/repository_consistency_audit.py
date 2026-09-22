@@ -52,12 +52,56 @@ def _contains_all(path: str, needles: Iterable[str]) -> CheckResult:
     )
 
 
-def _private_paths_ignored(gitignore_text: str) -> CheckResult:
-    missing = [prefix for prefix in PRIVATE_PATH_PREFIXES if prefix not in gitignore_text]
+def _private_paths_ignored(gitignore_text: str | None = None) -> CheckResult:
+    """Verify effective Git ignore behavior, including overrides and negations.
+
+    The optional text argument is retained for small unit-test fixtures. The
+    production audit always evaluates the repository's effective rules via
+    ``git check-ignore``; a failed invocation is never treated as a privacy
+    pass.
+    """
+    if gitignore_text is not None:
+        # Compatibility fixture mode used by existing tests; this is not used
+        # by the repository audit itself.
+        missing = [prefix for prefix in PRIVATE_PATH_PREFIXES if prefix not in gitignore_text]
+        return CheckResult(
+            name="private_paths_ignored",
+            ok=not missing,
+            detail="private runtime paths are ignored" if not missing else f"missing: {missing}",
+        )
+
+    failures: list[str] = []
+    errors: list[str] = []
+    for prefix in PRIVATE_PATH_PREFIXES:
+        sentinel = f"{prefix}.__governance_sentinel__"
+        try:
+            result = subprocess.run(
+                ["git", "check-ignore", "--no-index", "--quiet", "--", sentinel],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            errors.append(f"{prefix}: {exc}")
+            continue
+        if result.returncode == 0:
+            continue
+        if result.returncode == 1:
+            failures.append(prefix)
+        else:
+            detail = (result.stderr or result.stdout or "git check-ignore failed").strip()
+            errors.append(f"{prefix}: {detail}")
+
+    if errors:
+        return CheckResult(
+            name="private_paths_ignored",
+            ok=False,
+            detail=f"NOT_EVALUATED: git check-ignore failure: {errors}",
+        )
     return CheckResult(
         name="private_paths_ignored",
-        ok=not missing,
-        detail="private runtime paths are ignored" if not missing else f"missing: {missing}",
+        ok=not failures,
+        detail="private runtime paths are effectively ignored" if not failures else f"not ignored: {failures}",
     )
 
 
@@ -281,7 +325,7 @@ def run_audit() -> list[CheckResult]:
                and (ROOT / "runtime/PRIVATE_STATE.md").exists(),
             detail="personal portfolio/trade artifacts must not be tracked in public source",
         ),
-        _private_paths_ignored((ROOT / ".gitignore").read_text(encoding="utf-8")),
+        _private_paths_ignored(),
         CheckResult(
             name="private_tracked_paths",
             ok=tracked_paths is not None and not any(

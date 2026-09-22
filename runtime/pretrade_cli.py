@@ -187,7 +187,7 @@ def finalize_authorization(decision, authorization_inputs, *, persist=persist_pr
         )
         out["private_persistence"] = str(private_path)
         return out, authorization_exit_code(str(out.get("authorization_state", "UNKNOWN")))
-    except (OSError, ValueError) as exc:
+    except (OSError, TypeError, ValueError) as exc:
         out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
         out["private_persistence_error"] = str(exc)
         action = str(out.get("position_state", "")).upper()
