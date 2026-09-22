@@ -1,12 +1,12 @@
 # A-share Short/Mid Daily Monitor — 2026-09-22
 
-- as_of: `2026-09-22T12:12:27.802265+08:00`
+- as_of: `2026-09-22T13:01:28.025238+08:00`
 - strategy_id: `a_share_short_mid`
 - sleeve: `short_mid`
 - runtime_mode: `SHORT_MID_MONITOR_ONLY`
 - trading_day_status: `TRADING_DAY`
 - spot_provider: `EASTMONEY_PRIMARY`
-- sentiment_score: `69.79`
+- sentiment_score: `66.18`
 - regime: `RISK_ON`
 - crowding_flag: `False`
 - data_confidence: `LOW`
@@ -43,16 +43,16 @@
 ```json
 {
   "valid_stock_count": 5554,
-  "advance_count": 2883,
-  "decline_count": 2475,
-  "flat_count": 196,
-  "limit_up_count": 57,
-  "limit_down_count": 0,
-  "broken_limit_count": 13,
-  "strong_count": 218,
-  "weak_count": 26,
-  "median_return_pct": 0.1,
-  "total_turnover": 1440692506110.4,
+  "advance_count": 2619,
+  "decline_count": 2734,
+  "flat_count": 201,
+  "limit_up_count": 54,
+  "limit_down_count": 2,
+  "broken_limit_count": 19,
+  "strong_count": 212,
+  "weak_count": 36,
+  "median_return_pct": 0.0,
+  "total_turnover": 1485670860893.5398,
   "turnover_20d_median": null
 }
 ```
@@ -61,14 +61,14 @@
 
 | Code | Name | Price | Day % | Vs baseline % | Snapshot | Pre-action |
 |---|---|---:|---:|---:|---|---|
-| 601600 | 中国铝业 | 9.34 | 1.74 | -4.89 | priority_scan | REFRESH_FULL_GATES |
-| 002602 | 世纪华通 | 14.56 | -0.34 | 4.22 | wait_technical_confirmation | REFRESH_SETUP |
-| 600096 | 云天化 | 28.28 | 0.00 | -10.45 | wait_technical_confirmation | REFRESH_SETUP |
-| 600392 | 盛和资源 | 22.23 | 0.14 | -3.05 | event_isolation | EVENT_REVIEW |
-| 600415 | 小商品城 | 11.91 | -0.17 | -4.41 | wait_technical_confirmation | REFRESH_SETUP |
+| 601600 | 中国铝业 | 9.35 | 1.85 | -4.79 | priority_scan | REFRESH_FULL_GATES |
+| 002602 | 世纪华通 | 14.53 | -0.55 | 4.01 | wait_technical_confirmation | REFRESH_SETUP |
+| 600096 | 云天化 | 28.29 | 0.04 | -10.42 | wait_technical_confirmation | REFRESH_SETUP |
+| 600392 | 盛和资源 | 22.17 | -0.14 | -3.31 | event_isolation | EVENT_REVIEW |
+| 600415 | 小商品城 | 11.92 | -0.08 | -4.33 | wait_technical_confirmation | REFRESH_SETUP |
 | 601808 | 中海油服 | 12.28 | -1.92 | -4.44 | wait_technical_confirmation | REFRESH_SETUP |
-| 002831 | 裕同科技 | 28.71 | 1.41 | 8.75 | watch_only | RISK_REVIEW |
-| 002273 | 水晶光电 | 26.01 | 1.56 | -0.42 | no_new_position | NO_NEW_ENTRY |
+| 002831 | 裕同科技 | 28.65 | 1.20 | 8.52 | watch_only | RISK_REVIEW |
+| 002273 | 水晶光电 | 26.09 | 1.87 | -0.11 | no_new_position | NO_NEW_ENTRY |
 
 ## Provider / configuration errors
 
