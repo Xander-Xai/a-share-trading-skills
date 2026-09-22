@@ -105,7 +105,7 @@ known_liabilities_next_24m
 Emergency Reserve = 6–12个月必要支出
 ```
 
-6–12个月是 Governance Parameter，不是所有人的唯一最优数字。
+6–12个月是资产配置层的 Governance Parameter，不是所有人的唯一最优数字，也不能仅凭“达到6–12个月”自动判定证券级 Level 0 `emergency_reserve_gate=PASS`；真实授权仍需结合收入稳定性、家庭责任、保险、负债和近期现金需求重新确认。
 
 未来24个月内确定要使用、不能承受明显亏损的资金原则上不进入个股风险仓。
 
