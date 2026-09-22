@@ -38,7 +38,7 @@ class ShortMidPreTradeInput:
     current_short_cluster_exposure_rmb: Optional[float] = None
     current_open_initial_risk_rmb: Optional[float] = None
     current_factor_initial_risk_rmb: Optional[float] = None
-    current_trade_initial_risk_rmb: Optional[float] = None
+    current_trade_planned_risk_rmb: Optional[float] = None
     final_short_cap_rmb: Optional[float] = None
     min_buy_shares: int = 100
     buy_increment_shares: int = 100
@@ -164,7 +164,7 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
         "current_short_cluster_exposure_rmb": inp.current_short_cluster_exposure_rmb,
         "current_open_initial_risk_rmb": inp.current_open_initial_risk_rmb,
         "current_factor_initial_risk_rmb": inp.current_factor_initial_risk_rmb,
-        "current_trade_initial_risk_rmb": inp.current_trade_initial_risk_rmb,
+        "current_trade_planned_risk_rmb": inp.current_trade_planned_risk_rmb,
     }
     for name, value in required_nonnegative.items():
         if not _nonnegative_number(value):
@@ -180,6 +180,9 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
     for name, value in required_positive.items():
         if not _positive_number(value):
             missing.append(name)
+
+    if inp.min_buy_shares <= 0 or inp.buy_increment_shares <= 0:
+        missing.append("buy_quantity_rule")
 
     if state not in {"ENTRY", "ADD"}:
         blocking.append("position_state must be ENTRY or ADD")
@@ -215,11 +218,13 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
 
     nav = float(inp.strategy_nav_rmb)
     per_trade_operating_risk = nav * 0.005
-    remaining_trade_risk = max(0.0, per_trade_operating_risk - float(inp.current_trade_initial_risk_rmb))
+    current_trade_planned_risk = float(inp.current_trade_planned_risk_rmb)
+    remaining_user_trade_risk = max(0.0, float(inp.user_max_loss_this_trade_rmb) - current_trade_planned_risk)
+    remaining_trade_risk = max(0.0, per_trade_operating_risk - current_trade_planned_risk)
     remaining_portfolio_heat = max(0.0, nav * 0.02 - float(inp.current_open_initial_risk_rmb))
     remaining_factor_heat = max(0.0, nav * 0.01 - float(inp.current_factor_initial_risk_rmb))
     allowed_new_loss = min(
-        float(inp.user_max_loss_this_trade_rmb),
+        remaining_user_trade_risk,
         remaining_trade_risk,
         remaining_portfolio_heat,
         remaining_factor_heat,
@@ -271,7 +276,7 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
             inp.buy_increment_shares,
         )
         if planned < inp.min_buy_shares:
-            decision.authorization_state = "NO_TRADE_TRANCHE_ROUNDS_BELOW_BOARD_LOT"
+            decision.authorization_state = "NO_TRADE_TRANCHE_ROUNDS_BELOW_MINIMUM"
             decision.allowed_new_loss_rmb = round(allowed_new_loss, 2)
             decision.binding_constraints = binding
             decision.cap_details = {k: float(v) for k, v in floored_caps.items()}
@@ -308,6 +313,9 @@ def evaluate_long_pretrade(inp: LongPreTradeInput) -> PreTradeDecision:
     for name, value in required_positive.items():
         if not _positive_number(value):
             missing.append(name)
+
+    if inp.min_buy_shares <= 0 or inp.buy_increment_shares <= 0:
+        missing.append("buy_quantity_rule")
 
     for name, value in {
         "current_account_symbol_exposure_rmb": inp.current_account_symbol_exposure_rmb,
