@@ -5,19 +5,36 @@
 ## 先读上位规则
 
 1. `../../shared/policy-precedence.md`
-2. `../../shared/capital-allocation-and-entry-policy.md`
-3. `../../shared/research-model-governance.md`
-4. `../../shared/automation-execution-governance.md`（涉及 Paper / Live / Broker / 自动化时）
-5. `SKILL.md`
+2. `../../shared/capital-eligibility-and-investor-risk-philosophy.md`
+3. `../../shared/pre-trade-order-authorization-contract.md`
+4. `../../shared/capital-allocation-and-entry-policy.md`
+5. `../../shared/research-model-governance.md`
+6. `../../shared/automation-execution-governance.md`（涉及 Paper / Live / Broker / 自动化时）
+7. `SKILL.md`
 
 当前治理基线：
 
 ```text
-Capital / Risk:          v2.3
-Automation / Execution: v1.2
-Research / Model:        v3
-Short/Mid Skill:         v1.5.0
+Capital Eligibility:     v2
+Pre-Trade Authorization: v1.1
+Capital / Risk:           v2.5
+Automation / Execution:  v1.4
+Research / Model:         v3.2
+Short/Mid Skill:          v1.7.2
 ```
+
+## Level 0：先授权资金，再授权股票
+
+任何真实 `ENTRY / ADD` 在输出具体股数前，必须先通过个人资金资格和 pre-trade authorization。技术信号、Champion 分数、ERG/Challenger 或人工主观判断都不能覆盖失败的资金 Gate。
+
+关键输入缺失时：
+
+```text
+authorization_state = NEED_USER_INPUT
+max_executable_shares = 0
+```
+
+ADD 还必须使用**整笔交易剩余风险预算**，不能每加一批重新获得一份 0.5% 风险额度。
 
 ## 统一账户口径
 
