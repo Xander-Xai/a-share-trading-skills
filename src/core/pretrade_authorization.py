@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -30,15 +31,62 @@ def _tighten_directory_permissions(path: Path) -> None:
         path.chmod(0o700)
 
 
-def _write_private_card(path: Path, content: bytes) -> None:
-    """Create a card once without permitting overwrite or truncation."""
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+def _write_complete_file(path: Path, content: bytes) -> None:
+    """Write and flush a complete private file, propagating any I/O failure."""
+    descriptor = os.open(path, os.O_WRONLY | os.O_TRUNC, 0o600)
     try:
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
     finally:
-        if os.name != "nt":
+        if os.name != "nt" and path.exists():
             path.chmod(0o600)
+
+
+def _publish_no_overwrite(temp_path: Path, destination: Path, content: bytes) -> None:
+    """Publish atomically when hard links are available, with an exclusive fallback."""
+    try:
+        os.link(temp_path, destination)
+        return
+    except FileExistsError:
+        raise
+    except (OSError, NotImplementedError):
+        # Some Windows filesystems or restricted runners do not permit hard links.
+        # The fallback still creates the destination exclusively and removes it if
+        # this invocation cannot finish writing it.
+        pass
+
+    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    created = True
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except BaseException:
+        if created:
+            destination.unlink(missing_ok=True)
+        raise
+    finally:
+        if os.name != "nt" and destination.exists():
+            destination.chmod(0o600)
+
+
+def _write_private_card(path: Path, content: bytes) -> None:
+    """Create a complete immutable card without exposing partial final content."""
+    descriptor, raw_temp_path = tempfile.mkstemp(
+        prefix=f".{path.stem}.", suffix=".tmp", dir=str(path.parent)
+    )
+    temp_path = Path(raw_temp_path)
+    try:
+        os.close(descriptor)
+        if os.name != "nt":
+            temp_path.chmod(0o600)
+        _write_complete_file(temp_path, content)
+        _publish_no_overwrite(temp_path, path, content)
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 def persist_pretrade_card(

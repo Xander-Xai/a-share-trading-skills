@@ -52,6 +52,15 @@ def _contains_all(path: str, needles: Iterable[str]) -> CheckResult:
     )
 
 
+def _private_paths_ignored(gitignore_text: str) -> CheckResult:
+    missing = [prefix for prefix in PRIVATE_PATH_PREFIXES if prefix not in gitignore_text]
+    return CheckResult(
+        name="private_paths_ignored",
+        ok=not missing,
+        detail="private runtime paths are ignored" if not missing else f"missing: {missing}",
+    )
+
+
 def _not_contains(path: str, needles: Iterable[str]) -> CheckResult:
     text = _read(path)
     found = [needle for needle in needles if needle in text]
@@ -272,11 +281,7 @@ def run_audit() -> list[CheckResult]:
                and (ROOT / "runtime/PRIVATE_STATE.md").exists(),
             detail="personal portfolio/trade artifacts must not be tracked in public source",
         ),
-        CheckResult(
-            name="private_paths_ignored",
-            ok=all((ROOT / ".gitignore").read_text(encoding="utf-8").find(path) >= 0 for path in PRIVATE_PATH_PREFIXES[:-1]),
-            detail="private runtime paths are ignored",
-        ),
+        _private_paths_ignored((ROOT / ".gitignore").read_text(encoding="utf-8")),
         CheckResult(
             name="private_tracked_paths",
             ok=tracked_paths is not None and not any(

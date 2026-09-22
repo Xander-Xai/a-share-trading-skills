@@ -4,6 +4,7 @@ import stat
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from runtime.pretrade_cli import authorization_exit_code, finalize_authorization
 from src.core.pretrade_authorization import DEFAULT_PRIVATE_AUTH_ROOT, authorization_input_snapshot, persist_pretrade_card
@@ -102,6 +103,52 @@ class PreTradeAuthorizationPersistenceTests(unittest.TestCase):
                     policy_versions={"pretrade": "9.9"},
                     root=directory,
                 )
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_write_failure_cleans_partial_temp_and_allows_retry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            def fail_after_partial(path, content):
+                path.write_bytes(content[:5])
+                raise OSError("disk full")
+
+            with patch("src.core.pretrade_authorization._write_complete_file", side_effect=fail_after_partial):
+                with self.assertRaises(OSError):
+                    persist_pretrade_card(
+                        {"decision_id": "retryable"}, snapshot={"synthetic": True}, policy_versions={}, root=directory
+                    )
+            root = Path(directory)
+            self.assertEqual(list(root.iterdir()), [])
+
+            path = persist_pretrade_card(
+                {"decision_id": "retryable"}, snapshot={"synthetic": True}, policy_versions={}, root=directory
+            )
+            self.assertTrue(path.exists())
+            self.assertEqual([item.name for item in root.iterdir()], [path.name])
+
+    def test_flush_failure_cleans_partial_temp_and_leaves_no_destination(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch("src.core.pretrade_authorization.os.fsync", side_effect=OSError("flush failed")):
+                with self.assertRaises(OSError):
+                    persist_pretrade_card(
+                        {"decision_id": "flush-failure"}, snapshot={"synthetic": True}, policy_versions={}, root=directory
+                    )
+            self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_exclusive_publish_fallback_remains_create_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch("src.core.pretrade_authorization.os.link", side_effect=NotImplementedError):
+                path = persist_pretrade_card(
+                    {"decision_id": "fallback"}, snapshot={"synthetic": True}, policy_versions={}, root=directory
+                )
+            original = path.read_bytes()
+            with patch("src.core.pretrade_authorization.os.link", side_effect=NotImplementedError):
+                with self.assertRaises(FileExistsError):
+                    persist_pretrade_card(
+                        {"decision_id": "fallback", "changed": True},
+                        snapshot={"synthetic": False},
+                        policy_versions={"pretrade": "changed"},
+                        root=directory,
+                    )
             self.assertEqual(path.read_bytes(), original)
 
     def test_entry_collision_blocks_and_zeroes_quantity(self):

@@ -27,6 +27,7 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
             {"runtime/private/account.json"},
             {"runtime/state/private/state.json"},
             {"reports/private/report.md"},
+            {"reports/trades/private/report.md"},
             {"runtime/portfolio_instances.json"},
         ):
             with patch.object(audit, "_git_tracked_paths", return_value=tracked):
@@ -37,6 +38,15 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
         with patch.object(audit, "_git_tracked_paths", return_value={"runtime/portfolio_instances.example.json"}):
             checks = audit.run_audit()
         self.assertTrue(next(c for c in checks if c.name == "private_tracked_paths").ok)
+
+    def test_every_declared_private_prefix_is_required_in_gitignore(self):
+        complete = "\n".join(audit.PRIVATE_PATH_PREFIXES)
+        self.assertTrue(audit._private_paths_ignored(complete).ok)
+        for missing in audit.PRIVATE_PATH_PREFIXES:
+            synthetic = "\n".join(prefix for prefix in audit.PRIVATE_PATH_PREFIXES if prefix != missing)
+            result = audit._private_paths_ignored(synthetic)
+            self.assertFalse(result.ok)
+            self.assertIn(missing, result.detail)
 
     def test_internal_links_use_tracked_markdown_only(self):
         self.assertTrue(audit._internal_links_exist({"README.md"}).ok)
