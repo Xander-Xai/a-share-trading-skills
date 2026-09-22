@@ -6,6 +6,7 @@ from src.core.pretrade_risk_gate import (
     ShortMidPreTradeInput,
     evaluate_long_pretrade,
     evaluate_short_mid_pretrade,
+    validate_manual_requested_shares,
 )
 
 
@@ -160,6 +161,24 @@ class TestPreTradeRiskGate(unittest.TestCase):
         self.assertEqual(d.authorization_state, "AUTHORIZED")
         self.assertEqual(d.planned_entry_shares, 200)
         self.assertEqual(d.planned_notional_rmb, 4_000.0)
+
+    def test_manual_buy_above_planned_tranche_requires_reauthorization(self):
+        d = evaluate_short_mid_pretrade(self.base_short())
+        self.assertEqual(d.authorization_state, "AUTHORIZED")
+        ok, reason = validate_manual_requested_shares(d, 200)
+        self.assertFalse(ok)
+        self.assertEqual(reason, "REAUTHORIZATION_REQUIRED_ABOVE_PLANNED_TRANCHE")
+
+    def test_manual_buy_fewer_than_planned_is_allowed(self):
+        d = evaluate_short_mid_pretrade(self.base_short(
+            strategy_nav_rmb=100_000,
+            user_max_loss_this_trade_rmb=1_000,
+        ))
+        self.assertEqual(d.authorization_state, "AUTHORIZED")
+        self.assertGreaterEqual(d.planned_entry_shares, 100)
+        ok, reason = validate_manual_requested_shares(d, 100)
+        self.assertTrue(ok)
+        self.assertEqual(reason, "AUTHORIZED_MANUAL_QUANTITY")
 
 
 if __name__ == "__main__":
