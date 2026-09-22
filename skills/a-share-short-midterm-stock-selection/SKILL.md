@@ -4,7 +4,7 @@ description: Select, rank, size, and manage A-share stocks for short-to-medium-t
 compatibility: Requires fresh public market data, official A-share disclosures, and web research.
 metadata:
   author: yandexuanxuan
-  version: "1.7.2"
+  version: "1.7.3"
   market: "China A-share"
 ---
 
@@ -416,10 +416,28 @@ Stop 是失效计划，不是保证成交价。真实 gap/limit stress 超预算
 
 ## 15. Position Sizing
 
+真实 ENTRY/ADD 先通过 Level 0。短中期单笔 0.5% Operating Target 是**整笔交易跨所有批次的总计划风险目标**，不是每个 ADD 都重新获得 0.5%。
+
 ```text
+current_trade_planned_risk_rmb
+= 已有仓位按当前 invalidation 计算的计划风险
+
+remaining_trade_risk
+= max(0, 0.5% × strategy_nav - current_trade_planned_risk_rmb)
+
+remaining_user_trade_risk
+= max(0, user_max_loss_this_trade_rmb - current_trade_planned_risk_rmb)
+
+R_account
+= min(
+    remaining_user_trade_risk,
+    remaining_trade_risk,
+    remaining_portfolio_heat,
+    remaining_factor_heat
+  )
+
 E = planned entry
 S = invalidation
-R_account = allowed currency loss
 shares ≈ R_account / abs(E-S)
 ```
 
@@ -432,6 +450,8 @@ shares ≈ R_account / abs(E-S)
 - risk Heat。
 
 止损更宽 → 仓位更小；不能为了让仓位“有意义”而放宽失效点。
+
+执行数量不能统一假设为100股整手：当前规则基线为沪深主板/创业板100股整数倍；科创板最低200股、超过最低数量后可按1股递增；北交所最低100股、可按1股递增。Live 前必须按当期交易所规则刷新。
 
 ## 16. Entry Tranches
 
@@ -630,7 +650,7 @@ expectation_confidence
 4. 若 Challenger 开启，独立 Shadow score/status、`research_state`、`position_state`、`confirmation_basis` 和 disagreement；
 5. 若存在事件驱动候选，输出/保存 ERG 的 expectation、surprise、materiality、prepricing、reaction 与 `source_tier`；
 6. 若事件发布时间影响可交易时点，输出 session route、`first_tradable_timestamp` 及 resolution status；
-7. executable candidates：position_state、trigger、confirmation_basis、invalidation、gap risk、tranche、risk、time stop、交易摩擦；
+7. executable candidates：position_state、trigger、confirmation_basis、invalidation、gap risk、tranche、current_trade_planned_risk、remaining_trade_risk、risk、time stop、security quantity rule、交易摩擦；
 8. 真实 ENTRY/ADD：capital_eligibility、cash_need_gate、emergency_reserve_gate、debt_leverage_gate；
 9. near misses；
 10. adversarial audit；
