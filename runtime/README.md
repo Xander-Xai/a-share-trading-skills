@@ -225,9 +225,11 @@ python runtime/pretrade_cli.py
 - 主观风险意愿与客观风险承受能力；
 - 当前该股/同风险簇/短中期总暴露；
 - 当前已占用 Portfolio Heat / Factor Heat；
+- 当前失效位下该笔交易已有仓位的 `current_trade_planned_risk_rmb`；
 - Final Short Cap；
 - ENTRY/ADD 触发是否确认；
-- 短中期失效价和本次最大可承受计划亏损。
+- 短中期失效价和本次整笔交易最大可承受计划亏损；
+- 证券板块及申报数量规则（MAIN / CHINEXT / STAR / BSE）。
 
 输出状态：
 
@@ -236,7 +238,7 @@ AUTHORIZED
 NEED_USER_INPUT
 BLOCKED
 NO_TRADE_POSITION_TOO_SMALL_FOR_RISK_BUDGET
-NO_TRADE_TRANCHE_ROUNDS_BELOW_BOARD_LOT
+NO_TRADE_TRANCHE_ROUNDS_BELOW_MINIMUM
 ```
 
 只在 `AUTHORIZED` 时输出非零的 `planned_entry_shares`。所有缺失关键输入默认 fail closed。
@@ -454,3 +456,22 @@ Long Quality Engine
 ```
 
 不能从 Monitor 直接跳到 `AUTO_ORDER=true`，也不能因为短中期系统代码化而把其时间尺度和验证标准强加给长期策略。
+
+## Repository Consistency Audit
+
+`runtime/repository_consistency_audit.py` 对当前生产治理做 fail-closed 静态检查，包括：
+
+- Level 0 / Level 1A / Level 1B / Level 1C 当前版本；
+- Long / Short-Mid Skill 当前版本；
+- 两个生产 Skill 是否读取 Level 0；
+- pretrade core 是否包含整笔交易剩余风险、长期 sleeve 暴露和证券特定申报数量规则；
+- 当前 README 是否存在治理版本漂移；
+- Daily Monitor / Repository Governance workflow 是否覆盖 `shared/**`、`skills/**`、`src/**`、`runtime/**` 与根 README。
+
+本地运行：
+
+```bash
+python runtime/repository_consistency_audit.py
+```
+
+该审计只检查当前生产/治理契约。日期化历史审计、examples、历史 reports 可以保留当时版本，不因今天的规则升级而被静默改写。
