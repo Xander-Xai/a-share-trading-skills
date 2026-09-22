@@ -3,6 +3,7 @@
 > 本文解释长期养老 Skill 的第一性原理、估值、建仓、补仓与持仓哲学。
 >
 > 上位规则：
+> - 资金资格/真实买入授权：`../../../shared/capital-eligibility-and-investor-risk-philosophy.md` + `../../../shared/pre-trade-order-authorization-contract.md`
 > - 资本/分母/仓位：`../../../shared/capital-allocation-and-entry-policy.md`
 > - 研究/模型/Benchmark：`../../../shared/research-model-governance.md`
 > - Paper/Live/自动化：`../../../shared/automation-execution-governance.md`
@@ -59,11 +60,11 @@ Stock Account Equity
 
 ## 四、核心分红股筛选漏斗
 
-### Level 0：数据可信性
+### 筛选 Gate 0：数据可信性
 
 确认最新正式披露、股价、市值、普通/特别分红。无法验证就停止。
 
-### Level 1：长期存在价值
+### 筛选 Gate 1：长期存在价值
 
 1. 10–20年后需求是否仍存在？
 2. 是否有资源、牌照、品牌、网络、成本、技术、规模或客户壁垒？
@@ -71,11 +72,11 @@ Stock Account Equity
 4. 是否长期有能力赚取高于资本成本的回报？
 5. 监管、技术替代、人口结构是否可能破坏商业模式？
 
-### Level 2：利润质量
+### 筛选 Gate 2：利润质量
 
 排查扣非、应收、存货、OCF、资本化支出和一次性收益。
 
-### Level 3：分红可持续性
+### 筛选 Gate 3：分红可持续性
 
 ```text
 普通现金分红 / 正常化归母净利润
@@ -86,11 +87,11 @@ Stock Account Equity
 
 银行使用监管资本和资产质量替代普通 FCF 逻辑。
 
-### Level 4：资产负债表
+### 筛选 Gate 4：资产负债表
 
 按行业检查净负债、利息覆盖、债务期限、Capex、融资成本、信用评级或监管资本。
 
-### Level 5：价格与组合适配
+### 筛选 Gate 5：价格与组合适配
 
 ```text
 Quality：是不是长期好资产？
