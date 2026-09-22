@@ -188,6 +188,7 @@ class TestPreTradeRiskGate(unittest.TestCase):
         d = evaluate_short_mid_pretrade(self.base_short(
             position_state="ADD",
             positive_add_confirmation=True,
+            current_short_symbol_exposure_rmb=2_000,
             current_trade_planned_risk_rmb=200,
         ))
         # NAV 50k => 0.5% per-trade target = 250. Existing planned risk 200 leaves only 50.
@@ -202,6 +203,7 @@ class TestPreTradeRiskGate(unittest.TestCase):
             positive_add_confirmation=True,
             strategy_nav_rmb=100_000,
             user_max_loss_this_trade_rmb=300,
+            current_short_symbol_exposure_rmb=2_000,
             current_trade_planned_risk_rmb=250,
         ))
         self.assertEqual(d.authorization_state, "NO_TRADE_POSITION_TOO_SMALL_FOR_RISK_BUDGET")
@@ -219,6 +221,7 @@ class TestPreTradeRiskGate(unittest.TestCase):
         d = evaluate_short_mid_pretrade(self.base_short(
             position_state="ADD",
             positive_add_confirmation=True,
+            current_short_symbol_exposure_rmb=2_000,
             min_buy_shares=200,
             buy_increment_shares=1,
         ))
