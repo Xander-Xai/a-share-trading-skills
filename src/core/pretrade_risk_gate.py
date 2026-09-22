@@ -184,6 +184,9 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
     if inp.min_buy_shares <= 0 or inp.buy_increment_shares <= 0:
         missing.append("buy_quantity_rule")
 
+    if not (0 < inp.entry_tranche_fraction <= 1):
+        blocking.append("entry_tranche_fraction must be > 0 and <= 1")
+
     if state not in {"ENTRY", "ADD"}:
         blocking.append("position_state must be ENTRY or ADD")
 
@@ -198,6 +201,15 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
         elif not inp.positive_add_confirmation:
             blocking.append("ADD requires positive confirmation")
 
+    if _nonnegative_number(inp.current_short_symbol_exposure_rmb) and _nonnegative_number(inp.current_trade_planned_risk_rmb):
+        if state == "ENTRY" and (
+            float(inp.current_short_symbol_exposure_rmb) > 0
+            or float(inp.current_trade_planned_risk_rmb) > 0
+        ):
+            blocking.append("ENTRY requires no existing short-mid position/risk in this symbol")
+        if state == "ADD" and float(inp.current_short_symbol_exposure_rmb) <= 0:
+            blocking.append("ADD requires an existing short-mid position")
+
     if missing:
         decision.missing_fields = sorted(set(missing))
         decision.blocking_reasons = blocking
@@ -210,11 +222,13 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
 
     entry_price = float(inp.entry_price)
     invalidation_price = float(inp.invalidation_price)
-    stop_distance = abs(entry_price - invalidation_price)
-    if stop_distance <= 0:
+    if invalidation_price >= entry_price:
         decision.authorization_state = "BLOCKED"
-        decision.blocking_reasons = ["entry_price and invalidation_price cannot be equal"]
+        decision.blocking_reasons = [
+            "long-only short/mid ENTRY/ADD requires invalidation_price < entry_price"
+        ]
         return decision
+    stop_distance = entry_price - invalidation_price
 
     nav = float(inp.strategy_nav_rmb)
     per_trade_operating_risk = nav * 0.005
@@ -317,6 +331,9 @@ def evaluate_long_pretrade(inp: LongPreTradeInput) -> PreTradeDecision:
     if inp.min_buy_shares <= 0 or inp.buy_increment_shares <= 0:
         missing.append("buy_quantity_rule")
 
+    if inp.planned_tranche_fraction is not None and not (0 < inp.planned_tranche_fraction <= 1):
+        blocking.append("planned_tranche_fraction must be > 0 and <= 1")
+
     for name, value in {
         "current_account_symbol_exposure_rmb": inp.current_account_symbol_exposure_rmb,
         "current_account_cluster_exposure_rmb": inp.current_account_cluster_exposure_rmb,
@@ -334,6 +351,12 @@ def evaluate_long_pretrade(inp: LongPreTradeInput) -> PreTradeDecision:
             missing.append(name)
         elif value != PASS:
             blocking.append(f"{name}={value}")
+
+    if _nonnegative_number(inp.current_long_symbol_exposure_rmb):
+        if state == "ENTRY" and float(inp.current_long_symbol_exposure_rmb) > 0:
+            blocking.append("ENTRY requires no existing long-sleeve position in this symbol")
+        if state == "ADD" and float(inp.current_long_symbol_exposure_rmb) <= 0:
+            blocking.append("ADD requires an existing long-sleeve position")
 
     if missing:
         decision.missing_fields = sorted(set(missing))
