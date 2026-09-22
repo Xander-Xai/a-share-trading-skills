@@ -38,6 +38,10 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
             checks = audit.run_audit()
         self.assertTrue(next(c for c in checks if c.name == "private_tracked_paths").ok)
 
+    def test_internal_links_use_tracked_markdown_only(self):
+        self.assertTrue(audit._internal_links_exist({"README.md"}).ok)
+        self.assertFalse(audit._internal_links_exist({"docs/public.md"}).ok)
+
 
 if __name__ == "__main__":
     unittest.main()

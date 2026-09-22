@@ -94,10 +94,15 @@ def _git_tracked_paths() -> set[str]:
     return {line.replace("\\", "/") for line in result.stdout.splitlines()}
 
 
-def _internal_links_exist() -> CheckResult:
+def _internal_links_exist(tracked_paths: set[str] | None) -> CheckResult:
+    if tracked_paths is None:
+        return CheckResult("internal_links", False, "NOT_EVALUATED: tracked file enumeration failed")
     missing: list[str] = []
-    markdown_files = list(ROOT.rglob("*.md"))
+    markdown_files = [ROOT / path for path in tracked_paths if path.lower().endswith(".md")]
     for source in markdown_files:
+        if not source.exists():
+            missing.append(f"{source.relative_to(ROOT)} -> tracked file missing")
+            continue
         text = source.read_text(encoding="utf-8")
         for raw in re.findall(r"\[[^\]]+\]\(([^)#]+)", text):
             target = raw.strip().strip("<>")
@@ -306,7 +311,7 @@ def run_audit() -> list[CheckResult]:
             "runtime/tests/test_pretrade_risk_gate.py",
             ["invalidation", "tranche", "ADD", "ENTRY"],
         ),
-        _internal_links_exist(),
+        _internal_links_exist(tracked_paths),
     ])
 
     workflow = ".github/workflows/a-share-daily-monitor.yml"
@@ -336,7 +341,7 @@ def run_audit() -> list[CheckResult]:
                 '"runtime/**"',
                 '"README.md"',
                 "python runtime/repository_consistency_audit.py",
-                "python -m unittest runtime.tests.test_pretrade_risk_gate -v",
+                "python -m unittest discover -s runtime/tests -v",
             ],
         ))
 

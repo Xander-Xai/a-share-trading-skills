@@ -1,4 +1,6 @@
 import json
+import os
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -35,6 +37,15 @@ class PreTradeAuthorizationPersistenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = persist_pretrade_card({"decision_id": "synthetic"}, snapshot={}, policy_versions={}, root=directory)
             self.assertEqual(path.parent, Path(directory).resolve())
+
+    def test_posix_private_directory_and_card_are_owner_only(self):
+        if os.name == "nt":
+            self.skipTest("POSIX mode bits are not authoritative on Windows")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "private"
+            path = persist_pretrade_card({"decision_id": "mode-check"}, snapshot={}, policy_versions={}, root=root)
+            self.assertEqual(stat.S_IMODE(root.stat().st_mode) & 0o077, 0)
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode) & 0o077, 0)
 
     def test_complete_inputs_hash_is_deterministic_and_sensitive(self):
         base = {"capital": {"cash": 1000}, "strategy_inputs": {"entry_price": 10.0, "invalidation_price": 9.0, "exposure": 0}, "action": "ENTRY"}

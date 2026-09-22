@@ -15,6 +15,9 @@ from typing import Any, Mapping, Protocol
 
 
 BLOCKING_RECONCILIATION_STATES = {"MISSING", "STALE", "CONFLICT", "UNRECONCILED"}
+RISK_INCREASING_ACTIONS = {"ENTRY", "ADD"}
+RISK_REDUCING_ACTIONS = {"TRIM", "EXIT"}
+SUPPORTED_ACTIONS = RISK_INCREASING_ACTIONS | RISK_REDUCING_ACTIONS
 
 
 @dataclass(frozen=True)
@@ -69,10 +72,14 @@ class CanonicalAccountSnapshot:
 
     def authorization_gate(self, action: str) -> str:
         """Return BLOCKED for risky opens, while preserving risk reduction."""
+        if not isinstance(action, str):
+            return "BLOCKED"
         action = action.upper()
-        if action in {"TRIM", "EXIT"}:
+        if action not in SUPPORTED_ACTIONS:
+            return "BLOCKED"
+        if action in RISK_REDUCING_ACTIONS:
             return "AUTHORIZED_RISK_REDUCTION"
-        if action in {"ENTRY", "ADD"} and not self.entry_add_allowed:
+        if action in RISK_INCREASING_ACTIONS and not self.entry_add_allowed:
             return "BLOCKED"
         return "AUTHORIZED"
 

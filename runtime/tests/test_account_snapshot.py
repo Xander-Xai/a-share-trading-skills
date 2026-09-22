@@ -57,6 +57,11 @@ class AccountSnapshotTests(unittest.TestCase):
         self.assertEqual(current.authorization_gate("EXIT"), "AUTHORIZED_RISK_REDUCTION")
         self.assertEqual(snapshot(cash=None).authorization_gate("EXIT"), "AUTHORIZED_RISK_REDUCTION")
 
+    def test_unknown_actions_fail_closed(self):
+        current = snapshot()
+        for action in ("BUY", "SELL", "OPEN", "CLOSE", "FOO", "", None):
+            self.assertEqual(current.authorization_gate(action), "BLOCKED")
+
 
 if __name__ == "__main__":
     unittest.main()

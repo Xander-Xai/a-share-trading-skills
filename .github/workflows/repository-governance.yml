@@ -47,5 +47,5 @@ jobs:
       - name: Run repository consistency audit
         run: python runtime/repository_consistency_audit.py
 
-      - name: Run pretrade hard-gate tests
-        run: python -m unittest runtime.tests.test_pretrade_risk_gate -v
+      - name: Run deterministic runtime hard-gate suite
+        run: python -m unittest discover -s runtime/tests -v
