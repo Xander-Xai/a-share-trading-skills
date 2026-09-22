@@ -185,16 +185,20 @@ def finalize_authorization(decision, authorization_inputs, *, persist=persist_pr
                 "capital_allocation": "2.6",
             },
         )
+        out["persistence_ok"] = True
+        out["persisted_path"] = str(private_path)
         out["private_persistence"] = str(private_path)
         return out, authorization_exit_code(str(out.get("authorization_state", "UNKNOWN")))
     except (OSError, TypeError, ValueError) as exc:
+        out["persistence_ok"] = False
         out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
+        out["persistence_error"] = type(exc).__name__
         out["private_persistence_error"] = str(exc)
         action = str(out.get("position_state", "")).upper()
         if action in {"TRIM", "EXIT"}:
-            out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
             out["audit_record_incomplete"] = True
-            return out, 0
+            out["reason"] = "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED_RISK_REDUCTION_PRESERVED"
+            return out, authorization_exit_code(str(out.get("authorization_state", "UNKNOWN")))
         out["authorization_state"] = "BLOCKED"
         out["reason"] = "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED"
         out["executable_quantity"] = 0

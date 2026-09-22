@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -60,24 +61,22 @@ def _private_paths_ignored(gitignore_text: str | None = None) -> CheckResult:
     ``git check-ignore``; a failed invocation is never treated as a privacy
     pass.
     """
+    temporary_root = None
+    check_root = ROOT
     if gitignore_text is not None:
-        # Compatibility fixture mode used by existing tests; this is not used
-        # by the repository audit itself.
-        missing = [prefix for prefix in PRIVATE_PATH_PREFIXES if prefix not in gitignore_text]
-        return CheckResult(
-            name="private_paths_ignored",
-            ok=not missing,
-            detail="private runtime paths are ignored" if not missing else f"missing: {missing}",
-        )
+        temporary_root = tempfile.TemporaryDirectory()
+        check_root = Path(temporary_root.name)
+        (check_root / ".gitignore").write_text(gitignore_text, encoding="utf-8")
+        subprocess.run(["git", "init", "-q"], cwd=check_root, check=True, capture_output=True, text=True)
 
     failures: list[str] = []
     errors: list[str] = []
     for prefix in PRIVATE_PATH_PREFIXES:
-        sentinel = f"{prefix}.__governance_sentinel__"
+        sentinel = f"{prefix}__governance_probe__.json"
         try:
             result = subprocess.run(
-                ["git", "check-ignore", "--no-index", "--quiet", "--", sentinel],
-                cwd=ROOT,
+                ["git", "check-ignore", "-v", "--no-index", "--", sentinel],
+                cwd=check_root,
                 capture_output=True,
                 text=True,
             )
@@ -92,17 +91,16 @@ def _private_paths_ignored(gitignore_text: str | None = None) -> CheckResult:
             detail = (result.stderr or result.stdout or "git check-ignore failed").strip()
             errors.append(f"{prefix}: {detail}")
 
-    if errors:
-        return CheckResult(
+    result = CheckResult(
             name="private_paths_ignored",
-            ok=False,
-            detail=f"NOT_EVALUATED: git check-ignore failure: {errors}",
+            ok=not errors and not failures,
+            detail=(f"NOT_EVALUATED: git check-ignore failure: {errors}" if errors
+                    else "private runtime paths are effectively ignored" if not failures
+                    else f"not ignored: {failures}"),
         )
-    return CheckResult(
-        name="private_paths_ignored",
-        ok=not failures,
-        detail="private runtime paths are effectively ignored" if not failures else f"not ignored: {failures}",
-    )
+    if temporary_root is not None:
+        temporary_root.cleanup()
+    return result
 
 
 def _not_contains(path: str, needles: Iterable[str]) -> CheckResult:

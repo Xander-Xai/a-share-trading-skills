@@ -83,6 +83,18 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("NOT_EVALUATED", result.detail)
 
+    def test_dotfile_rule_does_not_cover_regular_private_probe(self):
+        self.assertFalse(audit._private_paths_ignored(".*\n").ok)
+
+    def test_commented_private_rule_fails(self):
+        self.assertFalse(audit._private_paths_ignored("# runtime/private/\n").ok)
+
+    def test_later_negation_fails_effective_ignore_check(self):
+        self.assertFalse(audit._private_paths_ignored("runtime/private/\n!runtime/private/**\n").ok)
+
+    def test_broader_effective_rule_passes(self):
+        self.assertTrue(audit._private_paths_ignored("runtime/**\nreports/**\n").ok)
+
     def test_internal_links_use_tracked_markdown_only(self):
         self.assertTrue(audit._internal_links_exist({"README.md"}).ok)
         self.assertFalse(audit._internal_links_exist({"docs/public.md"}).ok)

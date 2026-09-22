@@ -101,6 +101,46 @@ class PreTradeAuthorizationPersistenceTests(unittest.TestCase):
         self.assertEqual(out["max_executable_shares"], 0)
         self.assertEqual(out["planned_entry_shares"], 0)
         self.assertEqual(out["reason"], "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED")
+        self.assertFalse(out["persistence_ok"])
+        self.assertNotIn("persisted_path", out)
+
+    def test_add_non_json_serializable_persistence_failure_blocks(self):
+        from types import SimpleNamespace
+
+        decision = SimpleNamespace(authorization_state="AUTHORIZED", position_state="ADD", max_executable_shares=100)
+        out, code = finalize_authorization(
+            decision, {"action": "ADD", "unserializable": object()}, persist=persist_pretrade_card
+        )
+        self.assertEqual((out["authorization_state"], out["max_executable_shares"], code), ("BLOCKED", 0, 1))
+        self.assertFalse(out["persistence_ok"])
+        self.assertNotIn("persisted_path", out)
+
+    def test_trim_persistence_failure_preserves_risk_reduction_but_is_not_success(self):
+        from types import SimpleNamespace
+
+        decision = SimpleNamespace(authorization_state="AUTHORIZED_RISK_REDUCTION", position_state="TRIM")
+        out, code = finalize_authorization(
+            decision, {"action": "TRIM", "unserializable": object()}, persist=persist_pretrade_card
+        )
+        self.assertEqual(out["authorization_state"], "AUTHORIZED_RISK_REDUCTION")
+        self.assertEqual(code, 0)
+        self.assertFalse(out["persistence_ok"])
+        self.assertEqual(out["persistence_error"], "TypeError")
+        self.assertNotIn("persisted_path", out)
+        self.assertIn("risk_reduction", out["reason"].lower())
+
+    def test_exit_filesystem_failure_preserves_decision_and_exposes_audit_failure(self):
+        from types import SimpleNamespace
+
+        decision = SimpleNamespace(authorization_state="AUTHORIZED_RISK_REDUCTION", position_state="EXIT")
+        out, code = finalize_authorization(
+            decision, {"action": "EXIT"}, persist=lambda *a, **k: (_ for _ in ()).throw(OSError("disk full"))
+        )
+        self.assertEqual(out["authorization_state"], "AUTHORIZED_RISK_REDUCTION")
+        self.assertEqual(code, 0)
+        self.assertFalse(out["persistence_ok"])
+        self.assertEqual(out["persistence_error"], "OSError")
+        self.assertNotIn("persisted_path", out)
 
     def test_decision_id_collision_is_create_once_and_preserves_original_card(self):
         with tempfile.TemporaryDirectory() as directory:
