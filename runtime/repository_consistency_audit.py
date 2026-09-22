@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -64,6 +65,31 @@ def _yaml_skill_version(path: str, expected: str) -> CheckResult:
         ok=actual == expected,
         detail=f"expected={expected}, actual={actual}",
     )
+
+
+def _git_tracked_paths() -> set[str]:
+    try:
+        result = subprocess.run(
+            ["git", "ls-files"], cwd=ROOT, check=True, capture_output=True, text=True
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return set()
+    return {line.replace("\\", "/") for line in result.stdout.splitlines()}
+
+
+def _internal_links_exist() -> CheckResult:
+    missing: list[str] = []
+    markdown_files = list(ROOT.rglob("*.md"))
+    for source in markdown_files:
+        text = source.read_text(encoding="utf-8")
+        for raw in re.findall(r"\[[^\]]+\]\(([^)#]+)", text):
+            target = raw.strip().strip("<>")
+            if not target or "://" in target or target.startswith("mailto:"):
+                continue
+            candidate = (source.parent / target).resolve()
+            if not candidate.exists():
+                missing.append(f"{source.relative_to(ROOT)} -> {target}")
+    return CheckResult("internal_links", not missing, "ok" if not missing else f"missing={missing[:10]}")
 
 
 def run_audit() -> list[CheckResult]:
@@ -202,6 +228,10 @@ def run_audit() -> list[CheckResult]:
             "skills/a-share-short-midterm-stock-selection/references/validation-metrics-and-trade-ledger.md",
             ["100股单位"],
         ),
+        _contains_all(
+            "runtime/README.md",
+            ["runtime/config/short_mid_universe.json", "不能作为未来 production-current universe 的默认真相源"],
+        ),
     ])
 
     checks.extend([
@@ -213,6 +243,38 @@ def run_audit() -> list[CheckResult]:
                and (ROOT / "runtime/PRIVATE_STATE.md").exists(),
             detail="personal portfolio/trade artifacts must not be tracked in public source",
         ),
+        CheckResult(
+            name="private_paths_ignored",
+            ok=all((ROOT / ".gitignore").read_text(encoding="utf-8").find(path) >= 0 for path in (
+                "runtime/private/", "runtime/state/private/", "runtime/pretrade_authorizations/", "reports/private/"
+            )),
+            detail="private runtime paths are ignored",
+        ),
+        CheckResult(
+            name="no_tracked_personal_instances",
+            ok=not any(path in _git_tracked_paths() for path in (
+                "runtime/portfolio_instances.json",
+                "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md",
+            )),
+            detail="public tracked tree excludes personal portfolio/trade artifacts",
+        ),
+        _contains_all(
+            "src/core/account_snapshot.py",
+            ["CanonicalAccountSnapshot", "reconciliation_state", "staleness_state", "ENTRY", "ADD", "TRIM", "EXIT"],
+        ),
+        _contains_all(
+            "src/core/pretrade_authorization.py",
+            ["input_snapshot_hash", "policy_versions", "runtime/pretrade_authorizations"],
+        ),
+        _contains_all(
+            "runtime/tests/test_account_snapshot.py",
+            ["MISSING", "STALE", "CONFLICT", "UNRECONCILED", "EXIT"],
+        ),
+        _contains_all(
+            "runtime/tests/test_pretrade_risk_gate.py",
+            ["invalidation", "tranche", "ADD", "ENTRY"],
+        ),
+        _internal_links_exist(),
     ])
 
     workflow = ".github/workflows/a-share-daily-monitor.yml"
