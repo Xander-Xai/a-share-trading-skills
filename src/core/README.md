@@ -136,3 +136,14 @@ python -m unittest discover -s runtime/tests -v
 ```
 
 The current tests cover immutable identity, revision lineage, historical visibility, deterministic snapshot identity, sleeve visibility, permitted-use gating and missing-record detection during snapshot materialization.
+
+
+## Pre-trade risk authorization
+
+`pretrade_risk_gate.py` implements the Level-0 fail-closed sizing contract.
+
+It does not select stocks. It accepts an already researched ENTRY/ADD candidate and decides whether the repository is allowed to emit a non-zero buy quantity.
+
+For short/mid it takes the minimum of risk budget, idle cash, strategy symbol/cluster caps, account symbol/cluster caps and Final Short Cap, then rounds down to an A-share board lot. Missing capital/exposure inputs or failed cash/emergency/debt gates produce zero executable shares.
+
+For long positions it requires an approved target position plus thesis/valuation/balance/portfolio gates and applies idle-cash, concentration and tranche constraints.
