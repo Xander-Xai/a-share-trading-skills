@@ -409,6 +409,8 @@ Qlib、vn.py、PostgreSQL、MLflow、Prefect、OpenTelemetry 等按真实需求�
 ```text
 shared/
   policy-precedence.md
+  capital-eligibility-and-investor-risk-philosophy.md
+  pre-trade-order-authorization-contract.md
   capital-allocation-and-entry-policy.md
   automation-execution-governance.md
   research-model-governance.md
@@ -432,8 +434,12 @@ skills/
 src/core/
   strategy_boundary.py
   pit.py
+  pit_store.py
+  pretrade_risk_gate.py
 
 runtime/
+  pretrade_cli.py
+  repository_consistency_audit.py
   daily_monitor.py
   sample_collector.py
   sample_maturity.py
