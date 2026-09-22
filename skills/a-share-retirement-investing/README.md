@@ -306,17 +306,19 @@ skills/a-share-retirement-investing/
 ## 推荐阅读顺序
 
 1. `../../shared/policy-precedence.md`
-2. `../../shared/capital-allocation-and-entry-policy.md`
-3. `../../shared/research-model-governance.md`
-4. `../../shared/automation-execution-governance.md`（涉及执行链路时）
-5. `SKILL.md`
-6. `references/methodology.md`
-7. `references/industry-checklists.md`
-8. `references/expected-irr-total-return-benchmark.md`
-9. `references/execution-template.md`
-10. `examples/ten-stock-retirement-portfolio-2026-08-26.md`
-11. `examples/paper-live-automation-roadmap.md`
-12. `references/seed-watchlist-2026-08-26.md`
+2. `../../shared/capital-eligibility-and-investor-risk-philosophy.md`
+3. `../../shared/pre-trade-order-authorization-contract.md`
+4. `../../shared/capital-allocation-and-entry-policy.md`
+5. `../../shared/research-model-governance.md`
+6. `../../shared/automation-execution-governance.md`（涉及执行链路时）
+7. `SKILL.md`
+8. `references/methodology.md`
+9. `references/industry-checklists.md`
+10. `references/expected-irr-total-return-benchmark.md`
+11. `references/execution-template.md`
+12. `examples/ten-stock-retirement-portfolio-2026-08-26.md`
+13. `examples/paper-live-automation-roadmap.md`
+14. `references/seed-watchlist-2026-08-26.md`
 
 研究依据与审计：
 
