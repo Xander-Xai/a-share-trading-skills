@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import os
 import subprocess
 import sys
 import tempfile
@@ -17,6 +18,12 @@ PRIVATE_PATH_PREFIXES = (
     "runtime/pretrade_authorizations/",
     "reports/private/",
     "reports/trades/private/",
+)
+PRIVATE_PATH_PROBES = (
+    "__governance_probe__.json",
+    "governance_probe.txt",
+    "governance_probe",
+    "nested/governance_probe.yaml",
 )
 PRIVATE_EXACT_PATHS = (
     "runtime/portfolio_instances.json",
@@ -67,29 +74,43 @@ def _private_paths_ignored(gitignore_text: str | None = None) -> CheckResult:
         temporary_root = tempfile.TemporaryDirectory()
         check_root = Path(temporary_root.name)
         (check_root / ".gitignore").write_text(gitignore_text, encoding="utf-8")
-        subprocess.run(["git", "init", "-q"], cwd=check_root, check=True, capture_output=True, text=True)
+        try:
+            subprocess.run(
+                ["git", "init", "-q"], cwd=check_root, check=True,
+                capture_output=True, text=True,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            temporary_root.cleanup()
+            return CheckResult("private_paths_ignored", False, f"NOT_EVALUATED: git init failure: {exc}")
 
     failures: list[str] = []
     errors: list[str] = []
     for prefix in PRIVATE_PATH_PREFIXES:
-        sentinel = f"{prefix}__governance_probe__.json"
-        try:
-            result = subprocess.run(
-                ["git", "check-ignore", "-v", "--no-index", "--", sentinel],
-                cwd=check_root,
-                capture_output=True,
-                text=True,
-            )
-        except (OSError, subprocess.CalledProcessError) as exc:
-            errors.append(f"{prefix}: {exc}")
+        prefix_failed = False
+        for probe in PRIVATE_PATH_PROBES:
+            candidate = f"{prefix}{probe}"
+            try:
+                result = subprocess.run(
+                    ["git", "check-ignore", "-v", "--no-index", "--", candidate],
+                    cwd=check_root,
+                    capture_output=True,
+                )
+            except (OSError, subprocess.CalledProcessError) as exc:
+                errors.append(f"{candidate}: {exc}")
+                prefix_failed = True
+                continue
+            if result.returncode == 0:
+                continue
+            if result.returncode == 1:
+                failures.append(candidate)
+                prefix_failed = True
+            else:
+                raw_detail = result.stderr or result.stdout or b"git check-ignore failed"
+                detail = os.fsdecode(raw_detail).strip() if isinstance(raw_detail, bytes) else str(raw_detail).strip()
+                errors.append(f"{candidate}: {detail}")
+                prefix_failed = True
+        if prefix_failed:
             continue
-        if result.returncode == 0:
-            continue
-        if result.returncode == 1:
-            failures.append(prefix)
-        else:
-            detail = (result.stderr or result.stdout or "git check-ignore failed").strip()
-            errors.append(f"{prefix}: {detail}")
 
     result = CheckResult(
             name="private_paths_ignored",
@@ -138,11 +159,20 @@ def _yaml_skill_version(path: str, expected: str) -> CheckResult:
 def _git_tracked_paths() -> set[str]:
     try:
         result = subprocess.run(
-            ["git", "ls-files"], cwd=ROOT, check=True, capture_output=True, text=True
+            ["git", "ls-files", "-z"], cwd=ROOT, check=True, capture_output=True
         )
     except (OSError, subprocess.CalledProcessError) as exc:
         raise GitEnumerationError(f"git ls-files failed: {exc}") from exc
-    return {line.replace("\\", "/") for line in result.stdout.splitlines()}
+    raw = result.stdout
+    if not isinstance(raw, bytes):
+        raise GitEnumerationError("git ls-files -z returned non-byte output")
+    try:
+        entries = raw.split(b"\0")
+        if entries and entries[-1] == b"":
+            entries.pop()
+        return {os.fsdecode(entry).replace("\\", "/") for entry in entries}
+    except (UnicodeError, ValueError) as exc:
+        raise GitEnumerationError(f"git ls-files -z path decoding failed: {exc}") from exc
 
 
 def _internal_links_exist(tracked_paths: set[str] | None) -> CheckResult:

@@ -21,6 +21,19 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
         self.assertFalse(by_name["tracked_file_enumeration"].ok)
         self.assertFalse(by_name["no_tracked_personal_instances"].ok)
 
+    def test_git_tracked_paths_uses_nul_framing_for_unicode_and_spaces(self):
+        raw = "reports/测试文件.json\0reports/file with spaces.txt\0".encode("utf-8")
+        completed = subprocess.CompletedProcess(["git", "ls-files", "-z"], 0, raw, b"")
+        with patch.object(audit.subprocess, "run", return_value=completed) as run:
+            paths = audit._git_tracked_paths()
+        self.assertEqual(paths, {"reports/测试文件.json", "reports/file with spaces.txt"})
+        self.assertIn("-z", run.call_args.args[0])
+
+    def test_private_unicode_tracked_path_is_detected(self):
+        with patch.object(audit, "_git_tracked_paths", return_value={"runtime/private/账户测试.json"}):
+            checks = audit.run_audit()
+        self.assertFalse(next(c for c in checks if c.name == "private_tracked_paths").ok)
+
     def test_declared_private_directories_fail_when_tracked(self):
         for tracked in (
             {"runtime/pretrade_authorizations/test.json"},
@@ -94,6 +107,12 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
 
     def test_broader_effective_rule_passes(self):
         self.assertTrue(audit._private_paths_ignored("runtime/**\nreports/**\n").ok)
+
+    def test_narrow_json_only_rule_fails_probe_matrix(self):
+        self.assertFalse(audit._private_paths_ignored("runtime/private/*.json\n").ok)
+
+    def test_single_filename_rule_fails_probe_matrix(self):
+        self.assertFalse(audit._private_paths_ignored("runtime/private/__governance_probe__.json\n").ok)
 
     def test_internal_links_use_tracked_markdown_only(self):
         self.assertTrue(audit._internal_links_exist({"README.md"}).ok)
