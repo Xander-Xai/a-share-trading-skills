@@ -41,6 +41,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install deterministic runtime dependencies
+        run: |
+          python -m pip install -r runtime/requirements.txt
+          python -m pip check
+
       - name: Compile governance and pretrade core
         run: python -m compileall -q src/core runtime/pretrade_cli.py runtime/repository_consistency_audit.py
 
