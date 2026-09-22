@@ -8,6 +8,10 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_PRIVATE_AUTH_ROOT = REPO_ROOT / "runtime" / "pretrade_authorizations"
+
+
 def _canonical_hash(value: Mapping[str, Any]) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -24,14 +28,14 @@ def persist_pretrade_card(
     *,
     snapshot: Mapping[str, Any],
     policy_versions: Mapping[str, str],
-    root: str | Path = "runtime/pretrade_authorizations",
+    root: str | Path | None = None,
 ) -> Path:
     """Persist a card below a caller-controlled private directory.
 
     The function rejects paths outside the requested root and writes atomically
     enough for a local CLI. Callers must keep the root ignored by Git.
     """
-    target_root = Path(root)
+    target_root = DEFAULT_PRIVATE_AUTH_ROOT if root is None else Path(root)
     target_root.mkdir(parents=True, exist_ok=True)
     decision_id = str(card.get("decision_id", "")).strip()
     if not decision_id or any(part in decision_id for part in ("/", "\\", "..")):

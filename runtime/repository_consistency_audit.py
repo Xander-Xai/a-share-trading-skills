@@ -10,6 +10,19 @@ from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 
+PRIVATE_PATH_PREFIXES = (
+    "runtime/private/",
+    "runtime/state/private/",
+    "runtime/pretrade_authorizations/",
+    "reports/private/",
+    "reports/trades/private/",
+)
+PRIVATE_EXACT_PATHS = (
+    "runtime/portfolio_instances.json",
+    "runtime/portfolio_instances.local.json",
+    "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md",
+)
+
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -256,10 +269,17 @@ def run_audit() -> list[CheckResult]:
         ),
         CheckResult(
             name="private_paths_ignored",
-            ok=all((ROOT / ".gitignore").read_text(encoding="utf-8").find(path) >= 0 for path in (
-                "runtime/private/", "runtime/state/private/", "runtime/pretrade_authorizations/", "reports/private/"
-            )),
+            ok=all((ROOT / ".gitignore").read_text(encoding="utf-8").find(path) >= 0 for path in PRIVATE_PATH_PREFIXES[:-1]),
             detail="private runtime paths are ignored",
+        ),
+        CheckResult(
+            name="private_tracked_paths",
+            ok=tracked_paths is not None and not any(
+                path in PRIVATE_EXACT_PATHS or path.startswith(PRIVATE_PATH_PREFIXES)
+                for path in tracked_paths
+            ),
+            detail=("tracked tree contains no declared private paths"
+                    if tracked_paths is not None else "NOT_EVALUATED: tracked file enumeration failed"),
         ),
         CheckResult(
             name="no_tracked_personal_instances",
@@ -276,7 +296,7 @@ def run_audit() -> list[CheckResult]:
         ),
         _contains_all(
             "src/core/pretrade_authorization.py",
-            ["input_snapshot_hash", "policy_versions", "runtime/pretrade_authorizations"],
+            ["input_snapshot_hash", "policy_versions", "DEFAULT_PRIVATE_AUTH_ROOT"],
         ),
         _contains_all(
             "runtime/tests/test_account_snapshot.py",

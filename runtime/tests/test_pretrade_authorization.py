@@ -3,11 +3,39 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from runtime.pretrade_cli import finalize_authorization
-from src.core.pretrade_authorization import authorization_input_snapshot, persist_pretrade_card
+from runtime.pretrade_cli import authorization_exit_code, finalize_authorization
+from src.core.pretrade_authorization import DEFAULT_PRIVATE_AUTH_ROOT, authorization_input_snapshot, persist_pretrade_card
 
 
 class PreTradeAuthorizationPersistenceTests(unittest.TestCase):
+    def test_authorization_exit_code_distinguishes_persisted_card_from_authorization(self):
+        self.assertEqual(authorization_exit_code("AUTHORIZED"), 0)
+        self.assertEqual(authorization_exit_code("AUTHORIZED_RISK_REDUCTION"), 0)
+        for state in ("BLOCKED", "NEED_USER_INPUT", "NO_TRADE_POSITION_TOO_SMALL_FOR_RISK_BUDGET", "UNKNOWN"):
+            self.assertNotEqual(authorization_exit_code(state), 0)
+
+    def test_default_private_root_is_repo_anchored_across_cwd(self):
+        import os
+
+        original = Path.cwd()
+        try:
+            for cwd in (Path(__file__).resolve().parents[2], Path(tempfile.gettempdir())):
+                os.chdir(cwd)
+                path = persist_pretrade_card(
+                    {"decision_id": f"synthetic-{cwd.name}"},
+                    snapshot={"synthetic": True},
+                    policy_versions={},
+                )
+                self.assertEqual(path.parent, DEFAULT_PRIVATE_AUTH_ROOT.resolve())
+                path.unlink(missing_ok=True)
+        finally:
+            os.chdir(original)
+
+    def test_explicit_private_root_remains_supported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = persist_pretrade_card({"decision_id": "synthetic"}, snapshot={}, policy_versions={}, root=directory)
+            self.assertEqual(path.parent, Path(directory).resolve())
+
     def test_complete_inputs_hash_is_deterministic_and_sensitive(self):
         base = {"capital": {"cash": 1000}, "strategy_inputs": {"entry_price": 10.0, "invalidation_price": 9.0, "exposure": 0}, "action": "ENTRY"}
         _, first = authorization_input_snapshot(base)

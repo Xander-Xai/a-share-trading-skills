@@ -21,6 +21,23 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
         self.assertFalse(by_name["tracked_file_enumeration"].ok)
         self.assertFalse(by_name["no_tracked_personal_instances"].ok)
 
+    def test_declared_private_directories_fail_when_tracked(self):
+        for tracked in (
+            {"runtime/pretrade_authorizations/test.json"},
+            {"runtime/private/account.json"},
+            {"runtime/state/private/state.json"},
+            {"reports/private/report.md"},
+            {"runtime/portfolio_instances.json"},
+        ):
+            with patch.object(audit, "_git_tracked_paths", return_value=tracked):
+                checks = audit.run_audit()
+            self.assertFalse(next(c for c in checks if c.name == "private_tracked_paths").ok)
+
+    def test_public_example_path_is_not_private(self):
+        with patch.object(audit, "_git_tracked_paths", return_value={"runtime/portfolio_instances.example.json"}):
+            checks = audit.run_audit()
+        self.assertTrue(next(c for c in checks if c.name == "private_tracked_paths").ok)
+
 
 if __name__ == "__main__":
     unittest.main()

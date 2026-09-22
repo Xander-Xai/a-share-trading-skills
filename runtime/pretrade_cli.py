@@ -20,6 +20,11 @@ from src.core.pretrade_risk_gate import (
 from src.core.pretrade_authorization import persist_pretrade_card
 
 
+def authorization_exit_code(state: str) -> int:
+    """Return the process status for the final authorization state."""
+    return 0 if state in {"AUTHORIZED", "AUTHORIZED_RISK_REDUCTION"} else 1
+
+
 def ask_float(prompt: str):
     raw = input(prompt).strip()
     if raw == "":
@@ -181,7 +186,7 @@ def finalize_authorization(decision, authorization_inputs, *, persist=persist_pr
             },
         )
         out["private_persistence"] = str(private_path)
-        return out, 0
+        return out, authorization_exit_code(str(out.get("authorization_state", "UNKNOWN")))
     except (OSError, ValueError) as exc:
         out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
         out["private_persistence_error"] = str(exc)
