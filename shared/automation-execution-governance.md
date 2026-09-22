@@ -1,8 +1,8 @@
-# Shared Automation & Execution Governance v1.4
+# Shared Automation & Execution Governance v1.5
 
 > 适用范围：本仓库长期养老与短中期两套策略从研究、模拟仓、人工实盘、半自动到自动执行的共同上位规则。
 >
-> 本文件不决定“买什么、买多少”。任何增加风险的订单先受 Level 0 `capital-eligibility-and-investor-risk-philosophy.md` 与 `pre-trade-order-authorization-contract.md` 硬门禁约束；通过后，资金比例、风险预算、单股/风险簇上限、建仓批次由 `capital-allocation-and-entry-policy.md` 管理；研究模型、Champion/Challenger、point-in-time 与模型晋级由 `research-model-governance.md` 管理；长期/短中期机器边界由 `strategy-boundary-contract.md` 管理；PIT 元数据由 `canonical-pit-data-contract.md` 管理。
+> 本文件不决定“买什么、买多少”。任何增加**真实资金**风险的订单先受 Level 0 `capital-eligibility-and-investor-risk-philosophy.md` 与 `pre-trade-order-authorization-contract.md` 硬门禁约束；Paper 使用隔离的 paper capital 和模拟持仓，不采集/伪造个人财务 Gate。通过适用门禁后，资金比例、风险预算、单股/风险簇上限、建仓批次由 `capital-allocation-and-entry-policy.md` 管理；研究模型、Champion/Challenger、point-in-time 与模型晋级由 `research-model-governance.md` 管理；长期/短中期机器边界由 `strategy-boundary-contract.md` 管理；PIT 元数据由 `canonical-pit-data-contract.md` 管理。
 
 ## 1. 基本原则
 
@@ -55,11 +55,11 @@ model_version
 2026-08-28 当前基线：
 
 ```text
-capital_policy_version         = v2.5
-automation_governance_version = v1.4
+capital_policy_version         = v2.6
+automation_governance_version = v1.5
 research_model_governance     = v3.2
 strategy_boundary_contract    = v1
-canonical_pit_data_contract   = v1
+canonical_pit_data_contract   = v1.2
 ```
 
 不同 artifact 的版本号独立演进；优先级由 `policy-precedence.md` 决定，不能按版本数字大小推断覆盖关系。
@@ -69,7 +69,7 @@ canonical_pit_data_contract   = v1
 必须同时保存：
 
 ```text
-paper_capital_rmb = 用于股数、100股单位、费用、滑点、仓位和风险
+paper_capital_rmb = 用于股数、证券特定申报数量规则、费用、滑点、仓位和风险
 reporting_nav     = 100.00 起始的标准化绩效指数
 ```
 
@@ -77,7 +77,7 @@ reporting_nav     = 100.00 起始的标准化绩效指数
 
 模拟成交至少考虑：
 
-- 100 股交易单位；
+- 证券所属市场/板块的最小买入数量与递增单位（例如主板/创业板、科创板、北交所规则不同）；
 - 当期佣金、印花税等费用；
 - 滑点与必要时的市场冲击；
 - T+1 / 普通新买 A 股不能自由日内反向卖出；
@@ -199,18 +199,40 @@ Full Auto 不是所有策略的强制终态。长期账户可以长期停留在 
 
 ## 7. 下单前统一硬门禁
 
-任何半自动/自动订单必须全部通过：
+### REAL_MONEY ENTRY / ADD
+
+任何真实半自动/自动增仓必须先通过：
 
 ```text
 current Level-0 capital eligibility loaded
 current pre-trade authorization contract loaded
-capital_eligibility = PASS for ENTRY/ADD
-cash_need_gate = PASS for ENTRY/ADD
-emergency_reserve_gate = PASS for ENTRY/ADD
-debt_leverage_gate = PASS for ENTRY/ADD
-available_idle_cash_rmb known and > 0 for ENTRY/ADD
+capital_eligibility = PASS
+cash_need_gate = PASS
+emergency_reserve_gate = PASS
+debt_leverage_gate = PASS
+available_idle_cash_rmb known and > 0
 personal/account sizing inputs complete
-pretrade authorization_state = AUTHORIZED for ENTRY/ADD
+pretrade authorization_state = AUTHORIZED
+```
+
+### PAPER ENTRY / ADD
+
+Paper 不读取或伪造个人财务 Gate。它必须使用：
+
+```text
+execution_mode = PAPER
+paper_capital_rmb known and > 0
+paper positions / exposure reconciled
+paper risk budget valid
+paper quantity rule valid
+paper authorization explicitly non-executable in live
+```
+
+### Common gates
+
+随后适用的真实/Paper执行继续检查：
+
+```text
 current capital policy loaded
 current automation governance loaded
 current research model governance loaded
@@ -238,7 +260,7 @@ compliance state valid
 kill switch not active
 ```
 
-若任一状态未知，默认不下新单。
+若任一适用状态未知，默认不下新单。Paper 的个人财务字段应标记 `NOT_APPLICABLE`，不能伪装为 `PASS`。
 
 ## 8. CAP_BREACH 的执行语义
 
