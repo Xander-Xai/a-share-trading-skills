@@ -35,6 +35,8 @@ The dated research and roadmap documents remain historical evidence unless expli
 - Review decision: `REVIEW_REQUIRED`; no independent approval is present.
 - Conversation resolution is required by branch protection.
 - This branch adds fail-closed handling for JSON serialization `TypeError` and evaluates effective Git ignore semantics with `git check-ignore`.
+- Post-push checks for `449aa974643835671a05ea9c5a947100450e1420`: `governance PASS`, `monitor PASS`.
+- All 17 PR #29 review threads are resolved (the two newly surfaced P2 threads were outdated and explicitly resolved); review decision remains `REVIEW_REQUIRED` because no independent approval exists.
 
 ## Privacy boundary
 
