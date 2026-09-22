@@ -213,7 +213,7 @@ runtime/tests/*
 
 规则：
 
-- runtime 必须实现当前 Level 1 + 当前生产 Skill/Champion；
+- runtime 必须实现当前 Level 0 + Level 1 + 当前生产 Skill/Champion；
 - 代码中的阈值若来自 research reference，必须明确其 research/governance parameter 身份；
 - runtime 不能因为实现方便自行修改生产语义；
 - `.github/workflows/` 只是编排执行，不获得新的策略权限；
@@ -294,7 +294,8 @@ Monitor-only 报告可先记录 governance 引用路径；进入 Paper/Live 必�
 ## 14. 冲突处理
 
 ```text
-Level 1 优先
+Level 0 对真实新增风险拥有最高 Hard Veto
+通过 Level 0 后，Level 1 优先
 更高层优先
 更保守优先（前提是不改变已定义的生产语义）
 事实优先于预测
