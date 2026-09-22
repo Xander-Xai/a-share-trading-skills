@@ -16,6 +16,7 @@ from src.core.pretrade_risk_gate import (
     evaluate_long_pretrade,
     evaluate_short_mid_pretrade,
 )
+from src.core.pretrade_authorization import persist_pretrade_card
 
 
 def ask_float(prompt: str):
@@ -172,6 +173,20 @@ def main():
     out = dict(decision.__dict__)
     out["decision_id"] = str(uuid.uuid4())
     out["manual_order_rule"] = "可以买得更少；买得更多必须重新授权。任何未授权增仓都应记录为规则违规。"
+    try:
+        private_path = persist_pretrade_card(
+            out,
+            snapshot={"capital": capital.__dict__, "decision": decision.__dict__},
+            policy_versions={
+                "capital_eligibility": "2",
+                "pre_trade_authorization": "1.1",
+                "capital_allocation": "2.6",
+            },
+        )
+        out["private_persistence"] = str(private_path)
+    except (OSError, ValueError) as exc:
+        out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
+        out["private_persistence_error"] = str(exc)
     print("\n=== Pre-Trade Card ===")
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return 0 if decision.authorization_state == "AUTHORIZED" else 1
