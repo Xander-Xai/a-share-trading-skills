@@ -104,7 +104,7 @@ short factor/industry capital cap
 Final Short Cap
 account-level symbol cap
 account-level cluster cap
-liquidity / board-lot constraints
+liquidity / security-specific minimum buy quantity and increment constraints
 ```
 
 若止损太宽导致仓位太小，跳过，不放宽 stop 迁就仓位。
