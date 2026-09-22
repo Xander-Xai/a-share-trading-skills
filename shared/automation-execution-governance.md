@@ -1,8 +1,8 @@
-# Shared Automation & Execution Governance v1.3
+# Shared Automation & Execution Governance v1.4
 
 > 适用范围：本仓库长期养老与短中期两套策略从研究、模拟仓、人工实盘、半自动到自动执行的共同上位规则。
 >
-> 本文件不决定“买什么、买多少”。资金比例、风险预算、单股/风险簇上限、建仓批次由 `capital-allocation-and-entry-policy.md` 管理；研究模型、Champion/Challenger、point-in-time 与模型晋级由 `research-model-governance.md` 管理；长期/短中期机器边界由 `strategy-boundary-contract.md` 管理；PIT 元数据由 `canonical-pit-data-contract.md` 管理。
+> 本文件不决定“买什么、买多少”。任何增加风险的订单先受 Level 0 `capital-eligibility-and-investor-risk-philosophy.md` 与 `pre-trade-order-authorization-contract.md` 硬门禁约束；通过后，资金比例、风险预算、单股/风险簇上限、建仓批次由 `capital-allocation-and-entry-policy.md` 管理；研究模型、Champion/Challenger、point-in-time 与模型晋级由 `research-model-governance.md` 管理；长期/短中期机器边界由 `strategy-boundary-contract.md` 管理；PIT 元数据由 `canonical-pit-data-contract.md` 管理。
 
 ## 1. 基本原则
 
@@ -55,8 +55,8 @@ model_version
 2026-08-28 当前基线：
 
 ```text
-capital_policy_version         = v2.3
-automation_governance_version = v1.3
+capital_policy_version         = v2.5
+automation_governance_version = v1.4
 research_model_governance     = v3.2
 strategy_boundary_contract    = v1
 canonical_pit_data_contract   = v1
@@ -202,6 +202,15 @@ Full Auto 不是所有策略的强制终态。长期账户可以长期停留在 
 任何半自动/自动订单必须全部通过：
 
 ```text
+current Level-0 capital eligibility loaded
+current pre-trade authorization contract loaded
+capital_eligibility = PASS for ENTRY/ADD
+cash_need_gate = PASS for ENTRY/ADD
+emergency_reserve_gate = PASS for ENTRY/ADD
+debt_leverage_gate = PASS for ENTRY/ADD
+available_idle_cash_rmb known and > 0 for ENTRY/ADD
+personal/account sizing inputs complete
+pretrade authorization_state = AUTHORIZED for ENTRY/ADD
 current capital policy loaded
 current automation governance loaded
 current research model governance loaded
@@ -276,6 +285,8 @@ state = CAP_BREACH
 
 Fail closed 后只允许读取、对账、告警、取消允许取消的未成交订单，以及按既定风险计划管理已有仓位。不得猜测状态后继续买入。
 
+若人工在 Level 0 未授权情况下仍增加风险，必须记录 `UNAUTHORIZED_MANUAL_RISK_INCREASE` 与 `rule_violation=true`；该交易不得被包装成策略合规执行。人工可以比系统更保守地少买或不买，但不能通过 override 放宽失败的资金资格、风险预算或仓位上限。
+
 ## 10. 订单幂等与 Broker 真相源
 
 每个决策/订单必须有稳定 ID：
@@ -316,6 +327,15 @@ thesis / reason
 action
 score / valuation / setup state
 target_weight / risk budget
+available_idle_cash_rmb
+capital_eligibility
+cash_need_gate
+emergency_reserve_gate
+debt_leverage_gate
+pretrade_authorization_state
+max_executable_shares
+planned_entry_shares
+binding_constraints
 tranche
 source_snapshot
 data_snapshot_id
