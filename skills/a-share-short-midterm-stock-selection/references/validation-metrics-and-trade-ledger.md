@@ -32,7 +32,7 @@ paper_capital_rmb
 reporting_nav
 ```
 
-- `paper_capital_rmb`：100股单位、股数、费用、滑点、仓位和风险计算；
+- `paper_capital_rmb`：证券特定申报数量规则、股数、费用、滑点、仓位和风险计算；
 - `reporting_nav`：通常100.00起始，用于标准化绩效比较。
 
 禁止把100个 NAV 点当人民币100元执行本金。
