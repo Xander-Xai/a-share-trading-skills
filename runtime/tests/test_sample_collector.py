@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -10,10 +11,33 @@ from runtime.sample_collector import (
     append_revisioned_daily,
     checkpoint_metrics,
     derive_price_features,
+    main,
 )
 
 
 class SampleCollectorTests(unittest.TestCase):
+    def test_missing_registry_is_deterministic_fail_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            state_dir = Path(td) / "state"
+            report_dir = Path(td) / "reports"
+            argv = [
+                "sample_collector",
+                "--registry",
+                str(Path(td) / "missing-registry.json"),
+                "--state-dir",
+                str(state_dir),
+                "--report-dir",
+                str(report_dir),
+                "--as-of-date",
+                "2026-09-22",
+            ]
+            with patch("sys.argv", argv):
+                self.assertEqual(main(), 0)
+            summary = json.loads((state_dir / "latest-run.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["registry_status"], "ABSENT_NO_FORWARD_SAMPLES")
+            self.assertEqual(summary["data_status"], "DATA_INSUFFICIENT")
+            self.assertEqual(summary["sample_count_registered"], 0)
+
     def _hist(self):
         return pd.DataFrame(
             {
