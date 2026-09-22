@@ -261,7 +261,7 @@ rule_violation
 → 全A行情
 → 涨停/跌停/炸板
 → Sentiment Score / Regime
-→ 43股历史 whitelist 当日行情合并
+→ 当前 strategy-tagged runtime universe 当日行情合并
 → pre_action 研究状态
 → JSON + Markdown 日报
 ```
@@ -366,21 +366,25 @@ skills/a-share-short-midterm-stock-selection/
 
 ## 推荐阅读顺序
 
-1. `SKILL.md`
-2. `references/scoring-system.md`
-3. `references/a-share-sentiment-regime-index.md`
-4. `references/causal-challenger-model.md`
-5. `references/champion-challenger-forward-test.md`
-6. `references/trade-ledger-mfe-mae-extension.md`
-7. `references/holding-risk-management.md`
-8. `references/data-source-policy.md`
-9. `references/industry-coverage-audit.md`
-10. `references/adversarial-review.md`
-11. `references/evaluation-cases.md`
-12. `references/research-basis.md`
-13. `references/validation-metrics-and-trade-ledger.md`
-14. `references/paper-live-automation-roadmap.md`
-15. `../../runtime/README.md`
-16. `examples/`
+1. `../../shared/policy-precedence.md`
+2. `../../shared/capital-eligibility-and-investor-risk-philosophy.md`
+3. `../../shared/pre-trade-order-authorization-contract.md`
+4. `../../shared/capital-allocation-and-entry-policy.md`
+5. `SKILL.md`
+6. `references/scoring-system.md`
+7. `references/a-share-sentiment-regime-index.md`
+8. `references/causal-challenger-model.md`
+9. `references/champion-challenger-forward-test.md`
+10. `references/trade-ledger-mfe-mae-extension.md`
+11. `references/holding-risk-management.md`
+12. `references/data-source-policy.md`
+13. `references/industry-coverage-audit.md`
+14. `references/adversarial-review.md`
+15. `references/evaluation-cases.md`
+16. `references/research-basis.md`
+17. `references/validation-metrics-and-trade-ledger.md`
+18. `references/paper-live-automation-roadmap.md`
+19. `../../runtime/README.md`
+20. `examples/`
 
 任何时候都优先错过交易，而不是在数据、规则、模型状态、持仓或 Broker 状态不确定时制造未知风险。
