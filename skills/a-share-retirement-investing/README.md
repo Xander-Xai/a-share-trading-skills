@@ -7,19 +7,34 @@
 执行本 Skill 前按顺序读取：
 
 1. `../../shared/policy-precedence.md`
-2. `../../shared/capital-allocation-and-entry-policy.md`
-3. `../../shared/research-model-governance.md`
-4. `../../shared/automation-execution-governance.md`（涉及 Paper / Live / Broker / 自动化时）
-5. `SKILL.md`
+2. `../../shared/capital-eligibility-and-investor-risk-philosophy.md`
+3. `../../shared/pre-trade-order-authorization-contract.md`
+4. `../../shared/capital-allocation-and-entry-policy.md`
+5. `../../shared/research-model-governance.md`
+6. `../../shared/automation-execution-governance.md`（涉及 Paper / Live / Broker / 自动化时）
+7. `SKILL.md`
 
 当前治理基线：
 
 ```text
-Capital / Risk:         v2.3
-Automation / Execution: v1.2
-Research / Model:        v3
-Long Skill:              v2.2.0
+Capital Eligibility:     v2
+Pre-Trade Authorization: v1.1
+Capital / Risk:           v2.5
+Automation / Execution:  v1.4
+Research / Model:         v3.2
+Long Skill:               v2.2.1
 ```
+
+## Level 0：真实买入授权
+
+长期研究结论不能绕过 Level 0。即使质量、估值和 Expected IRR 全部合格，只要闲钱资格、近期现金需求、应急金、债务/杠杆或账户暴露关键输入缺失/失败：
+
+```text
+WATCH / READY allowed
+ENTRY / ADD executable shares = 0
+```
+
+真实股数由长期目标仓、战略批次、闲钱、账户单股/风险簇上限以及证券申报数量规则共同约束，取最保守结果。
 
 ## 统一账户口径
 
