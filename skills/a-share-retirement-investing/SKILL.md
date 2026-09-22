@@ -1,7 +1,7 @@
 ---
 name: a-share-retirement-investing
 description: 用于沪深A股长期养老型股票的筛选、估值、组合构建、分红复投和持仓复核。核心目标不是追求最高当期股息率，而是建立可持续、可增长、可穿越周期的股东现金流；允许配置少量科技成长卫星仓。所有时效性数据必须联网重新验证。
-version: 2.2.0
+version: 2.2.1
 ---
 
 # A股长期养老选股与持仓 Skill
@@ -11,9 +11,11 @@ version: 2.2.0
 执行前必须读取：
 
 1. `../../shared/policy-precedence.md`
-2. `../../shared/capital-allocation-and-entry-policy.md`
-3. `../../shared/research-model-governance.md`
-4. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
+2. `../../shared/capital-eligibility-and-investor-risk-philosophy.md`
+3. `../../shared/pre-trade-order-authorization-contract.md`
+4. `../../shared/capital-allocation-and-entry-policy.md`
+5. `../../shared/research-model-governance.md`
+6. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
 
 职责：
 
@@ -22,6 +24,8 @@ version: 2.2.0
 - Broker/虚拟子账/自动化：Level 1B。
 
 本 Skill 可以更保守，不得放宽 shared 限制。
+
+长期真实买入的 Level 0 规则：即使公司质量、估值和 Expected IRR 均通过，只要闲钱资格、近期现金需求、应急金、负债/杠杆或账户暴露信息缺失/失败，就只能输出 WATCH/READY，不得给出可执行股数。实际股数必须由 approved target position + strategic tranche + account caps + available idle cash 的最小约束反推。
 
 ## 1. 目标
 
