@@ -20,6 +20,16 @@ RISK_REDUCING_ACTIONS = {"TRIM", "EXIT"}
 SUPPORTED_ACTIONS = RISK_INCREASING_ACTIONS | RISK_REDUCING_ACTIONS
 
 
+def _is_nonnegative_finite_number(value: Any) -> bool:
+    """Return whether a snapshot amount is a real, finite non-negative number."""
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value >= 0
+    )
+
+
 @dataclass(frozen=True)
 class CanonicalAccountSnapshot:
     as_of: str
@@ -62,13 +72,20 @@ class CanonicalAccountSnapshot:
         )
         for name in numeric_fields:
             value = getattr(self, name)
-            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            if not _is_nonnegative_finite_number(value):
                 return False
-            if value < 0 or (name in {"stock_account_equity", "short_mid_nav"} and value <= 0):
+            if name in {"stock_account_equity", "short_mid_nav"} and value <= 0:
                 return False
-        return all(isinstance(getattr(self, name), MappingABC) for name in (
-            "positions", "strategy_virtual_positions", "symbol_exposure", "cluster_exposure"
-        ))
+        for name in ("positions", "strategy_virtual_positions"):
+            if not isinstance(getattr(self, name), MappingABC):
+                return False
+        for name in ("symbol_exposure", "cluster_exposure"):
+            exposure = getattr(self, name)
+            if not isinstance(exposure, MappingABC):
+                return False
+            if any(not _is_nonnegative_finite_number(value) for value in exposure.values()):
+                return False
+        return True
 
     def authorization_gate(self, action: str) -> str:
         """Return BLOCKED for risky opens, while preserving risk reduction."""

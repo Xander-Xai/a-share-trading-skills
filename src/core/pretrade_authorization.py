@@ -4,7 +4,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import stat
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -32,20 +31,14 @@ def _tighten_directory_permissions(path: Path) -> None:
 
 
 def _write_private_card(path: Path, content: bytes) -> None:
-    """Create/update a card without a world-readable creation window."""
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-    if not path.exists():
-        flags |= os.O_EXCL
-    try:
-        descriptor = os.open(path, flags, 0o600)
-    except FileExistsError:
-        descriptor = os.open(path, os.O_WRONLY | os.O_TRUNC, 0o600)
+    """Create a card once without permitting overwrite or truncation."""
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(content)
     finally:
         if os.name != "nt":
-            path.chmod(stat.S_IRUSR | stat.S_IWUSR)
+            path.chmod(0o600)
 
 
 def persist_pretrade_card(

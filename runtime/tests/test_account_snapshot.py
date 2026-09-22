@@ -57,6 +57,25 @@ class AccountSnapshotTests(unittest.TestCase):
         self.assertEqual(current.authorization_gate("EXIT"), "AUTHORIZED_RISK_REDUCTION")
         self.assertEqual(snapshot(cash=None).authorization_gate("EXIT"), "AUTHORIZED_RISK_REDUCTION")
 
+    def test_exposure_mapping_values_must_be_finite_nonnegative_numbers(self):
+        invalid_values = (None, "100", math.nan, math.inf, -1.0, True)
+        for field in ("symbol_exposure", "cluster_exposure"):
+            for value in invalid_values:
+                with self.subTest(field=field, value=value):
+                    current = snapshot(**{field: {"synthetic-key": value}})
+                    self.assertFalse(current.is_complete_and_valid)
+                    self.assertEqual(current.authorization_gate("ENTRY"), "BLOCKED")
+                    self.assertEqual(current.authorization_gate("ADD"), "BLOCKED")
+                    self.assertEqual(current.authorization_gate("EXIT"), "AUTHORIZED_RISK_REDUCTION")
+
+    def test_nonempty_valid_exposure_mappings_allow_entry(self):
+        current = snapshot(
+            symbol_exposure={"600000": 1000.0},
+            cluster_exposure={"synthetic-cluster": 2000},
+        )
+        self.assertTrue(current.is_complete_and_valid)
+        self.assertEqual(current.authorization_gate("ENTRY"), "AUTHORIZED")
+
     def test_unknown_actions_fail_closed(self):
         current = snapshot()
         for action in ("BUY", "SELL", "OPEN", "CLOSE", "FOO", "", None):
