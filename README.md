@@ -9,6 +9,7 @@ A 股一级资产配置、长期养老投资、短中期交易与自动化监控
 ```text
 Multi-Asset Allocation
 → Stock Account Equity
+→ Level-0 Capital Eligibility / Pre-Trade Authorization
 
 Shared Governance + Shared Core Platform
                  │
@@ -38,14 +39,53 @@ Account / Risk / Ledger / Execution
 ## Current governance versions
 
 ```text
-Capital / Risk:          v2.3
-Automation / Execution: v1.3
+Capital Eligibility:    v2 (Level 0 hard veto)
+Pre-Trade Authorization: v1 (Level 0 hard veto)
+Capital / Risk:          v2.5
+Automation / Execution: v1.4
 Research / Model:        v3.2
 Strategy Boundary:       v1
 Canonical PIT Data:      v1
 ```
 
 规则优先级读取 `shared/policy-precedence.md`。
+
+## Real-money buy hard gate
+
+本仓库现在把“买什么”和“能不能用这笔钱买”分开。任何真实/模拟 `ENTRY` / `ADD` 在输出具体股数前必须经过：
+
+```text
+个人现金安全
+→ 闲钱资格
+→ 应急金 / 近期现金需求 / 借款杠杆 Gate
+→ 当前账户与策略暴露
+→ 交易触发 / 失效点
+→ 风险预算
+→ 最严格约束反推股数
+→ 100股整手向下取整
+```
+
+关键输入缺失时：
+
+```text
+WATCH / READY allowed
+executable buy shares = 0
+```
+
+核心文件：
+
+- `shared/capital-eligibility-and-investor-risk-philosophy.md`
+- `shared/pre-trade-order-authorization-contract.md`
+- `src/core/pretrade_risk_gate.py`
+- `runtime/pretrade_cli.py`
+
+手工运行风险问卷：
+
+```bash
+python runtime/pretrade_cli.py
+```
+
+程序给出的股数是风险约束后的**最大/计划批次**，不是收益承诺；可以买得更少，买得更多必须重新授权。
 
 ## Strategy identities
 
