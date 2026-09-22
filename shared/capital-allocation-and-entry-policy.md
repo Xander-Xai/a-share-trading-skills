@@ -1,10 +1,12 @@
-# A股长期 / 短中期资金分配、建仓与风险管理策略 v2.5
+# A股长期 / 短中期资金分配、建仓与风险管理策略 v2.6
 
 > 本文件是仓库级最高**资本与风险**规则。执行前同时读取 `policy-precedence.md`；涉及 Paper/Live/自动化执行时同时读取 `automation-execution-governance.md`。
 >
-> 在计算任何股票仓位前，必须先读取 `capital-eligibility-and-investor-risk-philosophy.md`，完成 Capital Eligibility / Cash Need / Emergency Reserve / Debt-Leverage Gate。资金资格失败时，后文任何 Size/Risk/Edge Cap 都不能授权新风险。
+> 对**真实资金**计算任何新增股票仓位前，必须先读取 `capital-eligibility-and-investor-risk-philosophy.md`，完成 Capital Eligibility / Cash Need / Emergency Reserve / Debt-Leverage Gate。资金资格失败时，后文任何 Size/Risk/Edge Cap 都不能授权新风险。
 >
-> 在输出任何真实/模拟 `ENTRY` / `ADD` 的具体股数或金额前，必须再通过 `pre-trade-order-authorization-contract.md`。个人资金、账户暴露、风险预算或触发条件缺失时，只允许 WATCH/READY，不允许猜测股数。
+> 在输出任何真实资金 `ENTRY` / `ADD` 的具体股数或金额前，必须再通过 `pre-trade-order-authorization-contract.md`。个人资金、账户暴露、风险预算或触发条件缺失时，只允许 WATCH/READY，不允许猜测股数。
+>
+> Paper 模式使用隔离的 `paper_capital_rmb`、模拟持仓和相同的 Level 1A 风险数学；不得要求或伪造个人应急金/近期现金需求答案，也不得把 Paper 授权冒充真实资金授权。
 >
 > 本文讨论的是**专门可用于股票投资、能够承受波动的股票资金**。若 10 万 / 100 万 / 1000 万代表全部金融资产，应先完成现金、固收、保险/保障等一级资产配置，再把分给 A 股股票系统的资金带入本规则。
 
