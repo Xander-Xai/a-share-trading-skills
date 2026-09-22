@@ -4,7 +4,7 @@ description: Select, rank, size, and manage A-share stocks for short-to-medium-t
 compatibility: Requires fresh public market data, official A-share disclosures, and web research.
 metadata:
   author: yandexuanxuan
-  version: "1.7.0"
+  version: "1.7.1"
   market: "China A-share"
 ---
 
@@ -15,10 +15,11 @@ metadata:
 执行前读取：
 
 1. `../../shared/policy-precedence.md`
-2. `../../shared/capital-allocation-and-entry-policy.md`
-3. `../../shared/research-model-governance.md`
-4. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
-5. 研究迭代、实验优先级与 Promotion 前置顺序读取 `references/iteration-roadmap.md`
+2. `../../shared/capital-eligibility-and-investor-risk-philosophy.md`
+3. `../../shared/capital-allocation-and-entry-policy.md`
+4. `../../shared/research-model-governance.md`
+5. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
+6. 研究迭代、实验优先级与 Promotion 前置顺序读取 `references/iteration-roadmap.md`
 
 职责：
 
@@ -39,12 +40,13 @@ metadata:
 
 亏损短期交易不得仅因不愿止损而漂移成长持有。
 
-四个独立决策：
+五个独立决策：
 
-1. Eligibility
-2. Timing
-3. Execution
-4. Sizing
+1. Capital Eligibility
+2. Security Eligibility
+3. Timing
+4. Execution
+5. Sizing
 
 ## 2. Universe Lock
 
@@ -616,12 +618,13 @@ expectation_confidence
 4. 若 Challenger 开启，独立 Shadow score/status、`research_state`、`position_state`、`confirmation_basis` 和 disagreement；
 5. 若存在事件驱动候选，输出/保存 ERG 的 expectation、surprise、materiality、prepricing、reaction 与 `source_tier`；
 6. 若事件发布时间影响可交易时点，输出 session route、`first_tradable_timestamp` 及 resolution status；
-7. executable candidates：trigger、invalidation、gap risk、tranche、risk；
-8. near misses；
-9. adversarial audit；
-10. Stock Account Equity + Final Short Cap；
-11. current short exposure / pending cash / CAP_BREACH；
-12. account-level same-symbol / cluster exposure，包括长期仓。
+7. executable candidates：position_state、trigger、confirmation_basis、invalidation、gap risk、tranche、risk、time stop、交易摩擦；
+8. 真实 ENTRY/ADD：capital_eligibility、cash_need_gate、emergency_reserve_gate、debt_leverage_gate；
+9. near misses；
+10. adversarial audit；
+11. Stock Account Equity + Final Short Cap；
+12. current short exposure / pending cash / CAP_BREACH；
+13. account-level same-symbol / cluster exposure，包括长期仓。
 
 行业覆盖任务额外报告 taxonomy/version、universe/core coverage、uncovered/absent、qualified supplements。
 
