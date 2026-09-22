@@ -1,7 +1,7 @@
 ---
 name: a-share-retirement-investing
 description: 用于沪深A股长期养老型股票的筛选、估值、组合构建、分红复投和持仓复核。核心目标不是追求最高当期股息率，而是建立可持续、可增长、可穿越周期的股东现金流；允许配置少量科技成长卫星仓。所有时效性数据必须联网重新验证。
-version: 2.2.1
+version: 2.2.2
 ---
 
 # A股长期养老选股与持仓 Skill
@@ -250,7 +250,19 @@ Account Cluster Exposure
 + Short/Mid-term Cluster Exposure
 ```
 
-长期下单必须使用**账户级合计暴露**检查 Cap，不能按策略标签分别享受上限。
+长期下单必须同时维护两个不同字段：
+
+```text
+current_long_symbol_exposure
+= 长期 sleeve 自己已经持有的该股暴露
+→ 用于计算 remaining_long_target_position
+
+account_symbol_exposure
+= long + short_mid 的账户级同股总暴露
+→ 用于检查账户级 single-symbol Cap
+```
+
+不能用账户总暴露替代长期 sleeve 已持仓，也不能反过来只看长期 sleeve 而忽略账户级集中度。
 
 若价格被动造成 `CAP_BREACH`，禁止继续增加同方向风险并进入再平衡评估；不为机械恢复比例在异常价格下无条件卖出。
 
@@ -273,6 +285,8 @@ Account Cluster Exposure
 - 第3/4批：强确认，且账户级单股/风险簇仍合格。
 
 股价超过 `Max Buy Price` 时取消后续批次，不为“买满计划”追高。
+
+真实下单股数还必须满足 security-specific minimum buy quantity / increment；不能把所有A股都写死成100股整手。
 
 ## 12. 长期补仓
 
