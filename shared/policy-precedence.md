@@ -1,6 +1,6 @@
 # Repository Policy Precedence
 
-> 本文件定义全仓库规则层级与实现边界。任何增加真实/模拟股票风险的动作首先受 Level 0 资金资格与订单授权硬门禁约束；通过后，资金/风险以 `capital-allocation-and-entry-policy.md` 为股票账户内 Source of Truth；Paper/Broker/自动化以 `automation-execution-governance.md` 为上位规则；研究证据、Champion/Challenger、point-in-time、Benchmark 与模型晋级以 `research-model-governance.md` 为上位规则。
+> 本文件定义全仓库规则层级与实现边界。任何增加**真实资金**股票风险的动作首先受 Level 0 资金资格与订单授权硬门禁约束；通过后，资金/风险以 `capital-allocation-and-entry-policy.md` 为股票账户内 Source of Truth。Paper 使用隔离的 paper capital 与相同风险数学，但不伪造个人资金 Gate；Paper/Broker/自动化以 `automation-execution-governance.md` 为上位规则；研究证据、Champion/Challenger、point-in-time、Benchmark 与模型晋级以 `research-model-governance.md` 为上位规则。
 
 ## 0. 上游资产配置 Scope
 
@@ -60,12 +60,12 @@ Level 3  — skills/*/references/*.md
 Level 4  — examples / case studies / dated snapshots / watchlists
 ```
 
-- 0：资金是否有资格承担股票风险、是否允许输出可执行买入股数、强制个人资金问卷、ENTRY/ADD 授权；对新增风险拥有 Hard Veto；
+- 0：真实资金是否有资格承担股票风险、是否允许输出真实可执行买入股数、强制个人资金问卷、ENTRY/ADD 授权；对真实新增风险拥有 Hard Veto；
 - 1A：资本配置、统一分母、仓位、风险、建仓、补仓、止损/止盈、再平衡、账户级同股/风险簇聚合；
 - 1B：Paper/Live、Broker Net Position、Strategy Virtual Position、执行安全、幂等、Kill Switch、合规和自动化晋级；
 - 1C：研究证据等级、Champion/Challenger、point-in-time、Benchmark、模型验证与晋级。
 
-Level 0 必须先通过；通过后，多个 Level-1 同时涉及一个动作时必须全部满足。
+真实资金增加风险时 Level 0 必须先通过；通过后，多个 Level-1 同时涉及一个动作时必须全部满足。Paper 不采集个人财务 Gate，但必须使用 paper capital 并通过适用的 Level 1A / 1B 风险与执行约束。
 
 ## 1A. Level 0 — Capital Eligibility / Pre-Trade Authorization
 
@@ -74,7 +74,7 @@ Level 0 由以下两个文件共同构成：
 - `shared/capital-eligibility-and-investor-risk-philosophy.md` — 判断什么钱有资格进入股票风险；
 - `shared/pre-trade-order-authorization-contract.md` — 在给出真实 ENTRY/ADD 股数前强制收集个人资金、账户暴露、风险预算与交易触发信息。
 
-Level 0 是新增风险的最高优先级否决层：
+Level 0 是**真实资金新增风险**的最高优先级否决层：
 
 ```text
 Level 0 FAIL / UNKNOWN critical field
