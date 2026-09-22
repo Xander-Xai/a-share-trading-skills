@@ -41,8 +41,8 @@ Account / Risk / Ledger / Execution
 ```text
 Capital Eligibility:    v2 (Level 0 hard veto)
 Pre-Trade Authorization: v1.1 (Level 0 hard veto)
-Capital / Risk:          v2.5
-Automation / Execution: v1.4
+Capital / Risk:          v2.6
+Automation / Execution: v1.5
 Research / Model:        v3.2
 Strategy Boundary:       v1
 Canonical PIT Data:      v1.2
