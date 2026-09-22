@@ -1,6 +1,8 @@
-# A股长期 / 短中期资金分配、建仓与风险管理策略 v2.3
+# A股长期 / 短中期资金分配、建仓与风险管理策略 v2.4
 
 > 本文件是仓库级最高**资本与风险**规则。执行前同时读取 `policy-precedence.md`；涉及 Paper/Live/自动化执行时同时读取 `automation-execution-governance.md`。
+>
+> 在计算任何股票仓位前，必须先读取 `capital-eligibility-and-investor-risk-philosophy.md`，完成 Capital Eligibility / Cash Need / Emergency Reserve / Debt-Leverage Gate。资金资格失败时，后文任何 Size/Risk/Edge Cap 都不能授权新风险。
 >
 > 本文讨论的是**专门可用于股票投资、能够承受波动的股票资金**。若 10 万 / 100 万 / 1000 万代表全部金融资产，应先完成现金、固收、保险/保障等一级资产配置，再把分给 A 股股票系统的资金带入本规则。
 
