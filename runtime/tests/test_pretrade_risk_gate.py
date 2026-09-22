@@ -265,6 +265,74 @@ class TestPreTradeRiskGate(unittest.TestCase):
         self.assertEqual(d.planned_entry_shares, 200)
         self.assertEqual(d.planned_notional_rmb, 4_000.0)
 
+    def test_short_invalidation_must_be_below_entry(self):
+        d = evaluate_short_mid_pretrade(self.base_short(
+            entry_price=20.0,
+            invalidation_price=20.5,
+        ))
+        self.assertEqual(d.authorization_state, "BLOCKED")
+        self.assertEqual(d.max_executable_shares, 0)
+        self.assertTrue(any("invalidation_price < entry_price" in x for x in d.blocking_reasons))
+
+    def test_short_entry_tranche_fraction_cannot_exceed_one(self):
+        d = evaluate_short_mid_pretrade(self.base_short(entry_tranche_fraction=1.5))
+        self.assertEqual(d.authorization_state, "BLOCKED")
+        self.assertIn("entry_tranche_fraction must be > 0 and <= 1", d.blocking_reasons)
+
+    def test_entry_rejected_when_short_mid_position_already_exists(self):
+        d = evaluate_short_mid_pretrade(self.base_short(
+            current_short_symbol_exposure_rmb=2_000,
+            current_trade_planned_risk_rmb=100,
+        ))
+        self.assertEqual(d.authorization_state, "BLOCKED")
+        self.assertIn("ENTRY requires no existing short-mid position/risk in this symbol", d.blocking_reasons)
+
+    def test_add_rejected_without_existing_short_mid_position(self):
+        d = evaluate_short_mid_pretrade(self.base_short(
+            position_state="ADD",
+            current_short_symbol_exposure_rmb=0,
+            current_trade_planned_risk_rmb=0,
+            positive_add_confirmation=True,
+        ))
+        self.assertEqual(d.authorization_state, "BLOCKED")
+        self.assertIn("ADD requires an existing short-mid position", d.blocking_reasons)
+
+    def test_long_tranche_fraction_cannot_exceed_one(self):
+        d = evaluate_long_pretrade(LongPreTradeInput(
+            capital=good_capital(),
+            position_state="ENTRY",
+            entry_price=20.0,
+            long_target_total_position_rmb=10_000,
+            current_account_symbol_exposure_rmb=0,
+            current_account_cluster_exposure_rmb=0,
+            current_long_symbol_exposure_rmb=0,
+            valuation_gate="PASS",
+            portfolio_gate="PASS",
+            thesis_gate="PASS",
+            balance_gate="PASS",
+            planned_tranche_fraction=1.5,
+        ))
+        self.assertEqual(d.authorization_state, "BLOCKED")
+        self.assertIn("planned_tranche_fraction must be > 0 and <= 1", d.blocking_reasons)
+
+    def test_long_add_requires_existing_long_position(self):
+        d = evaluate_long_pretrade(LongPreTradeInput(
+            capital=good_capital(),
+            position_state="ADD",
+            entry_price=20.0,
+            long_target_total_position_rmb=10_000,
+            current_account_symbol_exposure_rmb=0,
+            current_account_cluster_exposure_rmb=0,
+            current_long_symbol_exposure_rmb=0,
+            valuation_gate="PASS",
+            portfolio_gate="PASS",
+            thesis_gate="PASS",
+            balance_gate="PASS",
+            planned_tranche_fraction=0.30,
+        ))
+        self.assertEqual(d.authorization_state, "BLOCKED")
+        self.assertIn("ADD requires an existing long-sleeve position", d.blocking_reasons)
+
 
 if __name__ == "__main__":
     unittest.main()
