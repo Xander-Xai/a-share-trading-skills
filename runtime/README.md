@@ -2,7 +2,7 @@
 
 `runtime/` 是当前仓库规则的**实现层**，不是新的 Policy、Skill 或交易模型 Source of Truth。
 
-本目录当前实现的是 **short_mid Monitor MVP**，不是长期养老策略 Runtime，也不是全仓库通用交易引擎。
+本目录当前主体仍是 **short_mid Monitor MVP**，并新增一个跨策略的**人工下单前风险授权辅助工具** `pretrade_cli.py`。它不是券商交易机器人，也不会自动下单。
 
 当前职责：
 
@@ -65,12 +65,14 @@ NO_ACTION_STRATEGY_MISMATCH
 实现必须服从：
 
 1. `../shared/policy-precedence.md`
-2. `../shared/capital-allocation-and-entry-policy.md`
-3. `../shared/research-model-governance.md`
-4. `../shared/automation-execution-governance.md`
-5. `../shared/strategy-boundary-contract.md`
-6. `../shared/canonical-pit-data-contract.md`
-7. `../skills/a-share-short-midterm-stock-selection/SKILL.md`
+2. `../shared/capital-eligibility-and-investor-risk-philosophy.md`
+3. `../shared/pre-trade-order-authorization-contract.md`
+4. `../shared/capital-allocation-and-entry-policy.md`
+5. `../shared/research-model-governance.md`
+6. `../shared/automation-execution-governance.md`
+7. `../shared/strategy-boundary-contract.md`
+8. `../shared/canonical-pit-data-contract.md`
+9. `../skills/a-share-short-midterm-stock-selection/SKILL.md`
 
 情绪指数定义：
 
@@ -204,6 +206,50 @@ src/core/pit.py
 ```
 
 这两个模块只是第一批 Core Contract，不代表完整 Data Platform 已经完成。
+
+## Pre-Trade Authorization CLI
+
+当用户准备真实买入/加仓时，先运行：
+
+```bash
+python runtime/pretrade_cli.py
+```
+
+程序会先询问并校验：
+
+- 本次真正可承担股票风险的闲钱；
+- Stock Account Equity；
+- 应急金是否独立；
+- 计划持有期是否存在近期现金需求；
+- 是否包含借款/融资/抵押资金；
+- 主观风险意愿与客观风险承受能力；
+- 当前该股/同风险簇/短中期总暴露；
+- 当前已占用 Portfolio Heat / Factor Heat；
+- Final Short Cap；
+- ENTRY/ADD 触发是否确认；
+- 短中期失效价和本次最大可承受计划亏损。
+
+输出状态：
+
+```text
+AUTHORIZED
+NEED_USER_INPUT
+BLOCKED
+NO_TRADE_POSITION_TOO_SMALL_FOR_RISK_BUDGET
+NO_TRADE_TRANCHE_ROUNDS_BELOW_BOARD_LOT
+```
+
+只在 `AUTHORIZED` 时输出非零的 `planned_entry_shares`。所有缺失关键输入默认 fail closed。
+
+核心计算在：
+
+`../src/core/pretrade_risk_gate.py`
+
+回归测试：
+
+`tests/test_pretrade_risk_gate.py`
+
+注意：该 CLI 是**风险授权/仓位计算辅助**，不是 Broker 下单接口。仓库无法物理阻止用户绕过系统自行下单，因此任何未授权的增仓应记录为 `UNAUTHORIZED_MANUAL_RISK_INCREASE`。
 
 ## 情绪指数
 
