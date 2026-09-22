@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4",
   "date": "2026-09-22",
-  "as_of": "2026-09-22T12:04:03.505866+08:00",
+  "as_of": "2026-09-22T12:12:27.802265+08:00",
   "strategy_id": "a_share_short_mid",
   "sleeve": "short_mid",
   "runtime_mode": "SHORT_MID_MONITOR_ONLY",
@@ -37,7 +37,7 @@
     "strong_count": 218,
     "weak_count": 26,
     "median_return_pct": 0.1,
-    "total_turnover": 1440692506110.4001,
+    "total_turnover": 1440692506110.4,
     "turnover_20d_median": null
   },
   "sentiment": {
