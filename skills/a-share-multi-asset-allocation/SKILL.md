@@ -1,7 +1,7 @@
 ---
 name: a-share-multi-asset-allocation
 description: 为现金、国债/高等级固收和A股股票账户建立一级资产配置、风险预算、负债匹配与再平衡规则。它决定多少资本成为 Stock Account Equity，但不替代股票账户内部长期和短中期 Skill。
-version: 1.1.0
+version: 1.1.1
 ---
 
 # Multi-Asset Allocation Skill
@@ -32,9 +32,10 @@ Total Financial Assets
 执行前读取：
 
 1. `../../shared/policy-precedence.md`
-2. `../../shared/research-model-governance.md`
-3. 涉及自动监控/再平衡执行时读取 `../../shared/automation-execution-governance.md`
-4. 股票资金进入账户后，内部规则读取 `../../shared/capital-allocation-and-entry-policy.md`
+2. `../../shared/capital-eligibility-and-investor-risk-philosophy.md`
+3. `../../shared/research-model-governance.md`
+4. 涉及自动监控/再平衡执行时读取 `../../shared/automation-execution-governance.md`
+5. 股票资金进入账户后，内部规则读取 `../../shared/capital-allocation-and-entry-policy.md`
 
 ### 关键边界
 
@@ -206,6 +207,8 @@ Required Risk Compensation 是治理/模型参数，应做敏感性分析，并�
 防守层默认优先研究国债、政策性或高信用等级工具，不为了少量票息自动下沉到无法理解的信用风险。
 
 ## 8. 生成 Stock Account Equity
+
+输出给证券级交易的资金资格必须可被 Level 0 再验证；近期现金需求、应急金或负债状态发生变化时，旧的 Stock Account Equity 假设不能直接继续授权新单。
 
 只有通过 Liquidity / Liability / Stress Gates 的长期风险资本，才进入：
 
