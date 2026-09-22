@@ -38,8 +38,10 @@ class ShortMidPreTradeInput:
     current_short_cluster_exposure_rmb: Optional[float] = None
     current_open_initial_risk_rmb: Optional[float] = None
     current_factor_initial_risk_rmb: Optional[float] = None
+    current_trade_initial_risk_rmb: Optional[float] = None
     final_short_cap_rmb: Optional[float] = None
-    board_lot: int = 100
+    min_buy_shares: int = 100
+    buy_increment_shares: int = 100
     entry_tranche_fraction: float = 0.50
     time_stop: str = "3-5 trading days if setup clearly fails; mandatory re-underwrite by 15 trading days"
 
@@ -52,12 +54,14 @@ class LongPreTradeInput:
     long_target_total_position_rmb: Optional[float]
     current_account_symbol_exposure_rmb: Optional[float]
     current_account_cluster_exposure_rmb: Optional[float]
+    current_long_symbol_exposure_rmb: Optional[float]
     valuation_gate: str = UNKNOWN
     portfolio_gate: str = UNKNOWN
     thesis_gate: str = UNKNOWN
     balance_gate: str = UNKNOWN
     planned_tranche_fraction: Optional[float] = None
-    board_lot: int = 100
+    min_buy_shares: int = 100
+    buy_increment_shares: int = 100
 
 
 @dataclass
@@ -73,15 +77,25 @@ class PreTradeDecision:
     missing_fields: List[str] = field(default_factory=list)
     blocking_reasons: List[str] = field(default_factory=list)
     cap_details: Dict[str, float] = field(default_factory=dict)
+    min_buy_shares: int = 0
+    buy_increment_shares: int = 0
     risk_warning: str = "股票可能盈利也可能亏损；本次股数是风险上限约束后的建议，不是收益保证。"
 
 
-def _board_lot_floor(shares: float, board_lot: int) -> int:
-    if board_lot <= 0:
-        raise ValueError("board_lot must be positive")
-    if shares <= 0:
+def _buy_quantity_floor(shares: float, min_buy_shares: int, buy_increment_shares: int) -> int:
+    if min_buy_shares <= 0 or buy_increment_shares <= 0:
+        raise ValueError("buy quantity rules must be positive")
+    if shares < min_buy_shares:
         return 0
-    return int(floor(shares / board_lot) * board_lot)
+    return int(min_buy_shares + floor((shares - min_buy_shares) / buy_increment_shares) * buy_increment_shares)
+
+
+def _is_valid_buy_quantity(quantity: int, min_buy_shares: int, buy_increment_shares: int) -> bool:
+    if quantity == 0:
+        return True
+    if quantity < min_buy_shares:
+        return False
+    return (quantity - min_buy_shares) % buy_increment_shares == 0
 
 
 def _positive_number(value: Optional[float]) -> bool:
@@ -133,7 +147,12 @@ def _capital_gate_errors(capital: CapitalSafetyInput) -> tuple[List[str], List[s
 
 def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
     state = (inp.position_state or "").upper()
-    decision = PreTradeDecision(authorization_state="NEED_USER_INPUT", position_state=state or "UNKNOWN")
+    decision = PreTradeDecision(
+        authorization_state="NEED_USER_INPUT",
+        position_state=state or "UNKNOWN",
+        min_buy_shares=inp.min_buy_shares,
+        buy_increment_shares=inp.buy_increment_shares,
+    )
 
     missing, blocking = _capital_gate_errors(inp.capital)
 
@@ -145,6 +164,7 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
         "current_short_cluster_exposure_rmb": inp.current_short_cluster_exposure_rmb,
         "current_open_initial_risk_rmb": inp.current_open_initial_risk_rmb,
         "current_factor_initial_risk_rmb": inp.current_factor_initial_risk_rmb,
+        "current_trade_initial_risk_rmb": inp.current_trade_initial_risk_rmb,
     }
     for name, value in required_nonnegative.items():
         if not _nonnegative_number(value):
@@ -195,11 +215,12 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
 
     nav = float(inp.strategy_nav_rmb)
     per_trade_operating_risk = nav * 0.005
+    remaining_trade_risk = max(0.0, per_trade_operating_risk - float(inp.current_trade_initial_risk_rmb))
     remaining_portfolio_heat = max(0.0, nav * 0.02 - float(inp.current_open_initial_risk_rmb))
     remaining_factor_heat = max(0.0, nav * 0.01 - float(inp.current_factor_initial_risk_rmb))
     allowed_new_loss = min(
         float(inp.user_max_loss_this_trade_rmb),
-        per_trade_operating_risk,
+        remaining_trade_risk,
         remaining_portfolio_heat,
         remaining_factor_heat,
     )
@@ -229,11 +250,14 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
         "final_short_cap": final_short_remaining / entry_price,
     }
 
-    floored_caps = {name: _board_lot_floor(value, inp.board_lot) for name, value in share_caps.items()}
+    floored_caps = {
+        name: _buy_quantity_floor(value, inp.min_buy_shares, inp.buy_increment_shares)
+        for name, value in share_caps.items()
+    }
     max_shares = min(floored_caps.values()) if floored_caps else 0
     binding = sorted([name for name, value in floored_caps.items() if value == max_shares])
 
-    if max_shares < inp.board_lot:
+    if max_shares < inp.min_buy_shares:
         decision.authorization_state = "NO_TRADE_POSITION_TOO_SMALL_FOR_RISK_BUDGET"
         decision.allowed_new_loss_rmb = round(allowed_new_loss, 2)
         decision.binding_constraints = binding
@@ -241,8 +265,12 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
         return decision
 
     if state == "ENTRY":
-        planned = _board_lot_floor(max_shares * inp.entry_tranche_fraction, inp.board_lot)
-        if planned < inp.board_lot:
+        planned = _buy_quantity_floor(
+            max_shares * inp.entry_tranche_fraction,
+            inp.min_buy_shares,
+            inp.buy_increment_shares,
+        )
+        if planned < inp.min_buy_shares:
             decision.authorization_state = "NO_TRADE_TRANCHE_ROUNDS_BELOW_BOARD_LOT"
             decision.allowed_new_loss_rmb = round(allowed_new_loss, 2)
             decision.binding_constraints = binding
@@ -264,7 +292,12 @@ def evaluate_short_mid_pretrade(inp: ShortMidPreTradeInput) -> PreTradeDecision:
 
 def evaluate_long_pretrade(inp: LongPreTradeInput) -> PreTradeDecision:
     state = (inp.position_state or "").upper()
-    decision = PreTradeDecision(authorization_state="NEED_USER_INPUT", position_state=state or "UNKNOWN")
+    decision = PreTradeDecision(
+        authorization_state="NEED_USER_INPUT",
+        position_state=state or "UNKNOWN",
+        min_buy_shares=inp.min_buy_shares,
+        buy_increment_shares=inp.buy_increment_shares,
+    )
     missing, blocking = _capital_gate_errors(inp.capital)
 
     required_positive = {
@@ -279,6 +312,7 @@ def evaluate_long_pretrade(inp: LongPreTradeInput) -> PreTradeDecision:
     for name, value in {
         "current_account_symbol_exposure_rmb": inp.current_account_symbol_exposure_rmb,
         "current_account_cluster_exposure_rmb": inp.current_account_cluster_exposure_rmb,
+        "current_long_symbol_exposure_rmb": inp.current_long_symbol_exposure_rmb,
     }.items():
         if not _nonnegative_number(value):
             missing.append(name)
@@ -305,7 +339,7 @@ def evaluate_long_pretrade(inp: LongPreTradeInput) -> PreTradeDecision:
     entry_price = float(inp.entry_price)
     equity = float(inp.capital.stock_account_equity_rmb)
     symbol_cap_pct, cluster_cap_pct = _account_cap_pcts(equity)
-    target_remaining = max(0.0, float(inp.long_target_total_position_rmb) - float(inp.current_account_symbol_exposure_rmb))
+    target_remaining = max(0.0, float(inp.long_target_total_position_rmb) - float(inp.current_long_symbol_exposure_rmb))
     account_symbol_remaining = max(0.0, equity * symbol_cap_pct - float(inp.current_account_symbol_exposure_rmb))
     account_cluster_remaining = max(0.0, equity * cluster_cap_pct - float(inp.current_account_cluster_exposure_rmb))
     tranche_value = float(inp.long_target_total_position_rmb) * float(inp.planned_tranche_fraction)
@@ -318,10 +352,10 @@ def evaluate_long_pretrade(inp: LongPreTradeInput) -> PreTradeDecision:
         "approved_tranche": tranche_value,
     }
     max_order_value = min(value_caps.values())
-    planned = _board_lot_floor(max_order_value / entry_price, inp.board_lot)
+    planned = _buy_quantity_floor(max_order_value / entry_price, inp.min_buy_shares, inp.buy_increment_shares)
     binding = sorted([name for name, value in value_caps.items() if value == max_order_value])
 
-    if planned < inp.board_lot:
+    if planned < inp.min_buy_shares:
         decision.authorization_state = "NO_TRADE_POSITION_TOO_SMALL_FOR_CAPS"
         decision.binding_constraints = binding
         decision.cap_details = value_caps
@@ -347,6 +381,8 @@ def validate_manual_requested_shares(decision: PreTradeDecision, requested_share
         return False, "INVALID_SHARE_QUANTITY"
     if requested_shares == 0:
         return True, "SKIP_TRADE"
+    if not _is_valid_buy_quantity(requested_shares, decision.min_buy_shares, decision.buy_increment_shares):
+        return False, "INVALID_BUY_QUANTITY"
     if requested_shares > decision.max_executable_shares:
         return False, "UNAUTHORIZED_MANUAL_RISK_INCREASE"
     if requested_shares > decision.planned_entry_shares:
