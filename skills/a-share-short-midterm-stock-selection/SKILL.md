@@ -4,7 +4,7 @@ description: Select, rank, size, and manage A-share stocks for short-to-medium-t
 compatibility: Requires fresh public market data, official A-share disclosures, and web research.
 metadata:
   author: yandexuanxuan
-  version: "1.7.1"
+  version: "1.7.2"
   market: "China A-share"
 ---
 
@@ -16,10 +16,11 @@ metadata:
 
 1. `../../shared/policy-precedence.md`
 2. `../../shared/capital-eligibility-and-investor-risk-philosophy.md`
-3. `../../shared/capital-allocation-and-entry-policy.md`
-4. `../../shared/research-model-governance.md`
-5. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
-6. 研究迭代、实验优先级与 Promotion 前置顺序读取 `references/iteration-roadmap.md`
+3. `../../shared/pre-trade-order-authorization-contract.md`
+4. `../../shared/capital-allocation-and-entry-policy.md`
+5. `../../shared/research-model-governance.md`
+6. 涉及 Paper / Live / Broker / 自动化时读取 `../../shared/automation-execution-governance.md`
+7. 研究迭代、实验优先级与 Promotion 前置顺序读取 `references/iteration-roadmap.md`
 
 职责：
 
@@ -47,6 +48,17 @@ metadata:
 3. Timing
 4. Execution
 5. Sizing
+
+### Executable sizing hard rule
+
+研究可以在个人资金信息缺失时继续，但不得输出可执行股数。任何 ENTRY/ADD 若缺少闲钱、现金需求、应急金、负债/杠杆、账户暴露、风险预算、Final Short Cap 或触发确认：
+
+```text
+authorization_state = NEED_USER_INPUT
+max_executable_shares = 0
+```
+
+只有 Level 0 授权通过后，才允许输出“本次计划买入多少股”。
 
 ## 2. Universe Lock
 
