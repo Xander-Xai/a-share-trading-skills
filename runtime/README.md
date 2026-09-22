@@ -475,3 +475,35 @@ python runtime/repository_consistency_audit.py
 ```
 
 该审计只检查当前生产/治理契约。日期化历史审计、examples、历史 reports 可以保留当时版本，不因今天的规则升级而被静默改写。
+
+
+## Private Runtime State
+
+真实个人财务/交易数据不属于公开仓库 Source of Truth。
+
+禁止提交：
+
+- 真实持股数量与个人成本价；
+- 个人实现盈亏；
+- 闲钱、应急金、现金需求、风险承受能力答案；
+- Broker/账户标识；
+- 冻结后的个人 pre-trade authorization card。
+
+本地路径使用：
+
+```text
+runtime/private/
+runtime/pretrade_authorizations/
+runtime/state/private/
+reports/private/
+```
+
+并读取：
+
+`PRIVATE_STATE.md`
+
+脱敏结构示例：
+
+`portfolio_instances.example.json`
+
+公开仓库只保留 schema、synthetic example、不可反推出个人账户的聚合研究结果。
