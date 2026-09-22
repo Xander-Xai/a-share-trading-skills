@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from runtime.pretrade_cli import authorization_exit_code, finalize_authorization
+from runtime.pretrade_cli import authorization_exit_code, finalize_authorization, persistence_failure_exit_code
 from src.core.pretrade_authorization import DEFAULT_PRIVATE_AUTH_ROOT, authorization_input_snapshot, persist_pretrade_card
 
 
@@ -128,6 +128,33 @@ class PreTradeAuthorizationPersistenceTests(unittest.TestCase):
         self.assertEqual(out["persistence_error"], "TypeError")
         self.assertNotIn("persisted_path", out)
         self.assertIn("risk_reduction", out["reason"].lower())
+
+    def test_trim_authorized_persistence_failure_returns_nonzero(self):
+        from types import SimpleNamespace
+
+        decision = SimpleNamespace(authorization_state="AUTHORIZED", position_state="TRIM")
+        out, code = finalize_authorization(
+            decision, {"action": "TRIM"}, persist=lambda *a, **k: (_ for _ in ()).throw(OSError("disk full"))
+        )
+        self.assertEqual(code, 1)
+        self.assertFalse(out["persistence_ok"])
+        self.assertNotIn("persisted_path", out)
+
+    def test_exit_authorized_persistence_failure_returns_nonzero(self):
+        from types import SimpleNamespace
+
+        decision = SimpleNamespace(authorization_state="AUTHORIZED", position_state="EXIT")
+        out, code = finalize_authorization(
+            decision, {"action": "EXIT"}, persist=lambda *a, **k: (_ for _ in ()).throw(TypeError("not serializable"))
+        )
+        self.assertEqual(code, 1)
+        self.assertFalse(out["persistence_ok"])
+        self.assertNotIn("persisted_path", out)
+
+    def test_persistence_failure_exit_code_requires_explicit_risk_reduction_state(self):
+        self.assertEqual(persistence_failure_exit_code("AUTHORIZED_RISK_REDUCTION"), 0)
+        for state in ("AUTHORIZED", "BLOCKED", "NEED_USER_INPUT", "UNKNOWN"):
+            self.assertEqual(persistence_failure_exit_code(state), 1)
 
     def test_exit_filesystem_failure_preserves_decision_and_exposes_audit_failure(self):
         from types import SimpleNamespace

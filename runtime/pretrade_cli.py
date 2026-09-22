@@ -25,6 +25,16 @@ def authorization_exit_code(state: str) -> int:
     return 0 if state in {"AUTHORIZED", "AUTHORIZED_RISK_REDUCTION"} else 1
 
 
+def persistence_failure_exit_code(authorization_state: str) -> int:
+    """Return CLI status when required persistence failed.
+
+    Risk-reduction success is preserved only for the explicit risk-reduction
+    authorization state; persistence failure never turns another state into a
+    successful CLI completion.
+    """
+    return 0 if authorization_state == "AUTHORIZED_RISK_REDUCTION" else 1
+
+
 def ask_float(prompt: str):
     raw = input(prompt).strip()
     if raw == "":
@@ -198,7 +208,7 @@ def finalize_authorization(decision, authorization_inputs, *, persist=persist_pr
         if action in {"TRIM", "EXIT"}:
             out["audit_record_incomplete"] = True
             out["reason"] = "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED_RISK_REDUCTION_PRESERVED"
-            return out, authorization_exit_code(str(out.get("authorization_state", "UNKNOWN")))
+            return out, persistence_failure_exit_code(str(out.get("authorization_state", "UNKNOWN")))
         out["authorization_state"] = "BLOCKED"
         out["reason"] = "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED"
         out["executable_quantity"] = 0
