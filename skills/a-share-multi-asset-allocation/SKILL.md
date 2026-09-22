@@ -23,6 +23,7 @@ Total Financial Assets
 Total Financial Assets
 → Multi-Asset Allocation Skill
 → Stock Account Equity
+→ Level-0 security-level capital revalidation
 → shared/capital-allocation-and-entry-policy.md
    → Long Strategic Baseline
    → Short/Mid Final Cap
