@@ -53,6 +53,16 @@ def gate_from_no(value):
     return "UNKNOWN"
 
 
+def quantity_rule_from_board(board: str):
+    rules = {
+        "MAIN": (100, 100),
+        "CHINEXT": (100, 100),
+        "STAR": (200, 1),
+        "BSE": (100, 1),
+    }
+    return rules.get((board or "").strip().upper(), (0, 0))
+
+
 def ask_risk_level(prompt: str):
     raw = input(prompt + " [LOW/MEDIUM/HIGH]: ").strip().upper()
     if raw in {"LOW", "MEDIUM", "HIGH"}:
@@ -93,6 +103,8 @@ def collect_capital_safety():
 
 def run_short_mid(capital, action):
     print("\n=== 短中期：风险预算 + 结构失效点反推股数 ===")
+    board = input("证券板块 [MAIN/CHINEXT/STAR/BSE]：").strip().upper()
+    min_buy_shares, buy_increment_shares = quantity_rule_from_board(board)
     inp = ShortMidPreTradeInput(
         capital=capital,
         position_state=action,
@@ -111,13 +123,18 @@ def run_short_mid(capital, action):
         current_short_cluster_exposure_rmb=ask_float("当前短中期同风险簇暴露（元）："),
         current_open_initial_risk_rmb=ask_float("当前短中期全部未平仓初始风险合计（元）："),
         current_factor_initial_risk_rmb=ask_float("当前同一行业/因子的未平仓初始风险合计（元）："),
+        current_trade_planned_risk_rmb=ask_float("当前失效位下，这笔交易已有仓位的计划风险（元；首次ENTRY填0）："),
         final_short_cap_rmb=ask_float("当前 Final Short Cap（元；不知道就留空，程序将拒绝给买入股数）："),
+        min_buy_shares=min_buy_shares,
+        buy_increment_shares=buy_increment_shares,
     )
     return evaluate_short_mid_pretrade(inp)
 
 
 def run_long(capital, action):
     print("\n=== 长期：目标仓位 + 估值/组合 Gate 反推本批股数 ===")
+    board = input("证券板块 [MAIN/CHINEXT/STAR/BSE]：").strip().upper()
+    min_buy_shares, buy_increment_shares = quantity_rule_from_board(board)
     inp = LongPreTradeInput(
         capital=capital,
         position_state=action,
@@ -125,11 +142,14 @@ def run_long(capital, action):
         long_target_total_position_rmb=ask_float("长期模型已批准的该股目标总仓位金额（元）："),
         current_account_symbol_exposure_rmb=ask_float("当前账户该股票总暴露（元）："),
         current_account_cluster_exposure_rmb=ask_float("当前账户同风险簇总暴露（元）："),
+        current_long_symbol_exposure_rmb=ask_float("当前长期 sleeve 已持有该股票的暴露（元）："),
         valuation_gate=gate_from_yes(ask_yes_no("Valuation Gate 是否通过？")),
         portfolio_gate=gate_from_yes(ask_yes_no("Portfolio Gate 是否通过？")),
         thesis_gate=gate_from_yes(ask_yes_no("Thesis Gate 是否通过？")),
         balance_gate=gate_from_yes(ask_yes_no("Balance Gate 是否通过？")),
         planned_tranche_fraction=ask_float("本批占目标仓位比例（如40%输入0.40）："),
+        min_buy_shares=min_buy_shares,
+        buy_increment_shares=buy_increment_shares,
     )
     return evaluate_long_pretrade(inp)
 
