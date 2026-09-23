@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import re
+import os
+import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -9,12 +12,35 @@ from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 
+PRIVATE_PATH_PREFIXES = (
+    "runtime/private/",
+    "runtime/state/private/",
+    "runtime/pretrade_authorizations/",
+    "reports/private/",
+    "reports/trades/private/",
+)
+PRIVATE_PATH_PROBES = (
+    "__governance_probe__.json",
+    "governance_probe.txt",
+    "governance_probe",
+    "nested/governance_probe.yaml",
+)
+PRIVATE_EXACT_PATHS = (
+    "runtime/portfolio_instances.json",
+    "runtime/portfolio_instances.local.json",
+    "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md",
+)
+
 
 @dataclass(frozen=True)
 class CheckResult:
     name: str
     ok: bool
     detail: str
+
+
+class GitEnumerationError(RuntimeError):
+    pass
 
 
 def _read(path: str) -> str:
@@ -32,6 +58,70 @@ def _contains_all(path: str, needles: Iterable[str]) -> CheckResult:
         ok=not missing,
         detail="ok" if not missing else f"missing: {missing}",
     )
+
+
+def _private_paths_ignored(gitignore_text: str | None = None) -> CheckResult:
+    """Verify effective Git ignore behavior, including overrides and negations.
+
+    The optional text argument is retained for small unit-test fixtures. The
+    production audit always evaluates the repository's effective rules via
+    ``git check-ignore``; a failed invocation is never treated as a privacy
+    pass.
+    """
+    temporary_root = None
+    check_root = ROOT
+    if gitignore_text is not None:
+        temporary_root = tempfile.TemporaryDirectory()
+        check_root = Path(temporary_root.name)
+        (check_root / ".gitignore").write_text(gitignore_text, encoding="utf-8")
+        try:
+            subprocess.run(
+                ["git", "init", "-q"], cwd=check_root, check=True,
+                capture_output=True, text=True,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            temporary_root.cleanup()
+            return CheckResult("private_paths_ignored", False, f"NOT_EVALUATED: git init failure: {exc}")
+
+    failures: list[str] = []
+    errors: list[str] = []
+    for prefix in PRIVATE_PATH_PREFIXES:
+        prefix_failed = False
+        for probe in PRIVATE_PATH_PROBES:
+            candidate = f"{prefix}{probe}"
+            try:
+                result = subprocess.run(
+                    ["git", "check-ignore", "-v", "--no-index", "--", candidate],
+                    cwd=check_root,
+                    capture_output=True,
+                )
+            except (OSError, subprocess.CalledProcessError) as exc:
+                errors.append(f"{candidate}: {exc}")
+                prefix_failed = True
+                continue
+            if result.returncode == 0:
+                continue
+            if result.returncode == 1:
+                failures.append(candidate)
+                prefix_failed = True
+            else:
+                raw_detail = result.stderr or result.stdout or b"git check-ignore failed"
+                detail = os.fsdecode(raw_detail).strip() if isinstance(raw_detail, bytes) else str(raw_detail).strip()
+                errors.append(f"{candidate}: {detail}")
+                prefix_failed = True
+        if prefix_failed:
+            continue
+
+    result = CheckResult(
+            name="private_paths_ignored",
+            ok=not errors and not failures,
+            detail=(f"NOT_EVALUATED: git check-ignore failure: {errors}" if errors
+                    else "private runtime paths are effectively ignored" if not failures
+                    else f"not ignored: {failures}"),
+        )
+    if temporary_root is not None:
+        temporary_root.cleanup()
+    return result
 
 
 def _not_contains(path: str, needles: Iterable[str]) -> CheckResult:
@@ -66,6 +156,45 @@ def _yaml_skill_version(path: str, expected: str) -> CheckResult:
     )
 
 
+def _git_tracked_paths() -> set[str]:
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "-z"], cwd=ROOT, check=True, capture_output=True
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise GitEnumerationError(f"git ls-files failed: {exc}") from exc
+    raw = result.stdout
+    if not isinstance(raw, bytes):
+        raise GitEnumerationError("git ls-files -z returned non-byte output")
+    try:
+        entries = raw.split(b"\0")
+        if entries and entries[-1] == b"":
+            entries.pop()
+        return {os.fsdecode(entry).replace("\\", "/") for entry in entries}
+    except (UnicodeError, ValueError) as exc:
+        raise GitEnumerationError(f"git ls-files -z path decoding failed: {exc}") from exc
+
+
+def _internal_links_exist(tracked_paths: set[str] | None) -> CheckResult:
+    if tracked_paths is None:
+        return CheckResult("internal_links", False, "NOT_EVALUATED: tracked file enumeration failed")
+    missing: list[str] = []
+    markdown_files = [ROOT / path for path in tracked_paths if path.lower().endswith(".md")]
+    for source in markdown_files:
+        if not source.exists():
+            missing.append(f"{source.relative_to(ROOT)} -> tracked file missing")
+            continue
+        text = source.read_text(encoding="utf-8")
+        for raw in re.findall(r"\[[^\]]+\]\(([^)#]+)", text):
+            target = raw.strip().strip("<>")
+            if not target or "://" in target or target.startswith("mailto:"):
+                continue
+            candidate = (source.parent / target).resolve()
+            if not candidate.exists():
+                missing.append(f"{source.relative_to(ROOT)} -> {target}")
+    return CheckResult("internal_links", not missing, "ok" if not missing else f"missing={missing[:10]}")
+
+
 def run_audit() -> list[CheckResult]:
     checks: list[CheckResult] = []
 
@@ -87,6 +216,13 @@ def run_audit() -> list[CheckResult]:
 
     if missing_files:
         return checks
+
+    try:
+        tracked_paths = _git_tracked_paths()
+        checks.append(CheckResult("tracked_file_enumeration", True, "ok"))
+    except GitEnumerationError as exc:
+        checks.append(CheckResult("tracked_file_enumeration", False, str(exc)))
+        tracked_paths = None
 
     checks.extend([
         _header_version(
@@ -202,6 +338,10 @@ def run_audit() -> list[CheckResult]:
             "skills/a-share-short-midterm-stock-selection/references/validation-metrics-and-trade-ledger.md",
             ["100股单位"],
         ),
+        _contains_all(
+            "runtime/README.md",
+            ["runtime/config/short_mid_universe.json", "不能作为未来 production-current universe 的默认真相源"],
+        ),
     ])
 
     checks.extend([
@@ -213,6 +353,42 @@ def run_audit() -> list[CheckResult]:
                and (ROOT / "runtime/PRIVATE_STATE.md").exists(),
             detail="personal portfolio/trade artifacts must not be tracked in public source",
         ),
+        _private_paths_ignored(),
+        CheckResult(
+            name="private_tracked_paths",
+            ok=tracked_paths is not None and not any(
+                path in PRIVATE_EXACT_PATHS or path.startswith(PRIVATE_PATH_PREFIXES)
+                for path in tracked_paths
+            ),
+            detail=("tracked tree contains no declared private paths"
+                    if tracked_paths is not None else "NOT_EVALUATED: tracked file enumeration failed"),
+        ),
+        CheckResult(
+            name="no_tracked_personal_instances",
+            ok=tracked_paths is not None and not any(path in tracked_paths for path in (
+                "runtime/portfolio_instances.json",
+                "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md",
+            )),
+            detail=("public tracked tree excludes personal portfolio/trade artifacts"
+                    if tracked_paths is not None else "NOT_EVALUATED: tracked file enumeration failed"),
+        ),
+        _contains_all(
+            "src/core/account_snapshot.py",
+            ["CanonicalAccountSnapshot", "reconciliation_state", "staleness_state", "ENTRY", "ADD", "TRIM", "EXIT"],
+        ),
+        _contains_all(
+            "src/core/pretrade_authorization.py",
+            ["input_snapshot_hash", "policy_versions", "DEFAULT_PRIVATE_AUTH_ROOT"],
+        ),
+        _contains_all(
+            "runtime/tests/test_account_snapshot.py",
+            ["MISSING", "STALE", "CONFLICT", "UNRECONCILED", "EXIT"],
+        ),
+        _contains_all(
+            "runtime/tests/test_pretrade_risk_gate.py",
+            ["invalidation", "tranche", "ADD", "ENTRY"],
+        ),
+        _internal_links_exist(tracked_paths),
     ])
 
     workflow = ".github/workflows/a-share-daily-monitor.yml"
@@ -242,7 +418,7 @@ def run_audit() -> list[CheckResult]:
                 '"runtime/**"',
                 '"README.md"',
                 "python runtime/repository_consistency_audit.py",
-                "python -m unittest runtime.tests.test_pretrade_risk_gate -v",
+                "python -m unittest discover -s runtime/tests -v",
             ],
         ))
 

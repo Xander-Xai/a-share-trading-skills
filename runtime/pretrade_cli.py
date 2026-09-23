@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 import uuid
+from dataclasses import asdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,22 @@ from src.core.pretrade_risk_gate import (
     evaluate_long_pretrade,
     evaluate_short_mid_pretrade,
 )
+from src.core.pretrade_authorization import persist_pretrade_card
+
+
+def authorization_exit_code(state: str) -> int:
+    """Return the process status for the final authorization state."""
+    return 0 if state in {"AUTHORIZED", "AUTHORIZED_RISK_REDUCTION"} else 1
+
+
+def persistence_failure_exit_code(authorization_state: str) -> int:
+    """Return CLI status when required persistence failed.
+
+    Risk-reduction success is preserved only for the explicit risk-reduction
+    authorization state; persistence failure never turns another state into a
+    successful CLI completion.
+    """
+    return 0 if authorization_state == "AUTHORIZED_RISK_REDUCTION" else 1
 
 
 def ask_float(prompt: str):
@@ -128,7 +145,11 @@ def run_short_mid(capital, action):
         min_buy_shares=min_buy_shares,
         buy_increment_shares=buy_increment_shares,
     )
-    return evaluate_short_mid_pretrade(inp)
+    return evaluate_short_mid_pretrade(inp), {
+        "capital": asdict(capital),
+        "strategy_inputs": asdict(inp),
+        "action": action,
+    }
 
 
 def run_long(capital, action):
@@ -151,7 +172,50 @@ def run_long(capital, action):
         min_buy_shares=min_buy_shares,
         buy_increment_shares=buy_increment_shares,
     )
-    return evaluate_long_pretrade(inp)
+    return evaluate_long_pretrade(inp), {
+        "capital": asdict(capital),
+        "strategy_inputs": asdict(inp),
+        "action": action,
+    }
+
+
+def finalize_authorization(decision, authorization_inputs, *, persist=persist_pretrade_card):
+    """Persist the complete frozen inputs before exposing an authorization."""
+    out = dict(decision.__dict__)
+    out["decision_id"] = str(uuid.uuid4())
+    out["authorization_inputs"] = authorization_inputs
+    out["manual_order_rule"] = "可以买得更少；买得更多必须重新授权。任何未授权增仓都应记录为规则违规。"
+    try:
+        private_path = persist(
+            out,
+            snapshot=authorization_inputs,
+            policy_versions={
+                "capital_eligibility": "2",
+                "pre_trade_authorization": "1.1",
+                "capital_allocation": "2.6",
+            },
+        )
+        out["persistence_ok"] = True
+        out["persisted_path"] = str(private_path)
+        out["private_persistence"] = str(private_path)
+        return out, authorization_exit_code(str(out.get("authorization_state", "UNKNOWN")))
+    except (OSError, TypeError, ValueError) as exc:
+        out["persistence_ok"] = False
+        out["private_persistence"] = "FAILED_PRIVATE_PERSISTENCE"
+        out["persistence_error"] = type(exc).__name__
+        out["private_persistence_error"] = str(exc)
+        action = str(out.get("position_state", "")).upper()
+        if action in {"TRIM", "EXIT"}:
+            out["audit_record_incomplete"] = True
+            out["reason"] = "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED_RISK_REDUCTION_PRESERVED"
+            return out, persistence_failure_exit_code(str(out.get("authorization_state", "UNKNOWN")))
+        out["authorization_state"] = "BLOCKED"
+        out["reason"] = "PRIVATE_AUTHORIZATION_PERSISTENCE_FAILED"
+        out["executable_quantity"] = 0
+        out["max_executable_shares"] = 0
+        out["planned_entry_shares"] = 0
+        out["planned_notional_rmb"] = 0
+        return out, 1
 
 
 def main():
@@ -162,19 +226,17 @@ def main():
     capital = collect_capital_safety()
 
     if sleeve == "short_mid":
-        decision = run_short_mid(capital, action)
+        decision, authorization_inputs = run_short_mid(capital, action)
     elif sleeve == "long":
-        decision = run_long(capital, action)
+        decision, authorization_inputs = run_long(capital, action)
     else:
         print(json.dumps({"authorization_state": "BLOCKED", "reason": "unknown strategy"}, ensure_ascii=False, indent=2))
         return 2
 
-    out = dict(decision.__dict__)
-    out["decision_id"] = str(uuid.uuid4())
-    out["manual_order_rule"] = "可以买得更少；买得更多必须重新授权。任何未授权增仓都应记录为规则违规。"
+    out, exit_code = finalize_authorization(decision, authorization_inputs)
     print("\n=== Pre-Trade Card ===")
     print(json.dumps(out, ensure_ascii=False, indent=2))
-    return 0 if decision.authorization_state == "AUTHORIZED" else 1
+    return exit_code
 
 
 if __name__ == "__main__":

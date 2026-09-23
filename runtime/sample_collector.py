@@ -676,10 +676,34 @@ def main() -> int:
     parser.add_argument("--as-of-date", type=str, default=None, help="YYYY-MM-DD override for deterministic research runs")
     args = parser.parse_args()
 
-    registry = load_registry(args.registry)
     now = datetime.now(SH_TZ)
     as_of = date.fromisoformat(args.as_of_date) if args.as_of_date else now.date()
     ingested_at = now.isoformat()
+
+    # A missing registry is a privacy-preserving, fail-closed state after a
+    # history cleanup.  It means there are no configured forward samples; it
+    # must not turn the monitor into a runtime failure or fabricate evidence.
+    try:
+        registry = load_registry(args.registry)
+    except FileNotFoundError:
+        args.state_dir.mkdir(parents=True, exist_ok=True)
+        summary = {
+            "as_of_date": as_of.isoformat(),
+            "ingested_at": ingested_at,
+            "registry_version": None,
+            "registry_status": "ABSENT_NO_FORWARD_SAMPLES",
+            "sample_count_registered": 0,
+            "daily_records_appended": 0,
+            "new_disclosures_appended": 0,
+            "state_dir": str(args.state_dir),
+            "auto_order": False,
+            "data_status": "DATA_INSUFFICIENT",
+        }
+        (args.state_dir / "latest-run.json").write_text(
+            json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(json.dumps(summary, ensure_ascii=False))
+        return 0
 
     collected = 0
     disclosure_additions = 0
