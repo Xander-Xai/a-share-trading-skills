@@ -204,13 +204,16 @@ jobs:
               sys.exit(f"Refusing staged paths outside allowlist: {sorted(changed - {allowed})!r}")
           PY
 
-          if git diff --cached --quiet; then
-            echo "No evidence delta remains after syncing the existing evidence branch."
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update public market evidence"
+            git push origin "$branch"
+          fi
+
+          if git diff --quiet origin/main...HEAD -- "$allowed_path"; then
+            echo "No outstanding public market-history delta; skip PR creation."
             exit 0
           fi
 
-          git commit -m "chore: update public market evidence"
-          git push origin "$branch"
           pr_number="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state open --json number --jq '.[0].number // empty')"
           if [ -z "$pr_number" ]; then
             gh pr create \

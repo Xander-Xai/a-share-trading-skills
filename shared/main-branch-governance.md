@@ -15,5 +15,8 @@ The Daily Monitor uses a deterministic `automation/public-market-evidence`
 branch and one PR at a time. Its isolated publisher job can write only
 `runtime/state/market_history.csv`, creates or updates the PR, and relies on
 normal protected-main checks. The monitor/test job has read-only permissions.
-No workflow bypass actor is configured or required. The workflow never pushes
+The repository's `GITHUB_TOKEN` defaults to read-only. GitHub couples the
+setting that allows workflows to create PRs with the ability to approve PRs;
+the publisher uses only PR creation and never submits reviews/approvals. No
+workflow bypass actor is configured or required. The workflow never pushes
 directly to `main`.
