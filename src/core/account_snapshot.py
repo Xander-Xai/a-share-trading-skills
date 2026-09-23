@@ -22,12 +22,20 @@ SUPPORTED_ACTIONS = RISK_INCREASING_ACTIONS | RISK_REDUCING_ACTIONS
 
 def _is_nonnegative_finite_number(value: Any) -> bool:
     """Return whether a snapshot amount is a real, finite non-negative number."""
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(value)
-        and value >= 0
-    )
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        # Snapshot amounts are consumed by float-based risk calculations.  Python
+        # ints are arbitrary precision, so reject values that cannot be safely
+        # represented by that downstream numeric contract without passing them
+        # to math.isfinite (which itself raises OverflowError for huge ints).
+        try:
+            return math.isfinite(float(value)) and value >= 0
+        except (OverflowError, ValueError):
+            return False
+    if isinstance(value, float):
+        return math.isfinite(value) and value >= 0
+    return False
 
 
 @dataclass(frozen=True)
