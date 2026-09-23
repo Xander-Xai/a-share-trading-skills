@@ -292,6 +292,11 @@ def main() -> int:
     parser.add_argument("--watchlist", type=Path, default=DEFAULT_UNIVERSE)
     parser.add_argument("--history", type=Path, default=DEFAULT_HISTORY)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument(
+        "--market-only",
+        action="store_true",
+        help="compute and persist public market state without loading private candidates or writing candidate reports",
+    )
     args = parser.parse_args()
 
     now = datetime.now(SH_TZ)
@@ -388,25 +393,23 @@ def main() -> int:
     else:
         sentiment = {**sentiment, "spot_provider_gate": "PASS"}
 
-    loaded_universe = safe_call(errors, "load_universe", load_universe, args.watchlist)
-    if loaded_universe is None:
+    if args.market_only:
         watchlist: list[dict] = []
-        universe_meta: dict = {
-            "path": str(args.watchlist),
-            "status": "UNRESOLVED",
-        }
-        sentiment = {
-            **sentiment,
-            "sentiment_score": None,
-            "regime": "DATA_INSUFFICIENT",
-            "crowding_flag": False,
-            "data_confidence": "LOW",
-            "strategy_context_gate": "BLOCKED",
-        }
+        universe_meta: dict = {"status": "SKIPPED_MARKET_ONLY"}
+        sentiment = {**sentiment, "strategy_context_gate": "NOT_APPLICABLE_MARKET_ONLY"}
     else:
-        watchlist, universe_meta = loaded_universe
-        universe_meta = {**universe_meta, "status": "LOADED"}
-        sentiment = {**sentiment, "strategy_context_gate": "PASS"}
+        loaded_universe = safe_call(errors, "load_universe", load_universe, args.watchlist)
+        if loaded_universe is None:
+            watchlist = []
+            universe_meta = {
+                "path": str(args.watchlist),
+                "status": "UNRESOLVED",
+            }
+            sentiment = {**sentiment, "strategy_context_gate": "BLOCKED"}
+        else:
+            watchlist, universe_meta = loaded_universe
+            universe_meta = {**universe_meta, "status": "LOADED"}
+            sentiment = {**sentiment, "strategy_context_gate": "PASS"}
 
     candidates = build_candidate_rows(
         watchlist,
@@ -447,11 +450,12 @@ def main() -> int:
         },
     }
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    json_path = args.output_dir / f"{today_str}-market-monitor.json"
-    md_path = args.output_dir / f"{today_str}-market-monitor.md"
-    json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    md_path.write_text(render_markdown(report), encoding="utf-8")
+    if not args.market_only:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        json_path = args.output_dir / f"{today_str}-market-monitor.json"
+        md_path = args.output_dir / f"{today_str}-market-monitor.md"
+        json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        md_path.write_text(render_markdown(report), encoding="utf-8")
 
     if trade_day is True and total_turnover is not None:
         append_history(
@@ -465,10 +469,20 @@ def main() -> int:
             },
         )
 
+    public_market_ok = (
+        trade_day is True
+        and spot_provider != "UNAVAILABLE"
+        and sentiment.get("sentiment_score") is not None
+        and sentiment.get("regime") != "DATA_INSUFFICIENT"
+    )
     print(
         json.dumps(
             {
-                "report": str(md_path),
+                "report": None if args.market_only else str(md_path),
+                "market_only": args.market_only,
+                "public_market_ok": public_market_ok,
+                "market_metrics": metrics,
+                "sentiment": sentiment,
                 "strategy_id": SHORT_MID_STRATEGY_ID,
                 "sleeve": SHORT_MID_SLEEVE,
                 "regime": sentiment.get("regime"),
@@ -478,6 +492,8 @@ def main() -> int:
             ensure_ascii=False,
         )
     )
+    if args.market_only and not public_market_ok:
+        return 1
     return 0
 
 
