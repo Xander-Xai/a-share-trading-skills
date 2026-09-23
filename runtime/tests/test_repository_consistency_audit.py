@@ -55,6 +55,11 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
         state["scheduled_evidence_allowlist"].append("reports/private/daily/")
         self.assertFalse(self._semantic_check(state, "daily_workflow_write_model").ok)
 
+    def test_actions_pull_request_setting_must_be_documented(self):
+        state = self._current_state()
+        state["github_actions_permissions"]["allow_create_and_approve_pull_requests"] = False
+        self.assertFalse(self._semantic_check(state, "daily_workflow_write_model").ok)
+
     def test_daily_workflow_direct_main_push_fails(self):
         state = self._current_state()
         workflow = audit._read(".github/workflows/a-share-daily-monitor.yml")
@@ -63,6 +68,27 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
                 unsafe_workflow = workflow.replace('git push origin "$branch"', direct_push)
                 check = audit._daily_workflow_write_model_check(state, unsafe_workflow)
                 self.assertFalse(check.ok)
+
+    def test_daily_workflow_must_not_submit_pr_approvals(self):
+        state = self._current_state()
+        workflow = audit._read(".github/workflows/a-share-daily-monitor.yml")
+        workflow = workflow.replace("gh pr create", "gh pr review --approve")
+        self.assertFalse(audit._daily_workflow_write_model_check(state, workflow).ok)
+
+    def test_daily_workflow_dispatches_required_governance_for_bot_pr(self):
+        state = self._current_state()
+        workflow = audit._read(".github/workflows/a-share-daily-monitor.yml")
+        self.assertFalse(audit._daily_workflow_write_model_check(state, workflow.replace("gh workflow run repository-governance.yml", "gh workflow run other.yml")).ok)
+
+    def test_existing_evidence_branch_is_pushed_after_optional_commit(self):
+        state = self._current_state()
+        workflow = audit._read(".github/workflows/a-share-daily-monitor.yml")
+        unsafe = workflow.replace(
+            '            git commit -m "chore: update public market evidence"\n          fi\n          # This also fast-forwards a previously behind evidence branch when\n          # the new artifact itself has no staged data delta.\n          git push origin "$branch"',
+            '            git commit -m "chore: update public market evidence"\n            git push origin "$branch"\n          fi',
+        )
+        self.assertNotEqual(unsafe, workflow)
+        self.assertFalse(audit._daily_workflow_write_model_check(state, unsafe).ok)
 
     def test_champion_drift_fails(self):
         state = self._current_state()
