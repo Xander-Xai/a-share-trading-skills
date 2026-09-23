@@ -8,10 +8,11 @@
 >
 > Theoretical provenance:
 > - `research-basis.md`
-> - `../../../research/short-mid-blind-replay-theoretical-audit-v1.md`
 > - `methodology-consolidation-and-validation-contract.md`
 > - `holding-risk-management.md`
 > - `adversarial-review.md`
+>
+> No standalone blind-replay theoretical-audit file is present in the tracked repository. This layer does not claim one as a source.
 
 ## 1. Objective
 

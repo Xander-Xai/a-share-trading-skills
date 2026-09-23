@@ -5,7 +5,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +30,27 @@ SENTIMENT_WEIGHTS = {
     "median_score": 10.0,
     "turnover_score": 15.0,
 }
+
+MonitorState = Literal[
+    "NO_ACTION",
+    "NO_ACTION_STRATEGY_MISMATCH",
+    "REJECT",
+    "WAIT",
+    "WAIT_NO_CHASE",
+    "WATCH",
+    "READY",
+    "EXIT_REVIEW",
+    "RISK_EXIT_REVIEW",
+    "TRIM_REVIEW",
+    "ADD_REVIEW",
+    "HOLD_REVIEW",
+    "NO_ACTION_DATA_MISSING",
+    "NO_NEW_ENTRY",
+    "EVENT_REVIEW",
+    "REFRESH_FULL_GATES",
+    "REFRESH_SETUP",
+    "RISK_REVIEW",
+]
 
 
 def clip(value: float, lower: float = 0.0, upper: float = 100.0) -> float:
@@ -201,8 +222,8 @@ class DecisionInput:
     add_gate_pass: bool = False
 
 
-def decide_short_mid_action(s: DecisionInput) -> str:
-    """Return a deterministic short/mid research/action state.
+def decide_short_mid_monitor_state(s: DecisionInput) -> MonitorState:
+    """Return a typed monitor state, never a canonical position state or order.
 
     This engine never bypasses broker or capital-policy gates. It is deliberately
     conservative: incomplete data always produces NO_ACTION.
@@ -244,7 +265,7 @@ def decide_short_mid_action(s: DecisionInput) -> str:
         return "WATCH"
 
     if s.thesis_invalidated or s.invalidation_hit:
-        return "EXIT"
+        return "EXIT_REVIEW"
 
     if s.hard_risk_breach:
         return "RISK_EXIT_REVIEW"
@@ -253,6 +274,6 @@ def decide_short_mid_action(s: DecisionInput) -> str:
         return "TRIM_REVIEW"
 
     if s.add_confirmation and s.add_gate_pass and s.risk_budget_pass:
-        return "ADD"
+        return "ADD_REVIEW"
 
-    return "HOLD"
+    return "HOLD_REVIEW"

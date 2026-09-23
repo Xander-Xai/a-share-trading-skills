@@ -501,10 +501,10 @@ ERG Challenger 另外维护两个独立字段：
 
 ```text
 research_state = REJECT / WATCH / CANDIDATE / CONFIRMED / INVALIDATED
-position_state = FLAT / READY / ENTRY / HOLD / ADD / TRIM / EXIT / COOLDOWN
+position_state = FLAT / ENTRY / HOLD / ADD / TRIM / EXIT / COOLDOWN
 ```
 
-因此 `CONFIRMED` 不等于必须立即买入。
+`READY` belongs to research/monitor state, not `position_state`; `CONFIRMED` does not mean an entry is authorized. Execution-side `BUY/SELL`, position intent, canonical position state, authorization state, and monitor `pre_action` are separate namespaces; see `configs/governance/current-state.json`.
 
 ## 18. Stop Rules
 

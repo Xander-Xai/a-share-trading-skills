@@ -38,6 +38,8 @@ Account / Risk / Ledger / Execution
 
 ## Current governance versions
 
+The machine-readable source of the current governance, strategy, runtime, model and storage state is [`configs/governance/current-state.json`](configs/governance/current-state.json). This summary is documentation and is checked against that registry and the version headers.
+
 ```text
 Capital Eligibility:    v2 (Level 0 hard veto)
 Pre-Trade Authorization: v1.1 (Level 0 hard veto)
@@ -49,6 +51,8 @@ Canonical PIT Data:      v1.2
 ```
 
 规则优先级读取 `shared/policy-precedence.md`。
+
+GitHub repository governance uses `SOLO_MAINTAINER`: protected-main PRs require the `governance` check and resolved conversations, allow zero required approvals, enforce rules for administrators, block force-push/deletion, and configure no bypass actors. The machine-readable expected policy is recorded in `configs/governance/current-state.json`.
 
 ## Real-money buy hard gate
 
@@ -211,8 +215,8 @@ Forward / retrospective research according to evidence class
 详见：
 
 - `skills/a-share-short-midterm-stock-selection/references/sample-data-acquisition-contract.md`
-- `runtime/private/sample_registry.json` (local only)
-- `runtime/state/private/sample_evidence/manual_events/trade_events.jsonl` (local only)
+- `runtime/private/sample_registry.json` (optional local private registry; absent is an allowed fail-closed state)
+- `runtime/state/private/sample_evidence/` (`PRIVATE_OPTIONAL`; row-level evidence is local-only and created only by local collection)
 
 ## Shared account risk
 
@@ -281,15 +285,17 @@ strategy_visibility
 
 ```text
 runtime/daily_monitor.py
-runtime/sample_collector.py
-runtime/sample_maturity.py
 runtime/monitor.py
-runtime/private/short_mid_universe.json
-runtime/private/sample_registry.json
-runtime/state/private/sample_evidence/
+runtime/sample_collector.py
+runtime/sample_collector_resilient.py
+runtime/sample_maturity.py
+runtime/repository_consistency_audit.py
 runtime/tests/
 src/core/strategy_boundary.py
 src/core/pit.py
+src/core/pit_store.py
+configs/governance/current-state.json
+configs/short_mid/champion-v1.json
 .github/workflows/a-share-daily-monitor.yml
 ```
 
@@ -303,15 +309,15 @@ AUTO_MONITOR = true
 AUTO_ORDER   = false
 ```
 
-默认 runtime universe 已从历史 `examples/` 解耦到：
+Local candidate monitoring may use this optional, ignored private universe:
 
-`runtime/private/short_mid_universe.json` (ignored local configuration)
+`runtime/private/short_mid_universe.json` (`PRIVATE_OPTIONAL`; it is not tracked and may be absent)
 
-真实/研究样本注册表独立维护于：
+Local sample collection may use this optional, ignored registry:
 
-`runtime/private/sample_registry.json` (ignored local configuration)
+`runtime/private/sample_registry.json` (`PRIVATE_OPTIONAL`; when absent, collection exits fail-closed with `ABSENT_NO_FORWARD_SAMPLES`)
 
-`examples/` 只保存显式标记的 synthetic fixtures；真实 Level-4 universe/cohort 与 Forward/Replay evidence 位于 ignored local private state，不是 tracked source。
+Public examples are synthetic fixtures. Real candidate selections and execution-linked sample evidence remain private and are never required by the public market-only workflow. Use `python -m runtime.daily_monitor --market-only` for public market metrics/history; normal candidate mode writes reports only to generated private paths.
 
 ### Local checks
 
@@ -320,10 +326,13 @@ python -m pip install -r runtime/requirements.txt
 python -m pip check
 python -m compileall -q runtime src
 python -m unittest discover -s runtime/tests -v
-python runtime/daily_monitor.py
+python -m runtime.daily_monitor --market-only
+python runtime/daily_monitor.py  # local candidate monitor; private universe is optional
 python runtime/sample_collector.py
 python runtime/sample_maturity.py
 ```
+
+When the private sample registry is absent, `sample_collector` records `ABSENT_NO_FORWARD_SAMPLES` and does not fabricate evidence. A missing private candidate universe blocks candidate monitoring only; it does not invalidate successfully computed public market sentiment.
 
 当前测试包括：
 
@@ -341,9 +350,9 @@ python runtime/sample_maturity.py
 
 ## Production evolution
 
-批准的生产演进依据：
+Historical architecture baseline (not a current implementation inventory):
 
-`research/production-system-evolution-report-2026-08-28.md`
+`research/production-system-evolution-report-2026-08-28.md` (classified `HISTORICAL_SNAPSHOT` in the current-state registry)
 
 第一阶段目标不是自动下单，而是：
 
@@ -395,52 +404,30 @@ Qlib、vn.py、PostgreSQL、MLflow、Prefect、OpenTelemetry 等按真实需求�
 
 ## Repository map
 
-```text
-shared/
-  policy-precedence.md
-  capital-eligibility-and-investor-risk-philosophy.md
-  pre-trade-order-authorization-contract.md
-  capital-allocation-and-entry-policy.md
-  automation-execution-governance.md
-  research-model-governance.md
-  strategy-boundary-contract.md
-  canonical-pit-data-contract.md
+The machine-readable [`configs/governance/current-state.json`](configs/governance/current-state.json) is the canonical inventory. The following entry points are tracked on main and checked against Git's tree:
 
-research/
-  a-share-long-vs-tactical-empirical-study.md
-  production-system-evolution-report-2026-08-28.md
-  short-mid-blind-replay-theoretical-audit-v1.md
-  short-mid-risk-resilience-integration-v1.md
-  short-mid-risk-resilience-experiment-v1.md
+| Path | Role |
+|---|---|
+| `shared/` | Shared policy and governance contracts |
+| `research/` | Research records; dated reports are historical unless explicitly promoted |
+| `skills/` | Versioned strategy and workflow specifications |
+| `src/core/` | Executable core contracts |
+| `runtime/daily_monitor.py` | Public market and local candidate monitor |
+| `runtime/monitor.py` | Short/mid monitor-state engine |
+| `runtime/sample_collector.py` | Private sample evidence collector |
+| `runtime/sample_collector_resilient.py` | Resilient private sample collector |
+| `runtime/sample_maturity.py` | Private sample maturity report |
+| `runtime/repository_consistency_audit.py` | Fail-closed repository audit |
+| `runtime/tests/` | Deterministic runtime regression suite |
+| `configs/governance/current-state.json` | Canonical current governance/runtime registry |
+| `configs/short_mid/champion-v1.json` | Active Champion configuration |
+| `configs/data/trading_calendar/` | Public trading-calendar inputs |
+| `.github/workflows/repository-governance.yml` | Required governance check |
+| `.github/workflows/a-share-daily-monitor.yml` | Scheduled/public monitor workflow |
 
-skills/
-  a-share-multi-asset-allocation/
-  a-share-retirement-investing/
-  a-share-short-midterm-stock-selection/
-    references/risk-resilience-layer.md
-    references/sample-data-acquisition-contract.md
+Optional private and generated paths are described above; they are not guaranteed tracked artifacts.
 
-src/core/
-  strategy_boundary.py
-  pit.py
-  pit_store.py
-  pretrade_risk_gate.py
-
-runtime/
-  pretrade_cli.py
-  repository_consistency_audit.py
-  daily_monitor.py
-  sample_collector.py
-  sample_maturity.py
-  monitor.py
-  config/short_mid_universe.json
-  config/sample_registry.json
-  state/sample_evidence/
-  tests/
-
-reports/
-  daily/
-```
+No standalone blind-replay theoretical-audit artifact is claimed; blind-replay methodology remains in the active Skill references, while this map lists only tracked paths that exist.
 
 ## Rule precedence
 

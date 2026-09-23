@@ -49,11 +49,12 @@ The following schema describes private local input only; never commit populated 
 ```yaml
 code:
 trade_date:
-action: BUY | ADD | TRIM | SELL
+execution_side: BUY | SELL
+position_intent: ENTRY | ADD | TRIM | EXIT
 actual_average_fill_price:
 ```
 
-`BUY` / `SELL` here describe execution-side sample events only; they are not canonical position-state semantics and do not replace the policy states `ENTRY` / `ADD` / `TRIM` / `EXIT`.
+`execution_side` records the submitted side; `position_intent` records why the position changes. They are not interchangeable (`SELL` may implement `TRIM` or `EXIT`). Neither field is a monitor `pre_action` or an authorization state. Existing records with the older overloaded `action` field are `UNKNOWN` unless their intent is independently recoverable; do not infer intent from BUY/SELL alone.
 
 Strongly preferred when available:
 

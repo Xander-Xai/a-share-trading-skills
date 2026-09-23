@@ -1,11 +1,95 @@
+import json
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from runtime import repository_consistency_audit as audit
 
 
 class RepositoryConsistencyAuditTests(unittest.TestCase):
+    def _current_state(self):
+        state, result = audit._load_current_state()
+        self.assertTrue(result.ok, result.detail)
+        return json.loads(json.dumps(state))
+
+    def _semantic_check(self, state, name):
+        return next(check for check in audit._state_semantics_checks(state) if check.name == name)
+
+    def test_registry_policy_version_drift_fails(self):
+        state = self._current_state()
+        original_read = audit._read
+
+        def drifted_read(path):
+            if path == state["policy_versions"]["capital_allocation"]["path"]:
+                return "# Capital Allocation Contract v99\n"
+            return original_read(path)
+
+        with patch.object(audit, "_read", side_effect=drifted_read):
+            check = next(c for c in audit._registry_version_checks(state) if c.name == "registry_policy_versions")
+        self.assertFalse(check.ok)
+
+    def test_registry_skill_version_drift_fails(self):
+        state = self._current_state()
+        state["skill_versions"]["short_midterm_stock_selection"]["version"] = "99.0"
+        check = next(c for c in audit._registry_version_checks(state) if c.name == "registry_skill_versions")
+        self.assertFalse(check.ok)
+
+    def test_missing_readme_repository_map_target_fails(self):
+        state = self._current_state()
+        missing = "docs/not-a-real-repository-target.md"
+        state["repository_map_paths"].append(missing)
+        readme = audit._read("README.md").replace("## Rule precedence", f"| `{missing}` | invalid target |\n\n## Rule precedence")
+        result = audit._repository_map_consistency(readme, state, audit._git_tracked_paths())
+        self.assertFalse(result.ok)
+        self.assertIn(missing, result.detail)
+
+    def test_registry_auto_order_drift_fails(self):
+        state = self._current_state()
+        state["runtime"]["auto_order"] = True
+        self.assertFalse(self._semantic_check(state, "runtime_order_safety").ok)
+
+    def test_champion_drift_fails(self):
+        state = self._current_state()
+        state["models"]["champion"]["status"] = "SHADOW_ONLY"
+        self.assertFalse(self._semantic_check(state, "model_governance").ok)
+
+    def test_erg_silent_promotion_fails(self):
+        state = self._current_state()
+        state["models"]["erg"]["status"] = "ACTIVE"
+        self.assertFalse(self._semantic_check(state, "model_governance").ok)
+
+    def test_strategy_id_mismatch_fails(self):
+        state = self._current_state()
+        state["strategies"]["short_mid"]["strategy_id"] = "wrong_strategy"
+        self.assertFalse(self._semantic_check(state, "strategy_context").ok)
+
+    def test_sleeve_mismatch_fails(self):
+        state = self._current_state()
+        state["strategies"]["long"]["sleeve"] = "short_mid"
+        self.assertFalse(self._semantic_check(state, "strategy_context").ok)
+
+    def test_historical_document_cannot_be_marked_as_current(self):
+        state = self._current_state()
+        state["historical_document_policy"]["current_authority"] = True
+        self.assertFalse(self._semantic_check(state, "historical_document_classification").ok)
+
+    def test_invalid_state_namespace_fails(self):
+        state = self._current_state()
+        state["state_namespaces"]["position_state"].append("READY")
+        self.assertFalse(self._semantic_check(state, "state_namespaces").ok)
+
+    def test_broken_internal_markdown_link_fails(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source = root / "docs" / "source.md"
+            source.parent.mkdir(parents=True)
+            source.write_text("[missing](not-present.md)\n", encoding="utf-8")
+            with patch.object(audit, "ROOT", root):
+                result = audit._internal_links_exist({"docs/source.md"})
+        self.assertFalse(result.ok)
+
     def test_git_enumeration_failure_is_not_a_privacy_pass(self):
         with patch.object(audit.subprocess, "run", side_effect=FileNotFoundError("git")):
             checks = audit.run_audit()

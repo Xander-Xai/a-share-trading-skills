@@ -287,9 +287,7 @@ A probability such as `50% / 30% / 20%` may only enter a research artifact if it
 
 A replay created after outcomes are known may test process/PIT discipline but is not Level-C forward evidence even when future data are manually hidden.
 
-Detailed adversarial audit and theory mapping:
-
-- `../../../research/short-mid-blind-replay-theoretical-audit-v1.md`
+No standalone blind-replay theoretical-audit file is present in the tracked repository; the repository map does not claim a substitute artifact. The active blind-replay and probability-discipline rules are stated above and in the methodology consolidation contract.
 
 Retrospective blind replay is useful for PIT/process testing, but is not untouched forward evidence. Public examples use only the anonymized methodology record `CASE-SM-001`; no security-specific replay or execution details are retained.
 

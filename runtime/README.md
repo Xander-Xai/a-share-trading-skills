@@ -88,10 +88,10 @@ RESEARCH / MONITOR INPUT
 
 ## Runtime Universe
 
-默认配置：
+Optional local configuration (ignored by Git; may be absent):
 
 ```text
-runtime/private/short_mid_universe.json
+runtime/private/short_mid_universe.json (PRIVATE_OPTIONAL)
 ```
 
 不再默认读取：
@@ -113,7 +113,9 @@ source_type
 stocks
 ```
 
-当前配置是 2026-08-28 approved short/mid research set 的 runtime bootstrap。未来 Production Research 应由 current universe service/config/database 生成并版本化，而不是人工永久维护某个历史 snapshot。
+If this private file is absent, candidate monitoring is unavailable; it does not invalidate public market metrics or market-wide history. The scheduled/public workflow uses `python -m runtime.daily_monitor --market-only` and does not require a private universe. When present locally, the file must declare strategy context and is monitored as before.
+
+The canonical current governance/runtime truth is `../configs/governance/current-state.json`; policy and Skill version headers are checked against it by the repository audit.
 
 仍保留 `--watchlist` CLI 参数名以兼容现有调用，但其输入现在应是 strategy-tagged runtime universe payload。
 
@@ -178,18 +180,21 @@ python -m pip install -r runtime/requirements.txt
 python -m pip check
 python -m compileall -q runtime src
 python -m unittest discover -s runtime/tests -v
-python runtime/daily_monitor.py
+python -m runtime.daily_monitor --market-only
+python runtime/daily_monitor.py  # local candidate-monitor mode; universe is optional
 ```
 
-输出：
+Generated private candidate report output and tracked public aggregate history:
 
 ```text
-reports/private/daily/YYYY-MM-DD-market-monitor.json
-reports/private/daily/YYYY-MM-DD-market-monitor.md
+reports/private/daily/ (GENERATED_PRIVATE; optional local monitor reports)
+reports/private/sample_evidence/ (GENERATED_PRIVATE; optional local sample reports)
 runtime/state/market_history.csv
 ```
 
 `market_history.csv` 仅存全市场聚合统计。逐候选监控结果、样本注册表、真实交易行和成熟度报告默认保存在 ignored local private paths；CI 不提交这些运行产物。
+
+`runtime/private/sample_registry.json` is an optional local private registry. If it is absent, sample collection records `ABSENT_NO_FORWARD_SAMPLES`, exits without provider collection, and does not imply that the registry is a tracked artifact.
 
 这些输出属于 **Generated Evidence / Runtime State**，不是 Policy，也不是可直接执行的订单。
 

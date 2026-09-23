@@ -1,5 +1,9 @@
 # A-share Methodology → Production System Evolution Report — 2026-08-28
 
+> HISTORICAL SNAPSHOT / NOT CURRENT IMPLEMENTATION INVENTORY
+>
+> This report records the repository assessment as of 2026-08-28. Statements about components being planned or not yet implemented are historical and are not authoritative descriptions of current `main`; consult `configs/governance/current-state.json`, active contracts and the tracked implementation.
+
 > Status: `APPROVED ARCHITECTURE BASIS`
 >
 > Scope: repository evolution from Skill/Governance-led research to reproducible research, Paper and optional Live execution.
