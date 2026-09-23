@@ -2,6 +2,7 @@ import contextlib
 import csv
 import io
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -18,6 +19,17 @@ from runtime import daily_monitor
 
 
 class MarketOnlyMonitorTests(unittest.TestCase):
+    def test_daily_monitor_supports_module_and_script_entrypoints(self):
+        repo_root = Path(__file__).resolve().parents[2]
+        for command in (
+            [sys.executable, "-m", "runtime.daily_monitor", "--help"],
+            [sys.executable, "runtime/daily_monitor.py", "--help"],
+        ):
+            with self.subTest(command=command):
+                result = subprocess.run(command, cwd=repo_root, capture_output=True, text=True, check=False)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("--market-only", result.stdout)
+
     def _spot(self):
         return pd.DataFrame(
             {
