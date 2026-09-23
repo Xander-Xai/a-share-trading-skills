@@ -407,12 +407,13 @@ checkout
 → pip check
 → compileall
 → unit tests
-→ run fail-closed monitor
-→ verify runtime/workflow did not change during run
-→ commit generated report/history if changed
+→ run public market-only monitor and private collectors
+→ upload only public aggregate market history as a workflow artifact
+→ a separate write-scoped publisher validates AUTO_ORDER=false and the one-path allowlist
+→ update deterministic evidence branch and create/update a protected-main PR
 ```
 
-`contents: write` 只用于提交生成的报告/历史状态；当前 runtime 不包含 Broker 下单模块。
+The test/monitor job is read-only. Only the isolated publisher job has `contents: write` and `pull-requests: write`; it never pushes directly to `main`. The only permitted generated path is `runtime/state/market_history.csv`. Candidate reports, sample evidence, universe, and account data are not uploaded or committed. Normal branch protection and required checks govern evidence PRs; no bypass actor is used.
 
 ## Runtime 测试
 

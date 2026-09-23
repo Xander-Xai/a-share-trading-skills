@@ -6,13 +6,14 @@ not inferred from workflow YAML. The intended state is:
 - `delete_branch_on_merge = true`;
 - `main` cannot be deleted or force-pushed;
 - source and governance changes merge through pull requests;
+- solo-maintainer policy requires zero approvals, the `governance` check, resolved conversations, administrator enforcement, and no bypass actors;
 - `Repository Governance` is the deterministic required check;
 - the market monitor is not a required merge check while it depends on external
   providers; provider outages must remain fail-closed and separately reported.
 
-The daily monitor must not create an infinite workflow loop. A safe deployment
-choice is a bot/evidence branch with a pull request, or a narrowly scoped
-ruleset bypass for the workflow actor that can write only generated evidence.
-The owner must select and configure one of these in Settings → Rules → Rulesets
-and verify it with a test PR. This checkout cannot claim those settings were
-changed without a successful GitHub API response.
+The Daily Monitor uses a deterministic `automation/public-market-evidence`
+branch and one PR at a time. Its isolated publisher job can write only
+`runtime/state/market_history.csv`, creates or updates the PR, and relies on
+normal protected-main checks. The monitor/test job has read-only permissions.
+No workflow bypass actor is configured or required. The workflow never pushes
+directly to `main`.

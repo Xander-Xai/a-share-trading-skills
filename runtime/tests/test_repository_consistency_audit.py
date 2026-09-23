@@ -50,6 +50,20 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
         state["runtime"]["auto_order"] = True
         self.assertFalse(self._semantic_check(state, "runtime_order_safety").ok)
 
+    def test_scheduled_evidence_allowlist_drift_fails(self):
+        state = self._current_state()
+        state["scheduled_evidence_allowlist"].append("reports/private/daily/")
+        self.assertFalse(self._semantic_check(state, "daily_workflow_write_model").ok)
+
+    def test_daily_workflow_direct_main_push_fails(self):
+        state = self._current_state()
+        workflow = audit._read(".github/workflows/a-share-daily-monitor.yml")
+        for direct_push in ("git push origin HEAD:main", "git push --force origin main"):
+            with self.subTest(direct_push=direct_push):
+                unsafe_workflow = workflow.replace('git push origin "$branch"', direct_push)
+                check = audit._daily_workflow_write_model_check(state, unsafe_workflow)
+                self.assertFalse(check.ok)
+
     def test_champion_drift_fails(self):
         state = self._current_state()
         state["models"]["champion"]["status"] = "SHADOW_ONLY"

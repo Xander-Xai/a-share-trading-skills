@@ -71,6 +71,9 @@
     "auto_order": false,
     "market_only_command": "python -m runtime.daily_monitor --market-only"
   },
+  "scheduled_evidence_allowlist": [
+    "runtime/state/market_history.csv"
+  ],
   "models": {
     "champion": {
       "status": "ACTIVE",
