@@ -10,7 +10,7 @@ if str(RUNTIME_DIR) not in sys.path:
 from monitor import (
     DecisionInput,
     calculate_sentiment,
-    decide_short_mid_action,
+    decide_short_mid_monitor_state,
     normalize_stock_code,
 )
 from src.core.strategy_boundary import LONG_SLEEVE, LONG_STRATEGY_ID
@@ -98,13 +98,13 @@ class ActionEngineTests(unittest.TestCase):
             risk_budget_pass=True,
         )
         self.assertEqual(
-            decide_short_mid_action(state),
+            decide_short_mid_monitor_state(state),
             "NO_ACTION_STRATEGY_MISMATCH",
         )
 
     def test_incomplete_data_never_trades(self):
         self.assertEqual(
-            decide_short_mid_action(DecisionInput(data_complete=False)),
+            decide_short_mid_monitor_state(DecisionInput(data_complete=False)),
             "NO_ACTION",
         )
 
@@ -118,7 +118,7 @@ class ActionEngineTests(unittest.TestCase):
             reward_risk_pass=True,
             risk_budget_pass=True,
         )
-        self.assertEqual(decide_short_mid_action(state), "WAIT")
+        self.assertEqual(decide_short_mid_monitor_state(state), "WAIT")
 
     def test_risk_off_is_not_automatic_veto_when_stricter_gates_pass(self):
         state = DecisionInput(
@@ -130,7 +130,7 @@ class ActionEngineTests(unittest.TestCase):
             reward_risk_pass=True,
             risk_budget_pass=True,
         )
-        self.assertEqual(decide_short_mid_action(state), "READY")
+        self.assertEqual(decide_short_mid_monitor_state(state), "READY")
 
     def test_risk_off_without_tight_entry_gate_stays_watch(self):
         state = DecisionInput(
@@ -142,7 +142,7 @@ class ActionEngineTests(unittest.TestCase):
             reward_risk_pass=True,
             risk_budget_pass=True,
         )
-        self.assertEqual(decide_short_mid_action(state), "WATCH")
+        self.assertEqual(decide_short_mid_monitor_state(state), "WATCH")
 
     def test_ready_requires_all_entry_gates(self):
         state = DecisionInput(
@@ -154,7 +154,7 @@ class ActionEngineTests(unittest.TestCase):
             reward_risk_pass=True,
             risk_budget_pass=True,
         )
-        self.assertEqual(decide_short_mid_action(state), "READY")
+        self.assertEqual(decide_short_mid_monitor_state(state), "READY")
 
     def test_invalidated_position_exits(self):
         state = DecisionInput(
@@ -162,7 +162,16 @@ class ActionEngineTests(unittest.TestCase):
             has_position=True,
             thesis_invalidated=True,
         )
-        self.assertEqual(decide_short_mid_action(state), "EXIT")
+        self.assertEqual(decide_short_mid_monitor_state(state), "EXIT_REVIEW")
+
+    def test_monitor_engine_never_emits_position_mutation_states(self):
+        for state in (
+            DecisionInput(data_complete=True, has_position=False, entry_gate_pass=True, score_gate_pass=True, reward_risk_pass=True, risk_budget_pass=True),
+            DecisionInput(data_complete=True, has_position=True, add_confirmation=True, add_gate_pass=True, risk_budget_pass=True),
+            DecisionInput(data_complete=True, has_position=True),
+        ):
+            result = decide_short_mid_monitor_state(state)
+            self.assertNotIn(result, {"ENTRY", "ADD", "HOLD", "TRIM", "EXIT"})
 
 
 if __name__ == "__main__":

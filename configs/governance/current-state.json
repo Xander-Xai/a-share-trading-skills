@@ -1,0 +1,200 @@
+{
+  "schema_version": "1.0",
+  "governance_mode": "SOLO_MAINTAINER",
+  "branch_protection": {
+    "pull_request_required": true,
+    "required_approvals": 0,
+    "required_checks": ["governance"],
+    "conversation_resolution_required": true,
+    "force_push_allowed": false,
+    "deletion_allowed": false,
+    "admin_enforcement": true,
+    "bypass_actors": []
+  },
+  "policy_versions": {
+    "capital_eligibility": {
+      "path": "shared/capital-eligibility-and-investor-risk-philosophy.md",
+      "version": "2"
+    },
+    "pre_trade_authorization": {
+      "path": "shared/pre-trade-order-authorization-contract.md",
+      "version": "1.1"
+    },
+    "capital_allocation": {
+      "path": "shared/capital-allocation-and-entry-policy.md",
+      "version": "2.6"
+    },
+    "automation_execution": {
+      "path": "shared/automation-execution-governance.md",
+      "version": "1.5"
+    },
+    "research_model": {
+      "path": "shared/research-model-governance.md",
+      "version": "3.2"
+    },
+    "strategy_boundary": {
+      "path": "shared/strategy-boundary-contract.md",
+      "version": "1"
+    },
+    "canonical_pit_data": {
+      "path": "shared/canonical-pit-data-contract.md",
+      "version": "1.2"
+    }
+  },
+  "skill_versions": {
+    "multi_asset_allocation": {
+      "path": "skills/a-share-multi-asset-allocation/SKILL.md",
+      "version": "1.1.1"
+    },
+    "retirement_investing": {
+      "path": "skills/a-share-retirement-investing/SKILL.md",
+      "version": "2.2.2"
+    },
+    "short_midterm_stock_selection": {
+      "path": "skills/a-share-short-midterm-stock-selection/SKILL.md",
+      "version": "1.7.3"
+    }
+  },
+  "strategies": {
+    "long": {
+      "strategy_id": "a_share_long_retirement",
+      "sleeve": "long"
+    },
+    "short_mid": {
+      "strategy_id": "a_share_short_mid",
+      "sleeve": "short_mid"
+    }
+  },
+  "runtime": {
+    "mode": "SHORT_MID_MONITOR_ONLY",
+    "auto_monitor": true,
+    "auto_order": false,
+    "market_only_command": "python -m runtime.daily_monitor --market-only"
+  },
+  "models": {
+    "champion": {
+      "status": "ACTIVE",
+      "config_path": "configs/short_mid/champion-v1.json"
+    },
+    "erg": {
+      "status": "SHADOW_ONLY"
+    },
+    "causal_challenger": {
+      "status": "SHADOW_ONLY"
+    }
+  },
+  "storage_namespaces": {
+    "public_market_truth": {
+      "paths": [
+        "runtime/state/market_history.csv",
+        "configs/data/trading_calendar/"
+      ],
+      "tracking": "PUBLIC_TRACKED"
+    },
+    "private_execution_truth": {
+      "paths": [
+        "runtime/private/",
+        "runtime/state/private/",
+        "runtime/state/sample_evidence/",
+        "runtime/pretrade_authorizations/",
+        "reports/private/",
+        "reports/daily/",
+        "reports/trades/private/",
+        "runtime/portfolio_instances.json",
+        "runtime/portfolio_instances.local.json",
+        "runtime/config/short_mid_universe.json",
+        "runtime/config/sample_registry.json"
+      ],
+      "tracking": "IGNORED_PRIVATE_OPTIONAL"
+    },
+    "strategy_configuration_truth": {
+      "paths": [
+        "configs/governance/current-state.json",
+        "configs/short_mid/champion-v1.json",
+        "src/core/strategy_boundary.py"
+      ],
+      "tracking": "PUBLIC_TRACKED"
+    },
+    "synthetic_public_fixtures": {
+      "paths": [
+        "skills/a-share-short-midterm-stock-selection/examples/synthetic-watchlist-case-study.md",
+        "skills/a-share-short-midterm-stock-selection/examples/synthetic-watchlist.json",
+        "skills/a-share-short-midterm-stock-selection/examples/synthetic-forward-cohort.md",
+        "skills/a-share-short-midterm-stock-selection/examples/synthetic-forward-cohort.json",
+        "skills/a-share-short-midterm-stock-selection/references/synthetic-core-pool-case.md",
+        "skills/a-share-retirement-investing/examples/synthetic-retirement-allocation.md",
+        "skills/a-share-retirement-investing/references/synthetic-seed-watchlist.md"
+      ],
+      "tracking": "PUBLIC_TRACKED",
+      "required_marker": "SYNTHETIC EXAMPLE / NOT REAL USER DATA"
+    }
+  },
+  "historical_document_policy": {
+    "path": "research/production-system-evolution-report-2026-08-28.md",
+    "classification": "HISTORICAL_SNAPSHOT",
+    "required_banner": "HISTORICAL SNAPSHOT / NOT CURRENT IMPLEMENTATION INVENTORY",
+    "current_authority": false
+  },
+  "state_namespaces": {
+    "execution_side": ["BUY", "SELL"],
+    "position_intent": ["ENTRY", "ADD", "TRIM", "EXIT"],
+    "position_state": ["FLAT", "ENTRY", "ADD", "HOLD", "TRIM", "EXIT", "COOLDOWN"],
+    "authorization_state": [
+      "AUTHORIZED",
+      "AUTHORIZED_RISK_REDUCTION",
+      "NEED_USER_INPUT",
+      "BLOCKED",
+      "NO_TRADE_POSITION_TOO_SMALL_FOR_RISK_BUDGET",
+      "NO_TRADE_TRANCHE_ROUNDS_BELOW_MINIMUM",
+      "NO_TRADE_POSITION_TOO_SMALL_FOR_CAPS",
+      "UNKNOWN"
+    ],
+    "research_state": ["REJECT", "WATCH", "CANDIDATE", "CONFIRMED", "INVALIDATED"],
+    "monitor_state": [
+      "NO_ACTION",
+      "NO_ACTION_STRATEGY_MISMATCH",
+      "NO_ACTION_DATA_MISSING",
+      "REJECT",
+      "WAIT",
+      "WAIT_NO_CHASE",
+      "WATCH",
+      "READY",
+      "EXIT_REVIEW",
+      "RISK_EXIT_REVIEW",
+      "TRIM_REVIEW",
+      "ADD_REVIEW",
+      "HOLD_REVIEW",
+      "NO_NEW_ENTRY",
+      "EVENT_REVIEW",
+      "REFRESH_FULL_GATES",
+      "REFRESH_SETUP",
+      "RISK_REVIEW"
+    ]
+  },
+  "privacy_boundary_version": "1.0",
+  "repository_map_paths": [
+    "shared/",
+    "research/",
+    "skills/",
+    "src/core/",
+    "runtime/daily_monitor.py",
+    "runtime/monitor.py",
+    "runtime/sample_collector.py",
+    "runtime/sample_collector_resilient.py",
+    "runtime/sample_maturity.py",
+    "runtime/repository_consistency_audit.py",
+    "runtime/tests/",
+    "configs/governance/current-state.json",
+    "configs/short_mid/champion-v1.json",
+    "configs/data/trading_calendar/",
+    ".github/workflows/repository-governance.yml",
+    ".github/workflows/a-share-daily-monitor.yml"
+  ],
+  "documented_optional_or_generated_paths": {
+    "runtime/private/short_mid_universe.json": "PRIVATE_OPTIONAL",
+    "runtime/private/sample_registry.json": "PRIVATE_OPTIONAL",
+    "runtime/state/private/sample_evidence/": "PRIVATE_OPTIONAL",
+    "reports/private/daily/": "GENERATED_PRIVATE",
+    "reports/private/sample_evidence/": "GENERATED_PRIVATE"
+  }
+}

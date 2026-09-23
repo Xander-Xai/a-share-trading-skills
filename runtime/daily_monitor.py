@@ -251,7 +251,7 @@ def render_markdown(report: dict) -> str:
         "",
         "## Candidate monitor states",
         "",
-        "| Code | Name | Price | Day % | Vs baseline % | Snapshot | Pre-action |",
+        "| Code | Name | Price | Day % | Vs baseline % | Snapshot | Monitor pre_action |",
         "|---|---|---:|---:|---:|---|---|",
     ]
 
