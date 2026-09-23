@@ -15,7 +15,7 @@ from daily_monitor import DEFAULT_UNIVERSE, load_universe
 class RuntimeUniverseContractTests(unittest.TestCase):
     def test_default_universe_is_not_a_level4_example(self):
         normalized = DEFAULT_UNIVERSE.as_posix()
-        self.assertTrue(normalized.startswith("runtime/config/"))
+        self.assertTrue(normalized.startswith("runtime/private/"))
         self.assertNotIn("/examples/", normalized)
 
     def test_valid_short_mid_universe_loads(self):

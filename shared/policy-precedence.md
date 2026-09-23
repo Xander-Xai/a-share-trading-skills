@@ -223,7 +223,9 @@ runtime/tests/*
 生成内容：
 
 ```text
+reports/private/*
 reports/daily/*
+runtime/state/sample_evidence/*
 runtime/state/*
 ```
 

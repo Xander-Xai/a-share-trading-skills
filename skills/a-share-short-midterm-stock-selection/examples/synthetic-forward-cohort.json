@@ -1,0 +1,15 @@
+{
+  "fixture_type": "SYNTHETIC EXAMPLE / NOT REAL USER DATA",
+  "classification": "SYNTHETIC",
+  "cohort_id": "CASE-SM-COHORT-001",
+  "identifiers_are_fictional": true,
+  "derived_from_user_watchlist": false,
+  "account_or_execution_data": false,
+  "production_effect": "NONE",
+  "auto_order": false,
+  "records": [
+    {"case_id": "CASE-SM-001", "research_state": "CANDIDATE", "position_state": "FLAT", "evidence_status": "SYNTHETIC_COMPLETE", "action": "REFRESH_ALL_GATES"},
+    {"case_id": "CASE-SM-002", "research_state": "WATCH", "position_state": "FLAT", "evidence_status": "TIMESTAMP_UNRESOLVED", "action": "BLOCKED_PENDING_EVIDENCE"},
+    {"case_id": "CASE-SM-003", "research_state": "INVALIDATED", "position_state": "FLAT", "evidence_status": "SYNTHETIC_COMPLETE", "action": "NO_NEW_ENTRY"}
+  ]
+}

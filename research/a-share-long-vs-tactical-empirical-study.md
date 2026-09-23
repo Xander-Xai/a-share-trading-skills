@@ -165,16 +165,16 @@ Biased / Non-promotable
 
 ## 7. Forward Study 起点
 
-仓库已有两个 2026-08-26 point-in-time baseline：
+历史研究曾使用与个人选择相关的候选集合；当前公开仓库不保留其证券列表或组合实例，改用合成 fixture 测试结构：
 
 ```text
-Long：十股养老模型 long-book
-Short/Mid：43股最终研究 whitelist
+Long：CASE-LONG synthetic allocation fixture
+Short/Mid：CASE-SM synthetic screening fixture
 ```
 
-它们都是 Level 4 历史起点，不是当前永久名单。
+这些 fixture 不是市场证据、个人组合或当前永久名单。
 
-从该日之后保存真正的 Forward 证据。
+真正的 Forward 证据必须留在私有存储中；公开发布只允许经过审查的非可识别聚合结果。
 
 每个研究日至少保存：
 

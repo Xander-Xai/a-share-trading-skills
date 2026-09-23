@@ -18,9 +18,9 @@ SH_TZ = ZoneInfo("Asia/Shanghai")
 SHORT_MID_STRATEGY_ID = "a_share_short_mid"
 SHORT_MID_SLEEVE = "short_mid"
 
-DEFAULT_REGISTRY = Path("runtime/config/sample_registry.json")
-DEFAULT_STATE_DIR = Path("runtime/state/sample_evidence")
-DEFAULT_REPORT_DIR = Path("reports/daily")
+DEFAULT_REGISTRY = Path("runtime/private/sample_registry.json")
+DEFAULT_STATE_DIR = Path("runtime/state/private/sample_evidence")
+DEFAULT_MARKET_REPORT_DIR = Path("reports/private/daily")
 
 
 def safe_call(errors: list[str], label: str, func, *args, **kwargs):
@@ -672,7 +672,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
-    parser.add_argument("--report-dir", type=Path, default=DEFAULT_REPORT_DIR)
+    parser.add_argument(
+        "--market-report-dir",
+        "--report-dir",
+        dest="market_report_dir",
+        type=Path,
+        default=DEFAULT_MARKET_REPORT_DIR,
+        help="input directory containing private daily market-monitor JSON reports",
+    )
     parser.add_argument("--as-of-date", type=str, default=None, help="YYYY-MM-DD override for deterministic research runs")
     args = parser.parse_args()
 
@@ -710,7 +717,9 @@ def main() -> int:
     for sample in registry["samples"]:
         if str(sample.get("status", "")).upper() not in {"OPEN", "OBSERVING", "REUNDERWRITTEN"}:
             continue
-        record, disclosures, hist, benchmark = build_sample_record(sample, as_of, ingested_at, args.state_dir, args.report_dir)
+        record, disclosures, hist, benchmark = build_sample_record(
+            sample, as_of, ingested_at, args.state_dir, args.market_report_dir
+        )
         effective_date = str(record["effective_date"])
         daily_path = args.state_dir / "daily" / f"{effective_date}.jsonl"
         if append_revisioned_daily(daily_path, record):

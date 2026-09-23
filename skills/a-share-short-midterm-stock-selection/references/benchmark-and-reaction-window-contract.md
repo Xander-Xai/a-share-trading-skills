@@ -247,12 +247,12 @@ Historical cohort records keep the contract version that existed when they were 
 
 Do not retrofit a newly invented benchmark/window contract onto an immutable forward baseline and then call the result original evidence.
 
-The `2026-08-28` eight-stock cohort was frozen before this contract became active.
+The synthetic forward-cohort fixture is not historical market evidence and does not establish when any private cohort used this contract.
 
 Therefore:
 
 ```text
-cohort decision baseline = immutable
+private cohort decision baseline = immutable in private storage
 new benchmark/window analyses = supplemental post-hoc diagnostics unless separately versioned
 ```
 

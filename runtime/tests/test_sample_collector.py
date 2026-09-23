@@ -1,21 +1,78 @@
 import json
 import tempfile
 import unittest
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
 
 from runtime.sample_collector import (
+    DEFAULT_MARKET_REPORT_DIR,
     append_revisioned_daily,
+    build_sample_record,
     checkpoint_metrics,
     derive_price_features,
+    load_market_report,
     main,
 )
 
 
 class SampleCollectorTests(unittest.TestCase):
+    def test_default_market_report_dir_matches_daily_monitor(self):
+        self.assertEqual(DEFAULT_MARKET_REPORT_DIR.as_posix(), "reports/private/daily")
+
+    def test_build_sample_record_loads_private_daily_market_report(self):
+        with tempfile.TemporaryDirectory() as td:
+            report_dir = Path(td) / "reports" / "private" / "daily"
+            report_dir.mkdir(parents=True)
+            market_report = {
+                "market_metrics": {"advance_count": 1200, "decline_count": 900},
+                "sentiment": {"sentiment_score": 61.25, "regime": "RISK_ON"},
+                "spot_provider": "EASTMONEY_PRIMARY",
+            }
+            (report_dir / "2026-09-22-market-monitor.json").write_text(
+                json.dumps(market_report), encoding="utf-8"
+            )
+            with patch("runtime.sample_collector.fetch_stock_history", return_value=pd.DataFrame({"x": [1]})), \
+                 patch("runtime.sample_collector.fetch_benchmark_history", return_value=pd.DataFrame({"x": [1]})), \
+                 patch("runtime.sample_collector.derive_price_features", return_value={"trade_date": "2026-09-22"}), \
+                 patch("runtime.sample_collector.fetch_vendor_flow", return_value={"status": "AVAILABLE"}), \
+                 patch("runtime.sample_collector.fetch_latest_margin", return_value={"status": "AVAILABLE"}), \
+                 patch("runtime.sample_collector.fetch_disclosures", return_value=[]):
+                record, _, _, _ = build_sample_record(
+                    {"sample_id": "synthetic-1", "code": "999999", "entry_date": "2026-09-01", "actual_average_cost": 10.0},
+                    date.fromisoformat("2026-09-23"),
+                    "2026-09-23T09:00:00+08:00",
+                    Path(td) / "state",
+                    report_dir,
+                )
+
+            self.assertEqual(load_market_report(report_dir, "2026-09-22"), market_report)
+            self.assertEqual(record["market_state"]["status"], "AVAILABLE")
+            self.assertTrue(record["data_quality"]["market_complete"])
+            self.assertEqual(record["market_state"]["sentiment"]["sentiment_score"], 61.25)
+
+    def test_build_sample_record_fails_closed_when_market_report_is_missing(self):
+        with tempfile.TemporaryDirectory() as td:
+            missing_report_dir = Path(td) / "reports" / "private" / "daily"
+            with patch("runtime.sample_collector.fetch_stock_history", return_value=pd.DataFrame({"x": [1]})), \
+                 patch("runtime.sample_collector.fetch_benchmark_history", return_value=pd.DataFrame({"x": [1]})), \
+                 patch("runtime.sample_collector.derive_price_features", return_value={"trade_date": "2026-09-22"}), \
+                 patch("runtime.sample_collector.fetch_vendor_flow", return_value={"status": "AVAILABLE"}), \
+                 patch("runtime.sample_collector.fetch_latest_margin", return_value={"status": "AVAILABLE"}), \
+                 patch("runtime.sample_collector.fetch_disclosures", return_value=[]):
+                record, _, _, _ = build_sample_record(
+                    {"sample_id": "synthetic-1", "code": "999999", "entry_date": "2026-09-01", "actual_average_cost": 10.0},
+                    date.fromisoformat("2026-09-23"),
+                    "2026-09-23T09:00:00+08:00",
+                    Path(td) / "state",
+                    missing_report_dir,
+                )
+
+            self.assertFalse(record["data_quality"]["market_complete"])
+            self.assertEqual(record["market_state"]["status"], "PROVIDER_ERROR")
+
     def test_missing_registry_is_deterministic_fail_closed(self):
         with tempfile.TemporaryDirectory() as td:
             state_dir = Path(td) / "state"

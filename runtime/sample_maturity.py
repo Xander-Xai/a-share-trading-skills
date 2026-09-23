@@ -10,8 +10,8 @@ from zoneinfo import ZoneInfo
 
 
 SH_TZ = ZoneInfo("Asia/Shanghai")
-DEFAULT_STATE_DIR = Path("runtime/state/sample_evidence")
-DEFAULT_OUTPUT_DIR = Path("reports/daily")
+DEFAULT_STATE_DIR = Path("runtime/state/private/sample_evidence")
+DEFAULT_OUTPUT_DIR = Path("reports/private/sample_evidence")
 
 QUALITY_FIELDS = [
     "price_complete",

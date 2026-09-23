@@ -47,7 +47,7 @@ Stock Account Equity
 + 股票账户待配置现金
 ```
 
-长期仓内部 Core/Growth、十股示例 `model_long_book_weight` 使用的是 **长期已部署权益仓内部分母**。
+长期仓内部 Core/Growth、合成示例的 `model_long_book_weight` 使用的是 **长期已部署权益仓内部分母**。
 
 因此模型权重执行前必须换算：
 
@@ -217,28 +217,9 @@ Expected IRR下降
 + 更优机会成本
 ```
 
-## 十股养老模型组合示例
+## 合成长期配置示例
 
-历史 Forward-Test 基线：
-
-`examples/ten-stock-retirement-portfolio-2026-08-26.md`
-
-十只股票：
-
-```text
-长江电力 / 招商银行 / 伊利股份
-中国石油 / 中国电信 / 格力电器 / 中国神华
-工业富联 / 立讯精密 / 中科曙光
-```
-
-历史 long-book 内部结构：
-
-```text
-Core Dividend = 80%
-Growth Satellite = 20%
-```
-
-该案例属于 Level 4 历史证据，不是永久推荐名单。真实买入前必须重新运行 Skill、重新计算 Expected IRR / Max Buy Price / 账户级 Cap，并聚合短中期同股/同因子暴露。
+`examples/synthetic-retirement-allocation.md` 仅展示估值、业务质量与风险审查步骤；不包含用户 watchlist、真实证券、账户权重或私人财务输入。真实执行输入只允许位于本地私有状态。
 
 ## Paper → Live → Automation
 
@@ -293,14 +274,14 @@ skills/a-share-retirement-investing/
 ├── SKILL.md
 ├── README.md
 ├── examples/
-│   ├── ten-stock-retirement-portfolio-2026-08-26.md
+│   ├── synthetic-retirement-allocation.md
 │   └── paper-live-automation-roadmap.md
 └── references/
     ├── methodology.md
     ├── industry-checklists.md
     ├── execution-template.md
     ├── expected-irr-total-return-benchmark.md
-    └── seed-watchlist-2026-08-26.md
+    └── synthetic-seed-watchlist.md
 ```
 
 ## 推荐阅读顺序
@@ -316,9 +297,9 @@ skills/a-share-retirement-investing/
 9. `references/industry-checklists.md`
 10. `references/expected-irr-total-return-benchmark.md`
 11. `references/execution-template.md`
-12. `examples/ten-stock-retirement-portfolio-2026-08-26.md`
+12. `examples/synthetic-retirement-allocation.md`
 13. `examples/paper-live-automation-roadmap.md`
-14. `references/seed-watchlist-2026-08-26.md`
+14. `references/synthetic-seed-watchlist.md`
 
 研究依据与审计：
 

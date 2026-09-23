@@ -8,12 +8,19 @@ Use local/private paths such as:
 
 ```text
 runtime/private/portfolio_instances.json
+runtime/private/short_mid_universe.json
+runtime/private/sample_registry.json
+runtime/state/private/sample_evidence/
 runtime/pretrade_authorizations/<decision_id>.json
 runtime/state/private/
 reports/private/
+reports/private/daily/
+reports/private/sample_evidence/
 ```
 
 These paths are ignored by `.gitignore`.
+
+Legacy public-output locations `runtime/config/short_mid_universe.json`, `runtime/config/sample_registry.json`, `runtime/state/sample_evidence/`, and `reports/daily/` are also ignored and must not be repopulated with private case rows.
 
 A sanitized schema example is available at:
 

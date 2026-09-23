@@ -1,10 +1,14 @@
 # Local/private runtime state — never commit personal financial data
 runtime/private/
 runtime/state/private/
+runtime/state/sample_evidence/
 runtime/pretrade_authorizations/
+runtime/config/short_mid_universe.json
+runtime/config/sample_registry.json
 runtime/portfolio_instances.json
 runtime/portfolio_instances.local.json
 reports/private/
+reports/daily/
 reports/trades/private/
 
 # Local secrets / environment

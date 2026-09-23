@@ -10,7 +10,7 @@ class SampleMaturityTests(unittest.TestCase):
                 "record_key": f"s1:2026-08-0{i}",
                 "sample_id": "s1",
                 "sample_role": "RETROSPECTIVE_LIVE_MANUAL",
-                "code": "600699",
+                "code": "999999",  # fictional fixture code
                 "name": "均胜电子",
                 "effective_date": f"2026-08-0{i}",
                 "price_and_path": {

@@ -283,10 +283,10 @@ No fixed DSR/PBO cutoff is hard-coded in this version. Missing diagnostics must 
 
 ## 12. First frozen Forward cohort
 
-The first immutable eight-stock baseline is:
+The public example is a synthetic immutable cohort fixture:
 
-- `../examples/2026-08-28-eight-stock-forward-cohort.md`
-- `../examples/2026-08-28-eight-stock-forward-cohort.json`
+- `../examples/synthetic-forward-cohort.md`
+- `../examples/synthetic-forward-cohort.json`
 
 The baseline decision fields must not be rewritten after later prices are observed. Outcomes are appended at predefined horizons.
 

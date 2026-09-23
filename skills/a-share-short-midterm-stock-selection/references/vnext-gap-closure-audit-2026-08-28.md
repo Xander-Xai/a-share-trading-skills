@@ -28,7 +28,7 @@ A document or schema existing in the repository is not automatically evidence th
 | Source provenance / `source_tier` | IMPLEMENTED_GOVERNANCE | `erg-output-schema.md` |
 | Roadmap wired into active Skill path | IMPLEMENTED_GOVERNANCE | `SKILL.md` |
 | Session-aware A-share execution calendar | IMPLEMENTED_GOVERNANCE | `session-aware-execution-calendar.md` |
-| 2026-08-28 eight-stock Forward baseline | IMPLEMENTED_MEASUREMENT_INFRASTRUCTURE | `examples/2026-08-28-eight-stock-forward-cohort.*` |
+| Synthetic public Forward-cohort fixture | IMPLEMENTED_MEASUREMENT_INFRASTRUCTURE | `examples/synthetic-forward-cohort.*` |
 | Disagreement Ledger | IMPLEMENTED_MEASUREMENT_INFRASTRUCTURE | `disagreement-ledger-and-negative-control.md` |
 | Placebo / negative control | IMPLEMENTED_MEASUREMENT_INFRASTRUCTURE | `disagreement-ledger-and-negative-control.md` |
 | No-trade opportunity-cost fields | IMPLEMENTED_MEASUREMENT_INFRASTRUCTURE | disagreement/forward protocols |
@@ -72,7 +72,7 @@ machine-field separation = REQUIRED
 
 ### Gap C — Decision robustness and return validation were not explicitly separated
 
-The eight-stock multi-method ranking showed high stability, but the repository did not yet explicitly prevent rank agreement from being interpreted as independent return evidence.
+The synthetic multi-method fixture exercises decision-stability reporting; it provides no market return evidence. The repository must prevent rank agreement from being interpreted as independent return evidence.
 
 Action:
 

@@ -131,9 +131,9 @@ Pass: `paper_capital_rmb`算股数/费用，NAV仅标准化展示。
 Input: submit超时，Broker可能已接收。
 Pass: 先查/reconcile，不盲重试，idempotency生效。
 
-## Eval 32 — Historical 36 vs 43 whitelist
-Input: 同日36股中间文件和43股最终案例并存。
-Pass: 36=intermediate；43=later final same-day baseline；两者都不是当前可执行名单。
+## Eval 32 — Candidate-set revision without publishing a user universe
+Input: A synthetic earlier candidate-set snapshot and a synthetic later screened snapshot coexist.
+Pass: Preserve version lineage and the screening transition; neither fixture is a current executable list or an actual user's universe.
 
 ## Eval 33 — Long-book weight denominator conversion
 Input:

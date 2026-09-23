@@ -91,7 +91,7 @@ RESEARCH / MONITOR INPUT
 默认配置：
 
 ```text
-runtime/config/short_mid_universe.json
+runtime/private/short_mid_universe.json
 ```
 
 不再默认读取：
@@ -184,12 +184,12 @@ python runtime/daily_monitor.py
 输出：
 
 ```text
-reports/daily/YYYY-MM-DD-market-monitor.json
-reports/daily/YYYY-MM-DD-market-monitor.md
+reports/private/daily/YYYY-MM-DD-market-monitor.json
+reports/private/daily/YYYY-MM-DD-market-monitor.md
 runtime/state/market_history.csv
 ```
 
-`market_history.csv` 只有在有效交易日且成功取得全市场成交额时才创建/更新。即使 history 文件不存在，fail-closed 日报也必须独立保留。
+`market_history.csv` 仅存全市场聚合统计。逐候选监控结果、样本注册表、真实交易行和成熟度报告默认保存在 ignored local private paths；CI 不提交这些运行产物。
 
 这些输出属于 **Generated Evidence / Runtime State**，不是 Policy，也不是可直接执行的订单。
 

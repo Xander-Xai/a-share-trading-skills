@@ -68,9 +68,9 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s runtime/tests -v
 
-      - name: Run fail-closed market monitor
+      - name: Run public market-only monitor
         if: github.event_name != 'pull_request'
-        run: python runtime/daily_monitor.py
+        run: python -m runtime.daily_monitor --market-only
 
       # Primary history adapters use Eastmoney; resilient adapter falls back to
       # Tencent history/index data when the primary endpoint is unavailable.
@@ -83,7 +83,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: python -m runtime.sample_maturity
 
-      - name: Commit report, market history and sample evidence
+      - name: Commit public market-wide history only
         if: github.event_name != 'pull_request'
         shell: bash
         run: |
@@ -99,14 +99,8 @@ jobs:
             exit 0
           fi
 
-          if [ -d reports/daily ]; then
-            git add reports/daily
-          fi
           if [ -f runtime/state/market_history.csv ]; then
             git add runtime/state/market_history.csv
-          fi
-          if [ -d runtime/state/sample_evidence ]; then
-            git add runtime/state/sample_evidence
           fi
 
           if git diff --cached --quiet; then

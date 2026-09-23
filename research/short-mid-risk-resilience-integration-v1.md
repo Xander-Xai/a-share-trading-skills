@@ -4,16 +4,14 @@
 >
 > Date: 2026-08-29
 >
-> Scope: integrate lessons from the 600699 retrospective live sample, blind replay and theoretical adversarial audit into the short/mid-term methodology without hindsight-based production tuning.
+> Case classification: `ANONYMIZED_RESEARCH_CASE` (`CASE-SM-001`); identifying security, date, account and execution details are intentionally omitted.
+>
+> Scope: integrate generalized lessons from an anonymized retrospective review, blind replay and theoretical adversarial audit into short/mid-term methodology without hindsight-based production tuning.
 
 ## 1. Source artifacts
 
 This integration abstracts the reusable methodology from:
 
-- `skills/a-share-short-midterm-stock-selection/examples/2026-08-05-600699-retrospective-live-sample.json`
-- `skills/a-share-short-midterm-stock-selection/examples/2026-08-05-600699-blind-replay-frozen.md`
-- `skills/a-share-short-midterm-stock-selection/examples/2026-08-05-600699-blind-replay-frozen.json`
-- `skills/a-share-short-midterm-stock-selection/examples/2026-08-29-600699-position-review.md`
 - `research/short-mid-blind-replay-theoretical-audit-v1.md`
 
 The stock-specific levels/outcomes are **not** generalized into methodology. Only reusable process principles are carried forward.
@@ -204,15 +202,12 @@ A single P&L number cannot diagnose these separately.
 
 The new methodology requires the system to identify which risk is being managed rather than using one rule to solve every problem.
 
-## 8. 600699-specific lesson that is NOT generalized
+## 8. Case-specific observations that are NOT generalized
 
-The following are case-only and must not become generic parameters:
+`CASE-SM-001` is an anonymized retrospective research case, not a public instrument or account record. Case-only observations must not become generic parameters:
 
-- 21.85 / 22.00 continuation level;
-- 20.60 / 20.00 invalidation geometry;
-- later 19.xx / 18.xx levels;
-- one stock's observed MFE / MAE;
-- the user's specific 50% reported position;
+- exact price levels, position sizes and transaction sequence (omitted);
+- one case's observed MFE / MAE;
 - any uncalibrated scenario probabilities.
 
 What is generalized is the **method used to derive and audit** such levels at the decision timestamp.

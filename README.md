@@ -183,10 +183,10 @@ Gate First
 
 ## Short/Mid sample evidence pipeline
 
-真实交易样本采用：
+真实交易样本只在本地私有状态中采用：
 
 ```text
-User supplies private execution truth
+Private local execution input
         ↓
 Sample Registry + Manual Trade Events
         ↓
@@ -206,24 +206,13 @@ Sample Data Maturity Report
 Forward / retrospective research according to evidence class
 ```
 
-用户不需要每天手工抄行情。默认只报告机器无法知道的真实成交/账户事实，例如：
-
-```text
-SYNTHETIC EXAMPLE
-NOT REAL USER DATA
-
-SYNTHETIC EXAMPLE
-NOT REAL USER DATA
-
-```
-
-公开行情、成交、市场宽度、融资、公告和派生特征由系统按合同采集。数据覆盖率不等于 Alpha；成熟度报告只回答“证据是否完整、可审计”。
+用户不需要每天手工抄行情。实际成交和账户事实只进入 ignored local paths；逐样本行情派生证据与成熟度报告也留在私有运行目录。公开仓库仅允许 schema、公开市场聚合观察及明确标记的合成 fixture，不能把个人 watchlist、fill、成本、持仓或其行级派生数据提交到 Git。
 
 详见：
 
 - `skills/a-share-short-midterm-stock-selection/references/sample-data-acquisition-contract.md`
-- `runtime/config/sample_registry.json`
-- `runtime/state/sample_evidence/manual_events/trade_events.jsonl`
+- `runtime/private/sample_registry.json` (local only)
+- `runtime/state/private/sample_evidence/manual_events/trade_events.jsonl` (local only)
 
 ## Shared account risk
 
@@ -295,9 +284,9 @@ runtime/daily_monitor.py
 runtime/sample_collector.py
 runtime/sample_maturity.py
 runtime/monitor.py
-runtime/config/short_mid_universe.json
-runtime/config/sample_registry.json
-runtime/state/sample_evidence/
+runtime/private/short_mid_universe.json
+runtime/private/sample_registry.json
+runtime/state/private/sample_evidence/
 runtime/tests/
 src/core/strategy_boundary.py
 src/core/pit.py
@@ -316,13 +305,13 @@ AUTO_ORDER   = false
 
 默认 runtime universe 已从历史 `examples/` 解耦到：
 
-`runtime/config/short_mid_universe.json`
+`runtime/private/short_mid_universe.json` (ignored local configuration)
 
 真实/研究样本注册表独立维护于：
 
-`runtime/config/sample_registry.json`
+`runtime/private/sample_registry.json` (ignored local configuration)
 
-`examples/` 继续作为 Level-4 历史 / Forward / Replay evidence，不是未来 production-current universe 真相源。
+`examples/` 只保存显式标记的 synthetic fixtures；真实 Level-4 universe/cohort 与 Forward/Replay evidence 位于 ignored local private state，不是 tracked source。
 
 ### Local checks
 

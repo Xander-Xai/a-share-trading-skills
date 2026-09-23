@@ -1,0 +1,12 @@
+{
+  "fixture_type": "SYNTHETIC EXAMPLE / NOT REAL USER DATA",
+  "classification": "SYNTHETIC",
+  "case_id": "CASE-SM-001",
+  "identifiers_are_fictional": true,
+  "derived_from_user_watchlist": false,
+  "account_or_execution_data": false,
+  "research_state": "CANDIDATE",
+  "position_state": "FLAT",
+  "next_step": "REFRESH_ALL_GATES",
+  "method_note": "A research candidate is not an order or recommendation; missing evidence remains missing and fail closed."
+}

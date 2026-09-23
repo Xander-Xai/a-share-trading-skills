@@ -2,13 +2,15 @@
 
 > Status: `ACTIVE RESEARCH PROTOCOL / SHADOW ONLY`
 >
-> Purpose: validate the hypotheses abstracted from the 600699 retrospective review, blind replay and theoretical adversarial audit without changing production Champion or risk caps.
+> Case classification: `ANONYMIZED_RESEARCH_CASE` (`CASE-SM-001`); no security identifier, transaction date, account value or fill detail is included.
+>
+> Purpose: validate hypotheses abstracted from an anonymized retrospective review, blind replay and theoretical adversarial audit without changing production Champion or risk caps.
 >
 > Active governance layer: `skills/a-share-short-midterm-stock-selection/references/risk-resilience-layer.md`.
 
 ## 1. Why this experiment exists
 
-The repository already controls planned risk, portfolio heat, execution constraints and holding state, but the 600699 review exposed a missing empirical question:
+The repository already controls planned risk, portfolio heat, execution constraints and holding state, but the anonymized case review exposed a missing empirical question:
 
 ```text
 How should the system behave when an initially reasonable setup fails to produce expected right-side confirmation?
@@ -16,7 +18,7 @@ How should the system behave when an initially reasonable setup fails to produce
 
 This protocol tests whether additional resilience diagnostics improve tail risk or decision quality after costs.
 
-It does not assume that the 600699 outcome proves any rule.
+It does not assume that the outcome of `CASE-SM-001` proves any rule.
 
 ## 2. Frozen research family
 
@@ -359,14 +361,9 @@ statistical review
 human Promotion Review
 ```
 
-## 15. Relationship to 600699
+## 15. Relationship to the anonymized research case
 
-The 600699 records are seed cases, not proof:
-
-- `skills/a-share-short-midterm-stock-selection/examples/2026-08-05-600699-retrospective-live-sample.json`
-- `skills/a-share-short-midterm-stock-selection/examples/2026-08-05-600699-blind-replay-frozen.md`
-- `skills/a-share-short-midterm-stock-selection/examples/2026-08-05-600699-blind-replay-frozen.json`
-- `skills/a-share-short-midterm-stock-selection/examples/2026-08-29-600699-position-review.md`
+`CASE-SM-001` supplies a research question only; its identifying and account-specific source material is not part of the public repository. The experiment is a hypothesis protocol, not evidence that the proposed rules work.
 
 The blind replay may validate process/PIT discipline but is not untouched forward alpha evidence.
 

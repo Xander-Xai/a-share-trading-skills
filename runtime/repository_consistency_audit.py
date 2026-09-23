@@ -15,8 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PRIVATE_PATH_PREFIXES = (
     "runtime/private/",
     "runtime/state/private/",
+    "runtime/state/sample_evidence/",
     "runtime/pretrade_authorizations/",
     "reports/private/",
+    "reports/daily/",
     "reports/trades/private/",
 )
 PRIVATE_PATH_PROBES = (
@@ -28,8 +30,19 @@ PRIVATE_PATH_PROBES = (
 PRIVATE_EXACT_PATHS = (
     "runtime/portfolio_instances.json",
     "runtime/portfolio_instances.local.json",
-    "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md",
+    "runtime/config/short_mid_universe.json",
+    "runtime/config/sample_registry.json",
 )
+PUBLIC_SYNTHETIC_FIXTURES = (
+    "skills/a-share-short-midterm-stock-selection/examples/synthetic-watchlist-case-study.md",
+    "skills/a-share-short-midterm-stock-selection/examples/synthetic-watchlist.json",
+    "skills/a-share-short-midterm-stock-selection/examples/synthetic-forward-cohort.md",
+    "skills/a-share-short-midterm-stock-selection/examples/synthetic-forward-cohort.json",
+    "skills/a-share-short-midterm-stock-selection/references/synthetic-core-pool-case.md",
+    "skills/a-share-retirement-investing/examples/synthetic-retirement-allocation.md",
+    "skills/a-share-retirement-investing/references/synthetic-seed-watchlist.md",
+)
+SYNTHETIC_MARKER = "SYNTHETIC EXAMPLE / NOT REAL USER DATA"
 
 
 @dataclass(frozen=True)
@@ -85,32 +98,27 @@ def _private_paths_ignored(gitignore_text: str | None = None) -> CheckResult:
 
     failures: list[str] = []
     errors: list[str] = []
-    for prefix in PRIVATE_PATH_PREFIXES:
+    candidates = [f"{prefix}{probe}" for prefix in PRIVATE_PATH_PREFIXES for probe in PRIVATE_PATH_PROBES]
+    candidates.extend(PRIVATE_EXACT_PATHS)
+    for candidate in candidates:
         prefix_failed = False
-        for probe in PRIVATE_PATH_PROBES:
-            candidate = f"{prefix}{probe}"
-            try:
-                result = subprocess.run(
-                    ["git", "check-ignore", "-v", "--no-index", "--", candidate],
-                    cwd=check_root,
-                    capture_output=True,
-                )
-            except (OSError, subprocess.CalledProcessError) as exc:
-                errors.append(f"{candidate}: {exc}")
-                prefix_failed = True
-                continue
-            if result.returncode == 0:
-                continue
-            if result.returncode == 1:
-                failures.append(candidate)
-                prefix_failed = True
-            else:
-                raw_detail = result.stderr or result.stdout or b"git check-ignore failed"
-                detail = os.fsdecode(raw_detail).strip() if isinstance(raw_detail, bytes) else str(raw_detail).strip()
-                errors.append(f"{candidate}: {detail}")
-                prefix_failed = True
-        if prefix_failed:
+        try:
+            result = subprocess.run(
+                ["git", "check-ignore", "-v", "--no-index", "--", candidate],
+                cwd=check_root,
+                capture_output=True,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            errors.append(f"{candidate}: {exc}")
             continue
+        if result.returncode == 0:
+            continue
+        if result.returncode == 1:
+            failures.append(candidate)
+            continue
+        raw_detail = result.stderr or result.stdout or b"git check-ignore failed"
+        detail = os.fsdecode(raw_detail).strip() if isinstance(raw_detail, bytes) else str(raw_detail).strip()
+        errors.append(f"{candidate}: {detail}")
 
     result = CheckResult(
             name="private_paths_ignored",
@@ -122,6 +130,27 @@ def _private_paths_ignored(gitignore_text: str | None = None) -> CheckResult:
     if temporary_root is not None:
         temporary_root.cleanup()
     return result
+
+
+def _public_synthetic_fixtures(tracked_paths: set[str] | None) -> CheckResult:
+    if tracked_paths is None:
+        return CheckResult("public_synthetic_fixtures", False, "NOT_EVALUATED: tracked file enumeration failed")
+    missing = [path for path in PUBLIC_SYNTHETIC_FIXTURES if path not in tracked_paths]
+    invalid = []
+    for path in PUBLIC_SYNTHETIC_FIXTURES:
+        if path not in tracked_paths:
+            continue
+        try:
+            if SYNTHETIC_MARKER not in _read(path):
+                invalid.append(path)
+        except (OSError, UnicodeError) as exc:
+            invalid.append(f"{path}: {type(exc).__name__}")
+    ok = not missing and not invalid
+    return CheckResult(
+        "public_synthetic_fixtures",
+        ok,
+        "all tracked case fixtures carry the synthetic marker" if ok else f"missing={missing}; marker_missing_or_unreadable={invalid}",
+    )
 
 
 def _not_contains(path: str, needles: Iterable[str]) -> CheckResult:
@@ -340,7 +369,11 @@ def run_audit() -> list[CheckResult]:
         ),
         _contains_all(
             "runtime/README.md",
-            ["runtime/config/short_mid_universe.json", "不能作为未来 production-current universe 的默认真相源"],
+            ["runtime/private/short_mid_universe.json", "ignored local private paths"],
+        ),
+        _contains_all(
+            "skills/a-share-short-midterm-stock-selection/references/sample-data-acquisition-contract.md",
+            ["PUBLIC / TRACKED EVIDENCE", "PRIVATE EXECUTION STATE", "runtime/state/private/sample_evidence/"],
         ),
     ])
 
@@ -348,7 +381,6 @@ def run_audit() -> list[CheckResult]:
         CheckResult(
             name="privacy_boundary",
             ok=not (ROOT / "runtime/portfolio_instances.json").exists()
-               and not (ROOT / "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md").exists()
                and (ROOT / ".gitignore").exists()
                and (ROOT / "runtime/PRIVATE_STATE.md").exists(),
             detail="personal portfolio/trade artifacts must not be tracked in public source",
@@ -365,13 +397,14 @@ def run_audit() -> list[CheckResult]:
         ),
         CheckResult(
             name="no_tracked_personal_instances",
-            ok=tracked_paths is not None and not any(path in tracked_paths for path in (
-                "runtime/portfolio_instances.json",
-                "reports/trades/2026-09-11-600699-joyson-electronics-postmortem.md",
-            )),
+            ok=tracked_paths is not None and not any(
+                path in PRIVATE_EXACT_PATHS or path.startswith(PRIVATE_PATH_PREFIXES)
+                for path in tracked_paths
+            ),
             detail=("public tracked tree excludes personal portfolio/trade artifacts"
                     if tracked_paths is not None else "NOT_EVALUATED: tracked file enumeration failed"),
         ),
+        _public_synthetic_fixtures(tracked_paths),
         _contains_all(
             "src/core/account_snapshot.py",
             ["CanonicalAccountSnapshot", "reconciliation_state", "staleness_state", "ENTRY", "ADD", "TRIM", "EXIT"],

@@ -29,7 +29,7 @@ class ResilientSampleCollectorTests(unittest.TestCase):
             resilient.core, "safe_call", return_value=tx
         ):
             out = resilient.fetch_stock_history_resilient(
-                "600699", date(2026, 8, 1), date(2026, 8, 29), errors
+                "999999", date(2026, 8, 1), date(2026, 8, 29), errors  # fictional fixture code
             )
         self.assertIsNotNone(out)
         self.assertAlmostEqual(float(out.iloc[-1]["成交量"]), 176816.0)
