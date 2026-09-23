@@ -438,6 +438,8 @@ def _daily_workflow_write_model_check(state: dict[str, Any] | None, workflow_tex
         '"diff", "--cached", "--name-only", "-z"',
         "gh pr list",
         "gh pr create",
+        "gh workflow run repository-governance.yml",
+        "actions: write",
         'git push origin "$branch"',
         "if ! git diff --cached --quiet; then",
     )
@@ -445,6 +447,12 @@ def _daily_workflow_write_model_check(state: dict[str, Any] | None, workflow_tex
     valid = state.get("scheduled_evidence_allowlist") == allowed
     valid = valid and bool(publisher) and "contents: write" in publisher and "pull-requests: write" in publisher
     valid = valid and "if: github.event_name != 'pull_request'" in publisher
+    fast_forward_push = re.search(
+        r'if ! git diff --cached --quiet; then\s+git commit[^\n]*\n\s+fi\s+#.*?\n\s+git push origin "\$branch"\s+if git diff --quiet origin/main',
+        publisher,
+        re.S,
+    )
+    valid = valid and fast_forward_push is not None
     action_permissions = state.get("github_actions_permissions")
     valid = valid and action_permissions == {
         "default_workflow_permissions": "read",

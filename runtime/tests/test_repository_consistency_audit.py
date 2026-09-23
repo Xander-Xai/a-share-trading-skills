@@ -75,6 +75,21 @@ class RepositoryConsistencyAuditTests(unittest.TestCase):
         workflow = workflow.replace("gh pr create", "gh pr review --approve")
         self.assertFalse(audit._daily_workflow_write_model_check(state, workflow).ok)
 
+    def test_daily_workflow_dispatches_required_governance_for_bot_pr(self):
+        state = self._current_state()
+        workflow = audit._read(".github/workflows/a-share-daily-monitor.yml")
+        self.assertFalse(audit._daily_workflow_write_model_check(state, workflow.replace("gh workflow run repository-governance.yml", "gh workflow run other.yml")).ok)
+
+    def test_existing_evidence_branch_is_pushed_after_optional_commit(self):
+        state = self._current_state()
+        workflow = audit._read(".github/workflows/a-share-daily-monitor.yml")
+        unsafe = workflow.replace(
+            '            git commit -m "chore: update public market evidence"\n          fi\n          # This also fast-forwards a previously behind evidence branch when\n          # the new artifact itself has no staged data delta.\n          git push origin "$branch"',
+            '            git commit -m "chore: update public market evidence"\n            git push origin "$branch"\n          fi',
+        )
+        self.assertNotEqual(unsafe, workflow)
+        self.assertFalse(audit._daily_workflow_write_model_check(state, unsafe).ok)
+
     def test_champion_drift_fails(self):
         state = self._current_state()
         state["models"]["champion"]["status"] = "SHADOW_ONLY"
