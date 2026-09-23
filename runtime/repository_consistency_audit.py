@@ -439,17 +439,25 @@ def _daily_workflow_write_model_check(state: dict[str, Any] | None, workflow_tex
         "gh pr list",
         "gh pr create",
         'git push origin "$branch"',
+        "if ! git diff --cached --quiet; then",
     )
     missing = [item for item in required if item not in text]
     valid = state.get("scheduled_evidence_allowlist") == allowed
     valid = valid and bool(publisher) and "contents: write" in publisher and "pull-requests: write" in publisher
     valid = valid and "if: github.event_name != 'pull_request'" in publisher
+    action_permissions = state.get("github_actions_permissions")
+    valid = valid and action_permissions == {
+        "default_workflow_permissions": "read",
+        "allow_create_and_approve_pull_requests": True,
+        "workflow_submits_approvals": False,
+    }
     direct_main_push = bool(re.search(r"git\s+push(?:\s+--[^\s]+)*\s+origin\s+(?:HEAD:)?main\b", text))
     valid = valid and not direct_main_push
+    valid = valid and not re.search(r"\bgh\s+pr\s+review\b", publisher)
     valid = valid and not missing
     detail = "isolated write-permission publisher opens a PR for the registry allowlist only" if valid else (
         f"allowlist={state.get('scheduled_evidence_allowlist')}; publisher_present={bool(publisher)}; "
-        f"missing={missing}; direct_main_push={direct_main_push}"
+        f"actions_permissions={action_permissions}; missing={missing}; direct_main_push={direct_main_push}"
     )
     return CheckResult("daily_workflow_write_model", bool(valid), detail)
 

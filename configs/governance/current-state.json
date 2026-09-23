@@ -11,6 +11,11 @@
     "admin_enforcement": true,
     "bypass_actors": []
   },
+  "github_actions_permissions": {
+    "default_workflow_permissions": "read",
+    "allow_create_and_approve_pull_requests": true,
+    "workflow_submits_approvals": false
+  },
   "policy_versions": {
     "capital_eligibility": {
       "path": "shared/capital-eligibility-and-investor-risk-philosophy.md",

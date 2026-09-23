@@ -413,7 +413,7 @@ checkout
 → update deterministic evidence branch and create/update a protected-main PR
 ```
 
-The test/monitor job is read-only. Only the isolated publisher job has `contents: write` and `pull-requests: write`; it never pushes directly to `main`. The only permitted generated path is `runtime/state/market_history.csv`. Candidate reports, sample evidence, universe, and account data are not uploaded or committed. Normal branch protection and required checks govern evidence PRs; no bypass actor is used.
+The test/monitor job is read-only. Only the isolated publisher job has `contents: write` and `pull-requests: write`; it never pushes directly to `main`. Repository Actions settings keep default token permissions read-only and allow the publisher's `GITHUB_TOKEN` to create PRs. GitHub couples PR creation and approval in this setting; the workflow never submits an approval. The only permitted generated path is `runtime/state/market_history.csv`. Candidate reports, sample evidence, universe, and account data are not uploaded or committed. Normal branch protection and required checks govern evidence PRs; no bypass actor is used.
 
 ## Runtime 测试
 
