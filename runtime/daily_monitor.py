@@ -9,12 +9,20 @@ from zoneinfo import ZoneInfo
 import akshare as ak
 import pandas as pd
 
-from monitor import (
-    SHORT_MID_SLEEVE,
-    SHORT_MID_STRATEGY_ID,
-    calculate_sentiment,
-    normalize_stock_code,
-)
+if __package__:
+    from .monitor import (
+        SHORT_MID_SLEEVE,
+        SHORT_MID_STRATEGY_ID,
+        calculate_sentiment,
+        normalize_stock_code,
+    )
+else:  # Support direct script execution as well as ``python -m runtime.daily_monitor``.
+    from monitor import (
+        SHORT_MID_SLEEVE,
+        SHORT_MID_STRATEGY_ID,
+        calculate_sentiment,
+        normalize_stock_code,
+    )
 from src.core.strategy_boundary import require_strategy_context
 
 
