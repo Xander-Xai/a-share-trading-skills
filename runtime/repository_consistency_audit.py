@@ -322,7 +322,8 @@ def _state_semantics_checks(state: dict[str, Any] | None) -> list[CheckResult]:
     if state is None:
         return [CheckResult(name, False, "NOT_EVALUATED: current-state registry unavailable") for name in (
             "governance_mode", "branch_protection_contract", "runtime_order_safety", "model_governance",
-            "strategy_context", "state_namespaces", "historical_document_classification")]
+            "strategy_context", "state_namespaces", "historical_document_classification",
+            "daily_workflow_write_model")]
     checks: list[CheckResult] = []
     checks.append(CheckResult("governance_mode", state.get("governance_mode") == EXPECTED_GOVERNANCE_MODE,
                               str(state.get("governance_mode"))))
@@ -341,6 +342,7 @@ def _state_semantics_checks(state: dict[str, Any] | None) -> list[CheckResult]:
     safe = safe and '"auto_order": False' in runtime_source
     safe = safe and "--market-only" in runtime_source
     checks.append(CheckResult("runtime_order_safety", bool(safe), "AUTO_ORDER=false; market-only mode declared" if safe else f"runtime={runtime}"))
+    checks.append(_daily_workflow_write_model_check(state))
 
     models = state.get("models")
     model_ok = isinstance(models, dict)
@@ -414,6 +416,42 @@ def _state_semantics_checks(state: dict[str, Any] | None) -> list[CheckResult]:
             history_ok = False
     checks.append(CheckResult("historical_document_classification", bool(history_ok), "dated implementation report is labelled historical" if history_ok else f"policy={history_policy}"))
     return checks
+
+
+def _daily_workflow_write_model_check(state: dict[str, Any] | None, workflow_text: str | None = None) -> CheckResult:
+    if state is None:
+        return CheckResult("daily_workflow_write_model", False, "NOT_EVALUATED: current-state registry unavailable")
+    text = _read(".github/workflows/a-share-daily-monitor.yml") if workflow_text is None else workflow_text
+    allowed = ["runtime/state/market_history.csv"]
+    publisher = text.split("  publish-evidence:", 1)[1] if "  publish-evidence:" in text else ""
+    required = (
+        "actions/upload-artifact@v4",
+        "actions/download-artifact@v4",
+        "path: runtime/state/market_history.csv",
+        'artifact_path="$RUNNER_TEMP/public-market-history/market_history.csv"',
+        'root.rglob("*")',
+        "contents: read",
+        "pull-requests: write",
+        "automation/public-market-evidence",
+        '"diff", "--name-only", "-z"',
+        '"ls-files", "--others", "--exclude-standard", "-z"',
+        '"diff", "--cached", "--name-only", "-z"',
+        "gh pr list",
+        "gh pr create",
+        'git push origin "$branch"',
+    )
+    missing = [item for item in required if item not in text]
+    valid = state.get("scheduled_evidence_allowlist") == allowed
+    valid = valid and bool(publisher) and "contents: write" in publisher and "pull-requests: write" in publisher
+    valid = valid and "if: github.event_name != 'pull_request'" in publisher
+    direct_main_push = bool(re.search(r"git\s+push(?:\s+--[^\s]+)*\s+origin\s+(?:HEAD:)?main\b", text))
+    valid = valid and not direct_main_push
+    valid = valid and not missing
+    detail = "isolated write-permission publisher opens a PR for the registry allowlist only" if valid else (
+        f"allowlist={state.get('scheduled_evidence_allowlist')}; publisher_present={bool(publisher)}; "
+        f"missing={missing}; direct_main_push={direct_main_push}"
+    )
+    return CheckResult("daily_workflow_write_model", bool(valid), detail)
 
 
 def _repository_map_consistency(
