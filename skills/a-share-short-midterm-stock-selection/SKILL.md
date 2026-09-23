@@ -694,10 +694,10 @@ ERG/Challenger 还记录：
 - placebo/negative-control diagnostics；
 - number_of_trials / parameter stability / model-selection risk。
 
-冻结 cohort 的原始决策字段不得因未来结果改写。2026-08-28 首个八股 Forward baseline 见：
+冻结 cohort 的原始决策字段不得因未来结果改写。公开仓库中的 case fixture 必须是合成数据；真实用户 watchlist/cohort 与执行记录只保存在私有状态中。当前示例见：
 
-- `examples/2026-08-28-eight-stock-forward-cohort.md`；
-- `examples/2026-08-28-eight-stock-forward-cohort.json`。
+- `examples/synthetic-forward-cohort.md`；
+- `examples/synthetic-forward-cohort.json`。
 
 参数不能在少量交易后自动修改；新想法进入 Challenger。
 
@@ -765,15 +765,12 @@ ERG Challenger 额外保存 `erg_version`；session-aware 记录保存 `session_
 - `references/validation-metrics-and-trade-ledger.md`；
 - `references/paper-live-automation-roadmap.md`。
 
-### Frozen forward evidence
+### Synthetic public fixtures
 
-- `examples/2026-08-28-eight-stock-forward-cohort.md` — 首个八股 ERG/Champion immutable baseline；
-- `examples/2026-08-28-eight-stock-forward-cohort.json` — machine-readable baseline。
+- `examples/synthetic-forward-cohort.md` — synthetic evidence-state baseline；
+- `examples/synthetic-forward-cohort.json` — machine-readable synthetic fixture。
 
-### Historical evidence
+### Synthetic coverage fixture
 
-- `references/core-pool-snapshot-2026-08-26.md` — 中间36股历史快照；
-- `examples/2026-08-26-final-watchlist-case-study.md` — 同日晚些时候43股最终研究状态；
-- `examples/2026-08-26-final-watchlist.json` — 43股 machine-readable baseline。
-
-36→43 是同日研究演进，不是两个当前有效 whitelist。历史文件不能覆盖 fresh Skill run。
+- `references/synthetic-core-pool-case.md` — fictional coverage example；
+- `examples/synthetic-watchlist-case-study.md` — synthetic research-universe flow。

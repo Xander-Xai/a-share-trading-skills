@@ -229,7 +229,7 @@ trade-calendar check
 → A-share spot market
 → limit-up / limit-down / broken-board pools
 → sentiment calculation
-→ 43-stock watchlist price merge
+→ private runtime-universe price merge
 → pre_action monitor states
 → JSON / Markdown daily report
 → turnover-history ledger
@@ -352,9 +352,9 @@ Short-term sentiment cannot automatically liquidate bonds into stocks or stocks 
 
 **PASS.**
 
-The 2026-08-26 43-stock whitelist and long-term ten-stock portfolio remain point-in-time Level-4 baselines.
+Personal watchlists and account-level model portfolios are not retained as tracked examples. Public examples are synthetic and carry an explicit marker.
 
-Daily monitor merging with the 43-stock list does not turn that historical list into a permanent buy list: each candidate still requires fresh gates before execution.
+Daily monitor output that uses a local candidate universe is stored privately; public reporting retains only market-wide aggregates unless candidate data is independently public-safe and has no user linkage.
 
 ---
 

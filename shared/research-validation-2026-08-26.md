@@ -71,7 +71,7 @@ Stock Account Equity
 - 账户级单股合计暴露；
 - 账户级风险簇合计暴露。
 
-长期内部 Core/Growth、十股模型 `model_long_book_weight` 是 long-book 内部比例，必须先换算：
+长期内部 Core/Growth、合成 long-book fixture 的 `model_long_book_weight` 是 long-book 内部比例，必须先换算：
 
 ```text
 model_total_account_weight

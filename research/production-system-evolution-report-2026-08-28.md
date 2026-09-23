@@ -40,7 +40,7 @@ runtime/daily_monitor.py
 runtime/monitor.py
 runtime/tests/
 .github/workflows/a-share-daily-monitor.yml
-reports/daily/
+reports/private/
 runtime/state/
 ```
 

@@ -36,7 +36,7 @@ Stock Account Equity
 以下比例只在**长期已部署权益仓内部**计算：
 
 - Core Dividend / Growth Satellite；
-- 十股模型组合等示例中的 `model_long_book_weight`。
+- synthetic long-book fixture 中的 `model_long_book_weight`。
 
 因此：
 

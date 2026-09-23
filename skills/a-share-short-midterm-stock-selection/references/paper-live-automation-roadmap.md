@@ -78,12 +78,12 @@ Research 不能突破风险；Execution 不能绕过研究 Hard Gate。
 
 ## 4. Phase 0 — Research Baseline
 
-历史基线：
+公开 baseline fixture（合成数据）：
 
-- `../examples/2026-08-26-final-watchlist-case-study.md`
-- `../examples/2026-08-26-final-watchlist.json`
+- `../examples/synthetic-watchlist-case-study.md`
+- `../examples/synthetic-watchlist.json`
 
-较早的 `core-pool-snapshot-2026-08-26.md` 是36股中间快照；43股是同日晚些时候 final research state。
+真实 user-specific universe 和候选状态须留在本地 private runtime；公开 fixtures 不复刻任何历史个人证券列表。
 
 当前 Champion 为30/30/25/15；Causal Challenger 只 Shadow。
 

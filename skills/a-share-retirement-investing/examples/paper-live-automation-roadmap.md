@@ -83,13 +83,13 @@ Strategy Virtual Position = long / short_mid 逻辑子账
 - 当前长期 `SKILL.md`；
 - 三类 Level-1 governance；
 - 估值/Expected IRR 方法；
-- 十股历史模型组合；
+- synthetic allocation fixture；
 - benchmark 与成本假设；
 - 数据源和 point-in-time 规则。
 
-历史案例：
+合成分配示例：
 
-`ten-stock-retirement-portfolio-2026-08-26.md`
+`synthetic-retirement-allocation.md`
 
 任何规则修改保存：
 
@@ -136,9 +136,9 @@ reporting_nav     = 100.00 起始标准化绩效指数
 
 不能用 `NAV=100` 直接模拟 A 股股数。
 
-### 5.3 十股模型权重的正确解释
+### 5.3 Long-book 权重的正确解释
 
-十股案例中的：
+任何 long-book fixture 中的：
 
 ```text
 model_long_book_weight
@@ -162,7 +162,7 @@ valuation / Expected IRR allowance
 cross-sleeve same-symbol exposure
 ```
 
-不能把 long-book 12% 直接和账户级10%–12%上限比较。
+不能把 long-book 内部比例直接和账户级上限比较。
 
 ### 5.4 模拟建仓
 
@@ -593,12 +593,13 @@ reinvest_decision_id
 - 年度 Total Return attribution；
 - 评估 Skill / governance 是否需要 Challenger/升级。
 
-## 14. 从十股案例开始
+## 14. 从当前时点研究开始
 
-实际路线：
+不得把个人历史模型组合复制为初始 forward portfolio。实际路线：
 
 ```text
-十股历史 baseline
+public synthetic fixture (schema only)
+→ private current candidate inputs
 → 当前时点重新运行长期 Skill
 → 建立 paper_capital_rmb
 → 逐只按估值/Gate/Cap触发 Paper 建仓
@@ -607,7 +608,7 @@ reinvest_decision_id
 → 再决定是否进入小规模 Manual Live
 ```
 
-十股不是“必须同时买满”的指令；WATCH、估值不足或账户 Cap 不允许时，对应资金保留现金。
+fixture 不是“必须买入”的指令；WATCH、估值不足或账户 Cap 不允许时，对应资金保留现金。
 
 ## 15. 程序化交易 / 合规
 

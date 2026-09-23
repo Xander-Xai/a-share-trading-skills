@@ -83,7 +83,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: python -m runtime.sample_maturity
 
-      - name: Commit report, market history and sample evidence
+      - name: Commit public market-wide history only
         if: github.event_name != 'pull_request'
         shell: bash
         run: |
@@ -99,14 +99,8 @@ jobs:
             exit 0
           fi
 
-          if [ -d reports/daily ]; then
-            git add reports/daily
-          fi
           if [ -f runtime/state/market_history.csv ]; then
             git add runtime/state/market_history.csv
-          fi
-          if [ -d runtime/state/sample_evidence ]; then
-            git add runtime/state/sample_evidence
           fi
 
           if git diff --cached --quiet; then

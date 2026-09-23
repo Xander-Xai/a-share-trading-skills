@@ -251,9 +251,9 @@ no-trade is represented correctly
 Champion and Challenger do not contaminate each other
 ```
 
-The 2026-08-28 eight-stock cohort is primarily a Level-A artifact.
+The public synthetic cohort fixture is a schema/process test only; it is not Level-A empirical evidence.
 
-Level A cannot establish alpha.
+Level A cannot establish alpha; real cohort evidence remains private unless safely aggregated and reviewed.
 
 ### Level B — Historical Point-in-Time Research Validation
 

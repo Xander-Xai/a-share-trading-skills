@@ -292,16 +292,9 @@ RISK_REVIEW
 
 如果交易日历未知、关键数据不足或 Provider 失败，Runtime fail closed，不允许监控状态解锁新仓。
 
-## 36 股与 43 股历史文件
+## Synthetic research-universe fixtures
 
-`references/core-pool-snapshot-2026-08-26.md`：同日较早的36股中间快照。
-
-同日晚些时候形成43股最终研究 whitelist：
-
-- `examples/2026-08-26-final-watchlist-case-study.md`
-- `examples/2026-08-26-final-watchlist.json`
-
-`36 → 43` 是历史研究流程演进，不是两个同时有效的当前名单。两者均为 Level 4 证据，当前执行必须重新运行 Skill。
+公开仓库只保留明确标记的合成筛选示例：`references/synthetic-core-pool-case.md`、`examples/synthetic-watchlist-case-study.md` 与 `examples/synthetic-watchlist.json`。真实用户 watchlist、证券清单和逐候选运行状态保存在本地私有路径，不作为 tracked baseline。
 
 ## Paper → Live → Automation
 
@@ -345,8 +338,10 @@ skills/a-share-short-midterm-stock-selection/
 ├── SKILL.md
 ├── examples/
 │   ├── README.md
-│   ├── 2026-08-26-final-watchlist-case-study.md
-│   └── 2026-08-26-final-watchlist.json
+│   ├── synthetic-watchlist-case-study.md
+│   ├── synthetic-watchlist.json
+│   ├── synthetic-forward-cohort.md
+│   └── synthetic-forward-cohort.json
 └── references/
     ├── scoring-system.md
     ├── a-share-sentiment-regime-index.md
@@ -361,7 +356,7 @@ skills/a-share-short-midterm-stock-selection/
     ├── research-basis.md
     ├── paper-live-automation-roadmap.md
     ├── validation-metrics-and-trade-ledger.md
-    └── core-pool-snapshot-2026-08-26.md
+    └── synthetic-core-pool-case.md
 ```
 
 ## 推荐阅读顺序

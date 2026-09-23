@@ -412,13 +412,13 @@ Thesis 成立、Expected IRR/安全边际足够、四个 Gate 通过。
 - 未来12个月重点事件；
 - 与上一轮结论 diff。
 
-## 18. 历史示例与种子池
+## 18. Synthetic 示例与种子池
 
-- `references/seed-watchlist-2026-08-26.md`：早期方法论种子快照；
-- `examples/ten-stock-retirement-portfolio-2026-08-26.md`：十股 Forward-Test 模型组合；
+- `references/synthetic-seed-watchlist.md`：虚构长期研究种子示例；
+- `examples/synthetic-retirement-allocation.md`：不含证券列表或账户权重的合成配置示例；
 - `examples/paper-live-automation-roadmap.md`：Paper→Live/Automation 路线。
 
-它们均为 Level 4，不能覆盖当前 shared policy / Skill / 最新研究。
+公开示例必须标记为合成数据，不得复用个人证券列表、截图、成交或账户信息。真实本地输入不得覆盖当前 shared policy / Skill / 最新研究。
 
 ## 19. 参考材料
 
@@ -431,6 +431,6 @@ Thesis 成立、Expected IRR/安全边际足够、四个 Gate 通过。
 - `references/industry-checklists.md`
 - `references/expected-irr-total-return-benchmark.md`
 - `references/execution-template.md`
-- `references/seed-watchlist-2026-08-26.md`
-- `examples/ten-stock-retirement-portfolio-2026-08-26.md`
+- `references/synthetic-seed-watchlist.md`
+- `examples/synthetic-retirement-allocation.md`
 - `examples/paper-live-automation-roadmap.md`

@@ -18,9 +18,9 @@ SH_TZ = ZoneInfo("Asia/Shanghai")
 SHORT_MID_STRATEGY_ID = "a_share_short_mid"
 SHORT_MID_SLEEVE = "short_mid"
 
-DEFAULT_REGISTRY = Path("runtime/config/sample_registry.json")
-DEFAULT_STATE_DIR = Path("runtime/state/sample_evidence")
-DEFAULT_REPORT_DIR = Path("reports/daily")
+DEFAULT_REGISTRY = Path("runtime/private/sample_registry.json")
+DEFAULT_STATE_DIR = Path("runtime/state/private/sample_evidence")
+DEFAULT_REPORT_DIR = Path("reports/private/sample_evidence")
 
 
 def safe_call(errors: list[str], label: str, func, *args, **kwargs):

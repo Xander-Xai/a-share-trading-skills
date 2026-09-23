@@ -27,7 +27,7 @@ Current baseline:
 Champion = Technical 30 / Capital 30 / Fundamentals 25 / Catalyst 15
 Causal Challenger v1.1 + ERG v1 = SHADOW ONLY
 Skill = v1.7.0
-Forward baseline = 2026-08-28 eight-stock cohort
+Forward baseline = synthetic fixture for schema/process checks only; real cohorts are private
 ```
 
 ## 2. Common experiment contract
@@ -495,7 +495,7 @@ Use:
 
 - `disagreement-ledger-and-negative-control.md`
 - `champion-challenger-forward-test.md`
-- `2026-08-28-eight-stock-forward-cohort.*`
+- `examples/synthetic-forward-cohort.*`
 
 No new raw market feature is required for D0.
 
@@ -832,4 +832,4 @@ C = PROPOSED
 E = PROPOSED
 ```
 
-The current eight-stock Forward cohort is the first integration sample. It is not sufficient for track promotion. Subsequent cohorts must preserve the same immutable-decision discipline.
+The public synthetic Forward-cohort fixture is not an empirical integration sample and cannot support track promotion. Private cohorts must preserve the same immutable-decision discipline.

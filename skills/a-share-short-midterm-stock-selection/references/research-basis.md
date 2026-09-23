@@ -291,10 +291,7 @@ Detailed adversarial audit and theory mapping:
 
 - `../../../research/short-mid-blind-replay-theoretical-audit-v1.md`
 
-Frozen case:
-
-- `../examples/2026-08-05-600699-blind-replay-frozen.md`
-- `../examples/2026-08-05-600699-blind-replay-frozen.json`
+Retrospective blind replay is useful for PIT/process testing, but is not untouched forward evidence. Public examples use only the anonymized methodology record `CASE-SM-001`; no security-specific replay or execution details are retained.
 
 ## 17. Reference-price / cost-basis boundary
 

@@ -19,9 +19,9 @@ from src.core.strategy_boundary import require_strategy_context
 
 
 SH_TZ = ZoneInfo("Asia/Shanghai")
-DEFAULT_UNIVERSE = Path("runtime/config/short_mid_universe.json")
+DEFAULT_UNIVERSE = Path("runtime/private/short_mid_universe.json")
 DEFAULT_HISTORY = Path("runtime/state/market_history.csv")
-DEFAULT_OUTPUT_DIR = Path("reports/daily")
+DEFAULT_OUTPUT_DIR = Path("reports/private/daily")
 
 
 def safe_call(errors: list[str], label: str, func, *args, **kwargs):

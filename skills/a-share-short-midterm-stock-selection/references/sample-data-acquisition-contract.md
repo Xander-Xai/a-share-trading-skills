@@ -8,6 +8,21 @@
 >
 > This contract does **not** change Champion weights, entry thresholds, risk caps or order permissions.
 
+## Public / private boundary
+
+```text
+PUBLIC / TRACKED EVIDENCE
+= schemas, synthetic fixtures, public market observations/disclosures,
+  anonymized aggregate statistics, and research methodology
+
+PRIVATE EXECUTION STATE
+= actual portfolio/trade instances, broker/account identifiers, fills,
+  cost basis, shares, personal P&L, balances, cash/emergency answers,
+  frozen real authorization cards, and row-level evidence derived from them
+```
+
+Public examples containing case-like rows must declare `SYNTHETIC EXAMPLE / NOT REAL USER DATA` or be demonstrably non-reidentifiable anonymized aggregates. A real execution sample and any row-level market evidence collected for it remain private, including when the market observations themselves are public.
+
 ## 1. Principle — user reports actions, system collects market evidence
 
 The user should not be required to manually report daily price, volume, financing, announcements, market breadth or public financial data.
@@ -15,7 +30,7 @@ The user should not be required to manually report daily price, volume, financin
 Default split:
 
 ```text
-USER-ONLY DATA
+PRIVATE EXECUTION INPUT
 = actual trade / account facts that public sources cannot know
 
 SYSTEM-COLLECTED DATA
@@ -29,7 +44,7 @@ This separation reduces missing fields, inconsistent timestamps and hindsight re
 
 ## 2. Minimum user input for a new real trade sample
 
-Minimum required:
+The following schema describes private local input only; never commit populated real-trade instances:
 
 ```yaml
 code:
@@ -37,6 +52,8 @@ trade_date:
 action: BUY | ADD | TRIM | SELL
 actual_average_fill_price:
 ```
+
+`BUY` / `SELL` here describe execution-side sample events only; they are not canonical position-state semantics and do not replace the policy states `ENTRY` / `ADD` / `TRIM` / `EXIT`.
 
 Strongly preferred when available:
 
@@ -310,7 +327,7 @@ Registered before future outcomes are known, with immutable decision snapshot.
 
 May become Level-C evidence if the rest of the forward contract is satisfied.
 
-### Retrospective user-reported sample
+### Retrospective execution sample
 
 Reported after part/all of the price path is already known.
 
@@ -328,10 +345,11 @@ Do not count as Champion-generated forward win/loss.
 
 ## 8. Storage contract
 
-Recommended runtime structure:
+Private local runtime structure (ignored by Git):
 
 ```text
-runtime/state/sample_evidence/
+runtime/private/sample_registry.json
+runtime/state/private/sample_evidence/
   registry.json
   daily/
     YYYY-MM-DD.jsonl
@@ -341,7 +359,10 @@ runtime/state/sample_evidence/
     YYYY-MM-DD.jsonl
   checkpoints/
     <sample_id>.json
+reports/private/sample_evidence/
 ```
+
+Tracked storage is limited to schemas and explicitly synthetic fixtures under public research paths. Do not put real sample evidence under `runtime/state/sample_evidence/` or `reports/daily/`; both paths are treated as non-public/ignored. Public daily-market-only observations may be published separately only after removing any user-selected candidate universe and all execution linkage.
 
 Rules:
 
@@ -431,27 +452,7 @@ The repository should not say “dataset is mature” without reporting these co
 
 ## 12. What the user needs to tell ChatGPT going forward
 
-For a new trade, a one-line report is enough:
-
-```text
-SYNTHETIC EXAMPLE
-NOT REAL USER DATA
-
-```
-
-For a later action:
-
-```text
-SYNTHETIC EXAMPLE
-NOT REAL USER DATA
-
-```
-
-Or:
-
-```text
-600699，2026-09-10全部卖出，均价20.35。
-```
+For a real trade or later action, provide the facts only through a private session/local input. Public fixtures must instead be invented examples, explicitly marked `SYNTHETIC EXAMPLE / NOT REAL USER DATA`, and must not be derived from an actual user's security list, dates, fills or balances.
 
 If no operation occurs, the user does **not** need to report anything daily. The system keeps collecting public evidence.
 
@@ -477,8 +478,8 @@ relative strength
 ## 14. Final rule
 
 ```text
-User supplies private truth.
-System supplies public evidence.
-Derived features are reproducible.
+Public/tracked files contain only public-safe evidence and methodology.
+Real execution truth and its row-level derivatives stay private/ignored.
+Derived features are reproducible without publishing private sample rows.
 Future outcomes never rewrite past decisions.
 ```
